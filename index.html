@@ -3,111 +3,169 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 <title>Farbkrieg</title>
 <style>
-:root{--bg:#0b0d14;--fg:#e8ecf5;--card:#141826;--mut:#8b93a6;--line:#262c3f;--ac:#00e5ff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
-@media(prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#eef0f5;--fg:#141826;--card:#fff;--mut:#5d6579;--line:#d5d9e6;--ac:#0090b3}}
-:root[data-theme="light"]{--bg:#eef0f5;--fg:#141826;--card:#fff;--mut:#5d6579;--line:#d5d9e6;--ac:#0090b3}
+:root{--bg:#0a0c13;--fg:#e9edf7;--card:#141927;--card2:#1b2133;--mut:#8b93a8;--line:#283048;--ac:#00e5ff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#eef0f6;--fg:#141826;--card:#fff;--card2:#f1f3f9;--mut:#5d6579;--line:#d5d9e6;--ac:#0092b8}}
+:root[data-theme="light"]{--bg:#eef0f6;--fg:#141826;--card:#fff;--card2:#f1f3f9;--mut:#5d6579;--line:#d5d9e6;--ac:#0092b8}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
-body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;margin:0;padding:12px;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,sans-serif}
-.w{max-width:720px;margin:0 auto}h1{margin:0 0 4px;font-size:26px;letter-spacing:1px}
-.mut{color:var(--mut);font-size:13px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
-label{display:flex;flex-direction:column;font-size:13px;color:var(--mut);gap:3px}
-select,button{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}
-button{cursor:pointer}button.big{background:var(--ac);color:#001018;font-weight:700;border:0;padding:12px 18px;font-size:16px}
-canvas{width:auto;max-width:100%;max-height:64vh;margin:0 auto;display:block;background:#0b0d14;border:1px solid var(--line);border-radius:10px;touch-action:none}
-.row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
-.sb{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}.sr{display:flex;align-items:center;gap:8px;font-size:13px}
-.sr .nm{width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bar{flex:1;height:10px;background:var(--line);border-radius:5px;overflow:hidden}.bar i{display:block;height:100%;width:0}
-.shop{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center}.shop button{padding:10px 12px;font-size:14px}
-#ov{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:16px;z-index:5}
-#ov .card{max-width:440px;width:100%}.hide{display:none!important}table{width:100%;border-collapse:collapse}td{padding:3px 4px}td:last-child{text-align:right}
+*{-webkit-tap-highlight-color:transparent}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;touch-action:manipulation;margin:0;padding:12px;background:radial-gradient(1200px 500px at 50% -100px,rgba(0,229,255,.12),transparent),var(--bg);color:var(--fg);font:15px/1.4 system-ui,-apple-system,sans-serif}
+.w{max-width:760px;margin:0 auto}.hide{display:none!important}.mut{color:var(--mut);font-size:13px}
+h1{margin:0;font-size:34px;letter-spacing:2px;background:linear-gradient(90deg,#00e5ff,#ff4dd8,#ffb020);-webkit-background-clip:text;background-clip:text;color:transparent}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:12px;margin-top:10px;box-shadow:0 6px 20px rgba(0,0,0,.18)}
+button{background:var(--card2);color:var(--fg);border:1px solid var(--line);border-radius:10px;padding:9px 12px;font:inherit;cursor:pointer;transition:transform .08s,background .15s}
+button:active{transform:scale(.96)}
+button.big{background:linear-gradient(90deg,#00e5ff,#00ff88);color:#001018;font-weight:800;border:0;padding:14px 24px;font-size:17px;border-radius:12px}
+.gt{margin:14px 0 6px;font-size:12px;letter-spacing:.12em;text-transform:uppercase;color:var(--ac);font-weight:700}
+.og{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:2px 16px}.opt{margin-bottom:10px}.opt>span{display:block;font-size:12px;color:var(--mut);margin-bottom:4px}
+.seg{display:flex;gap:4px;flex-wrap:wrap}.seg button{flex:1;min-width:42px;padding:9px 6px;font-size:13px}.seg button.on{background:var(--ac);color:#001018;border-color:var(--ac);font-weight:700}
+.pre{display:flex;gap:6px;overflow-x:auto;padding:10px 0 2px}.pre button{white-space:nowrap;border-radius:999px;padding:9px 14px}
+.acts{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}summary{cursor:pointer;font-weight:600}
+table{width:100%;border-collapse:collapse}td{padding:4px}td:last-child{text-align:right}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}.pill{font:800 22px system-ui;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:4px 16px;min-width:70px;text-align:center}
+.chips{display:flex;gap:5px;flex-wrap:wrap}.chips span{font-size:11px;background:var(--card2);border:1px solid var(--line);border-radius:999px;padding:3px 9px;color:var(--mut)}
+.sb{display:flex;flex-direction:column;gap:5px;margin-bottom:8px}.sr{display:flex;align-items:center;gap:8px;font-size:13px}.sr .nm{width:130px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600}
+.bar{flex:1;height:12px;background:var(--card2);border-radius:6px;overflow:hidden;position:relative}.bar i{display:block;height:100%;width:0;transition:width .3s;border-radius:6px}
+canvas{width:auto;max-width:100%;max-height:58vh;margin:0 auto;display:block;background:#0a0c13;border:1px solid var(--line);border-radius:12px;touch-action:none}
+#hist{width:100%;max-height:none;height:46px;margin-top:6px}
+.pn{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--c);border-radius:12px;padding:8px;margin-top:8px}.ph{display:flex;justify-content:space-between;margin-bottom:6px}
+.pg{display:grid;grid-template-columns:repeat(auto-fit,minmax(118px,1fr));gap:6px}.pg button{padding:10px 6px;font-size:13px;text-align:left;line-height:1.2}.pg button.no{opacity:.4}.pg small{display:block;color:var(--mut)}
+#toast{position:fixed;left:50%;top:calc(14px + env(safe-area-inset-top,0px));transform:translate(-50%,-90px);background:var(--card);border:1px solid var(--ac);border-radius:999px;padding:9px 18px;z-index:9;transition:transform .3s;font-weight:600}#toast.show{transform:translate(-50%,0)}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;align-items:center;justify-content:center;padding:16px;z-index:5}#ov .card{max-width:480px;width:100%;max-height:90vh;overflow:auto}
 </style></head><body><div class="w">
-<div id="menu"><h1>🎨 FARBKRIEG</h1><div class="mut">Male mehr Fläche als alle anderen. Lokal bis 4 Menschen, bis 6 Spieler gesamt.</div>
-<div class="card"><div class="grid" id="opts"></div></div>
-<div class="card mut">Steuerung: <b>iPad/Touch:</b> Finger ins Feld ziehen, dein Held läuft dorthin (mehrere Finger = mehrere Spieler, jeder Finger schnappt sich den nächsten freien Helden). <b>P1</b> WASD · <b>P2</b> Pfeile · <b>P3</b> IJKL · <b>P4</b> Numpad 8/4/5/6. Shop-Tasten stehen an den Buttons.<br>
-Power-Ups: ⚡ Tempo · 💣 Bombe · ❄ friert Gegner ein. In der <b>Minion-Schlacht</b> gibt Malen Münzen, damit kaufst du Minions, die für dich malen. Gegnerische Helden zerstören deine Minions beim Berühren.</div>
-<p><button class="big" id="go">Spiel starten</button> <button id="rs">Bot-ELO zurücksetzen</button></p><div class="card"><b>Bot- und Spieler-ELO</b><table id="elo"></table></div></div>
-<div id="game" class="hide"><div class="row"><b>🎨 Farbkrieg</b><span><span id="tm" class="mut"></span> <button id="pz">Pause</button> <button id="mn">Menü</button></span></div>
-<div class="card"><div class="sb" id="sb"></div><canvas id="c" width="640" height="400"></canvas><div id="shops"></div></div></div>
-</div><div id="ov"><div class="card" id="res"></div></div>
+<div id="menu"><h1>FARBKRIEG</h1><div class="mut">Male mehr Fläche als alle anderen · Minions · Teams · Bots · ELO · lokal bis 4 Menschen</div>
+<div class="pre" id="pre"></div><div class="card" id="opts"></div>
+<details class="card"><summary>Steuerung und Hilfe</summary><p class="mut"><b>Touch/iPad:</b> Finger ins Feld ziehen, der nächste freie Held läuft hin. Mehrere Finger = mehrere Spieler. <b>Tastatur:</b> P1 WASD, Q Minion kaufen, E Dash, 1–4 Upgrades · P2 Pfeile, M kaufen, N Dash, 7–0 Upgrades · P3 IJKL, O kaufen, U Dash · P4 Numpad 8/4/5/6, Punkt kaufen, Komma Dash.<br>
+<b>Minions</b> malen selbstständig für dich und verschwinden nie. 🧭/🧲 schaltet zwischen Ausschwärmen und Folgen um. Im Modus <b>Minion Only</b> malt nur dein Schwarm, dein Held sammelt Power-Ups und lenkt.<br>
+<b>Power-Ups:</b> ⚡ Tempo · 💣 Bombe · ❄ Einfrieren · 🪙 Münzen · 🛡 Schild (eigene Zellen 6 s sicher). <b>Ereignisse:</b> Goldregen, Farbregen für den Letzten, Power-Up-Sturm.</p></details>
+<div class="acts"><button class="big" id="go">▶ Spiel starten</button><button id="rs">ELO zurücksetzen</button></div>
+<div class="card"><b>🏅 ELO-Rangliste</b><table id="elo"></table></div></div>
+<div id="game" class="hide"><div class="top"><div class="pill" id="tm"></div><div class="chips" id="chips"></div><span><button id="pz">⏸</button> <button id="mn">☰ Menü</button></span></div>
+<div class="card"><div class="sb" id="sb"></div><canvas id="c" width="640" height="400"></canvas><canvas id="hist" width="640" height="46"></canvas></div><div id="shops"></div></div></div>
+<div id="toast"></div><div id="ov"><div class="card" id="res"></div></div>
 <script>
-const $=id=>document.getElementById(id),R=Math.random,cv=$('c'),g=cv.getContext('2d');
-const COL=['#00e5ff','#00ff88','#ff4dd8','#ffb020','#ffee58','#a78bfa'],BN=['Nova','Blitz','Echo','Rex','Pixel','Volt'];
-const KEYS=[{u:'w',d:'s',l:'a',r:'d',b:['1','2','3']},{u:'ArrowUp',d:'ArrowDown',l:'ArrowLeft',r:'ArrowRight',b:['8','9','0']},{u:'i',d:'k',l:'j',r:'l',b:['u','o','p']},{u:'Numpad8',d:'Numpad5',l:'Numpad4',r:'Numpad6',b:[',','.','/']}];
-const MT=[{n:'Scout',c:15,s:1.35,b:1,i:'🔹'},{n:'Maler',c:35,s:.95,b:2,i:'🔷'},{n:'Panzer',c:70,s:.6,b:3,i:'🟦'}];
-const OPT=[['mode','Modus',[['klassik','Klassik'],['minion','Minion-Schlacht']]],['humans','Menschen',[0,1,2,3,4]],['bots','Bots',[0,1,2,3,4,5,6]],
-['diff','Bot-Stärke',[['0','Leicht'],['1','Normal'],['2','Schwer'],['3','Wahnsinn']]],['grid','Spielfeld',[['24','Klein'],['32','Mittel'],['48','Groß']]],
-['time','Rundenzeit (s)',[30,60,90,180]],['speed','Tempo',[['0.7','Langsam'],['1','Normal'],['1.4','Schnell']]],['brush','Pinsel',[['1','Klein'],['2','Kreuz'],['3','Groß']]],
-['power','Power-Ups',[['1','An'],['0','Aus']]],['wrap','Wände',[['0','Solide'],['1','Durchgang']]],['over','Überschreiben',[['1','Erlaubt'],['0','Gesperrt']]],['cap','Max. Minions',[4,8,16,32]]];
-let cfg={mode:'klassik',humans:1,bots:3,diff:'1',grid:'32',time:60,speed:'1',brush:'1',power:'1',wrap:'0',over:'1',cap:8},ELO={};
-try{Object.assign(cfg,JSON.parse(localStorage.getItem('fk_cfg')||'{}'));ELO=JSON.parse(localStorage.getItem('fk_elo')||'{}')}catch(e){}
-const sv=()=>{try{localStorage.setItem('fk_cfg',JSON.stringify(cfg));localStorage.setItem('fk_elo',JSON.stringify(ELO))}catch(e){}};
-OPT.forEach(([k,l,o])=>{const lb=document.createElement('label'),s=document.createElement('select');lb.textContent=l;
- o.forEach(v=>{const a=Array.isArray(v)?v:[v,v],op=new Option(a[1],a[0]);s.add(op)});s.value=String(cfg[k]);s.onchange=()=>{cfg[k]=s.value;sv()};lb.append(s);$('opts').append(lb)});
+const $=id=>document.getElementById(id),R=Math.random,cv=$('c'),g=cv.getContext('2d'),hc=$('hist'),hg=hc.getContext('2d');
+const COL=['#00e5ff','#00ff88','#ff4dd8','#ffb020','#ffee58','#a78bfa'],BN=['Nova','Blitz','Echo','Rex','Pixel','Volt'],PE=['🌱 Expansiv','⚔️ Aggressiv','🧲 Sammler'];
+const KEYS=[{u:'w',d:'s',l:'a',r:'d',b:'q',x:'e',up:['1','2','3','4']},{u:'ArrowUp',d:'ArrowDown',l:'ArrowLeft',r:'ArrowRight',b:'m',x:'n',up:['7','8','9','0']},{u:'i',d:'k',l:'j',r:'l',b:'o',x:'u',up:[]},{u:'Numpad8',d:'Numpad5',l:'Numpad4',r:'Numpad6',b:'.',x:',',up:[]}];
+const UP=[{n:'Minion-Tempo',ic:'👟',b:25,max:5},{n:'Pinsel',ic:'🖌️',b:40,max:3},{n:'Einkommen',ic:'💰',b:30,max:5},{n:'Held-Tempo',ic:'⚡',b:25,max:5}],SHP=[1,2,3,5];
+const GR=[['Modus',[['mode','Spielmodus',[['klassik','Klassik'],['minion','Minion-Schlacht'],['only','Minion Only']]],['teams','Teams',[['0','Jeder für sich'],['1','2 Teams']]]]],
+['Spieler',[['humans','Menschen',[0,1,2,3,4]],['bots','Bots',[0,1,2,3,4,5,6]],['diff','Bot-Stärke',[['0','Leicht'],['1','Normal'],['2','Schwer'],['3','Wahnsinn']]]]],
+['Spielfeld',[['grid','Größe',[['24','Klein'],['32','Mittel'],['48','Groß']]],['map','Karte',[['leer','Leer'],['bloecke','Blöcke'],['kreuz','Kreuz'],['zufall','Streu']]],['wrap','Wände',[['0','Solide'],['1','Durchgang']]]]],
+['Regeln',[['time','Rundenzeit (s)',[30,60,90,180,300]],['win','Sofortsieg ab Fläche',[['0','Aus'],['40','40%'],['60','60%']]],['over','Überschreiben',[['1','Erlaubt'],['0','Gesperrt']]],['brush','Held-Pinsel',[['1','Klein'],['2','Kreuz'],['3','Groß']]],['speed','Tempo',[['0.7','Langsam'],['1','Normal'],['1.4','Schnell']]],['power','Power-Ups',[['1','An'],['0','Aus']]],['events','Ereignisse',[['1','An'],['0','Aus']]]]],
+['Minions',[['cap','Max. pro Spieler',[8,16,32,64]],['cost','Preise',[['0.6','Billig'],['1','Normal'],['1.6','Teuer']]],['coins0','Startmünzen',[0,30,100]],['income','Münzen/Sekunde',[0,1,2,4]]]],
+['Extras',[['sound','Sound',[['1','An'],['0','Aus']]]]]];
+const PRE=[['😌 Chill',{mode:'klassik',humans:1,bots:2,diff:'1',time:60,teams:'0',events:'0'}],['🤖 Minion-Krieg',{mode:'minion',humans:1,bots:3,time:90,teams:'0',coins0:'30',income:'1'}],['🏭 Minion Only',{mode:'only',humans:1,bots:2,time:120,cap:32,coins0:'100',income:'2',teams:'0'}],
+['🎉 Chaos',{mode:'minion',humans:1,bots:5,diff:'2',wrap:'1',events:'1',map:'zufall',time:90,teams:'0'}],['👥 Zu zweit',{humans:2,bots:1,teams:'0'}],['🏆 2 gegen 2',{humans:2,bots:2,teams:'1',time:90}],['🧱 Labyrinth',{map:'bloecke',mode:'minion',bots:3,wrap:'0'}]];
+let cfg={mode:'minion',teams:'0',humans:1,bots:3,diff:'1',grid:'32',map:'leer',wrap:'0',time:90,win:'0',over:'1',brush:'1',speed:'1',power:'1',events:'1',cap:16,cost:'1',coins0:'30',income:'1',sound:'1'},ELO={};
+try{Object.assign(cfg,JSON.parse(localStorage.getItem('fk2_cfg')||'{}'));ELO=JSON.parse(localStorage.getItem('fk2_elo')||'{}')}catch(e){}
+const sv=()=>{try{localStorage.setItem('fk2_cfg',JSON.stringify(cfg));localStorage.setItem('fk2_elo',JSON.stringify(ELO))}catch(e){}};
+function opts(){$('opts').innerHTML='';GR.forEach(([t,os])=>{const h=document.createElement('div');h.className='gt';h.textContent=t;const gd=document.createElement('div');gd.className='og';
+ os.forEach(([k,l,vs])=>{const d=document.createElement('div');d.className='opt';d.innerHTML=`<span>${l}</span>`;const sg=document.createElement('div');sg.className='seg';
+  vs.forEach(v=>{const a=Array.isArray(v)?v:[v,v],b=document.createElement('button');b.textContent=a[1];if(String(cfg[k])==String(a[0]))b.className='on';b.onclick=()=>{cfg[k]=String(a[0]);sv();opts()};sg.append(b)});d.append(sg);gd.append(d)});$('opts').append(h,gd)})}
+$('pre').innerHTML='';PRE.forEach(([n,o])=>{const b=document.createElement('button');b.textContent=n;b.onclick=()=>{Object.keys(o).forEach(k=>cfg[k]=String(o[k]));sv();opts()};$('pre').append(b)});opts();
 const el=n=>Math.round(ELO[n]??1500);
-function eloTab(){const names=[...new Set([...BN,'Spieler 1','Spieler 2','Spieler 3','Spieler 4'])];$('elo').innerHTML=names.map(n=>`<tr><td>${n}</td><td>${el(n)}</td></tr>`).join('')}
+function eloTab(){const ns=[...BN,'Spieler 1','Spieler 2','Spieler 3','Spieler 4'].sort((a,b)=>el(b)-el(a));$('elo').innerHTML=ns.map((n,i)=>`<tr><td>${i+1}. ${n}</td><td>${el(n)}</td></tr>`).join('')}
 $('rs').onclick=()=>{ELO={};sv();eloTab()};eloTab();
+let AC=null;function snd(f,d=.09,t='sine'){if(cfg.sound!='1')return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),v=AC.createGain();o.type=t;o.frequency.value=f;v.gain.value=.04;o.connect(v);v.connect(AC.destination);o.start();o.stop(AC.currentTime+d)}catch(e){}}
+let tt=0;function toast(s){const t=$('toast');t.textContent=s;t.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>t.classList.remove('show'),2600)}
 let G=null,keys=new Set(),raf=0;
-const SH={1:[[0,0]],2:[[0,0],[1,0],[-1,0],[0,1],[0,-1]],3:[[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]};
+const SH={1:[[0,0]],2:[[0,0],[1,0],[-1,0],[0,1],[0,-1]],3:[[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]],5:[]};
+for(let a=-2;a<=2;a++)for(let c=-2;c<=2;c++)if(Math.abs(a)+Math.abs(c)<4)SH[5].push([a,c]);
+const cm=()=>+cfg.cost,costM=e=>Math.round(12*cm()*(1+.06*e.mn)),costU=(e,j)=>Math.round(UP[j].b*cm()*(e.up[j]+1)),tmOf=o=>G.tm?(o-1)%2:o;
 function start(){
  let h=+cfg.humans,b=+cfg.bots;if(h+b<2)b=2-h;if(h+b>6)b=6-h;
  const cols=+cfg.grid,rows=Math.round(cols*.625),cs=640/cols;cv.height=Math.round(rows*cs);
  const P=[[.08,.1],[.92,.9],[.92,.1],[.08,.9],[.5,.08],[.5,.92]];
- G={cols,rows,cs,own:new Uint8Array(cols*rows),cnt:[0,0,0,0,0,0,0],H:[],M:[],PU:[],T:0,over:0,pz:0,min:cfg.mode=='minion',d:+cfg.diff,sp:+cfg.speed,W:cols*cs,Hh:rows*cs};
- for(let i=0;i<h+b;i++)G.H.push({i,o:i+1,hum:i<h,name:i<h?'Spieler '+(i+1):BN[i-h],col:COL[i],x:P[i][0]*G.W,y:P[i][1]*G.Hh,coin:0,mn:0,fz:0,sp:0,tg:null,pt:null});
- $('sb').innerHTML=G.H.map(e=>`<div class="sr"><span class="nm" style="color:${e.col}">${e.name} <span class="mut">${el(e.name)}</span></span><div class="bar"><i style="background:${e.col}"></i></div><span id="st${e.i}" class="mut"></span></div>`).join('');
- $('shops').innerHTML=G.min?G.H.filter(e=>e.hum).map(e=>`<div class="shop"><b style="color:${e.col}">${e.name}</b><span id="co${e.i}"></span>${MT.map((m,j)=>`<button onclick="buy(${e.i},${j})">${m.i} ${m.n} ${m.c}🪙 [${KEYS[e.i].b[j]}]</button>`).join('')}</div>`).join(''):'';
- $('menu').classList.add('hide');$('game').classList.remove('hide');$('ov').style.display='none';cancelAnimationFrame(raf);loop()}
-function paint(o,cx,cy){const G_=G;if(G_.cfgw){cx=(cx+G_.cols)%G_.cols;cy=(cy+G_.rows)%G_.rows}else if(cx<0||cy<0||cx>=G_.cols||cy>=G_.rows)return;
- const id=cy*G_.cols+cx,p=G_.own[id];if(p==o||(p&&cfg.over=='0'))return;if(p)G_.cnt[p]--;G_.own[id]=o;G_.cnt[o]++;G_.H[o-1].coin+=p?.5:.25}
-function shape(o,x,y,b){const cx=Math.floor(x/G.cs),cy=Math.floor(y/G.cs);if(b>=4){for(let a=-3;a<=3;a++)for(let c=-3;c<=3;c++)paint(o,cx+a,cy+c)}else SH[b].forEach(([a,c])=>paint(o,cx+a,cy+c))}
-function pick(e,n,isH){let best=null,bs=1e9;for(let k=0;k<n;k++){const cx=Math.floor(R()*G.cols),cy=Math.floor(R()*G.rows),ow=G.own[cy*G.cols+cx];if(ow==e.o)continue;
-  const x=(cx+.5)*G.cs,y=(cy+.5)*G.cs;let s=Math.hypot(x-e.x,y-e.y)-(ow&&isH?G.d*G.cs*1.5:0);if(s<bs){bs=s;best={x,y}}}
+ G={cols,rows,cs,own:new Uint8Array(cols*rows),cnt:[0,0,0,0,0,0,0],H:[],M:[],PU:[],FX:[],hist:[],T:0,cd:170,over:0,pz:0,mode:cfg.mode,min:cfg.mode!='klassik',d:+cfg.diff,sp:+cfg.speed,W:cols*cs,Hh:rows*cs,tm:cfg.teams=='1'&&h+b>=3,ev:0};
+ for(let i=0;i<h+b;i++)G.H.push({i,o:i+1,hum:i<h,name:i<h?'Spieler '+(i+1):BN[i-h],pers:Math.floor(R()*3),col:COL[i],x:P[i][0]*G.W,y:P[i][1]*G.Hh,coin:G.min?+cfg.coins0:0,earn:0,mn:0,fz:0,sp:0,sh:0,dsh:0,dcd:0,cmd:0,up:[0,0,0,0],tg:null,pt:null});
+ // karte
+ const blk=(x,y)=>{if(x<0||y<0||x>=cols||y>=rows)return;if(P.some(p=>Math.hypot(p[0]*cols-x,p[1]*rows-y)<4))return;G.own[y*cols+x]=9};
+ if(cfg.map=='bloecke')for(let k=0;k<7;k++){const w=2+Math.floor(R()*3),hh=2+Math.floor(R()*3),x=Math.floor(R()*cols),y=Math.floor(R()*rows);for(let a=0;a<w;a++)for(let c=0;c<hh;c++)blk(x+a,y+c)}
+ if(cfg.map=='kreuz'){for(let x=0;x<cols;x++)if(Math.abs(x-cols/2)>3&&(x<cols*.2||x>cols*.8||Math.abs(x-cols/2)>5))blk(x,Math.floor(rows/2));for(let y=0;y<rows;y++)if(Math.abs(y-rows/2)>2)blk(Math.floor(cols/2),y)}
+ if(cfg.map=='zufall')for(let k=0;k<cols*rows*.08;k++)blk(Math.floor(R()*cols),Math.floor(R()*rows));
+ G.tot=G.own.length-G.own.filter(v=>v==9).length;
+ $('sb').innerHTML=G.H.map(e=>`<div class="sr"><span class="nm" style="color:${e.col}"><span id="rk${e.i}"></span>${e.name}${G.tm?' ·T'+(tmOf(e.o)+1):''} <span class="mut">${el(e.name)}${e.hum?'':' '+PE[e.pers].slice(0,2)}</span></span><div class="bar"><i style="background:${e.col}" id="b${e.i}"></i></div><span id="st${e.i}" class="mut" style="min-width:88px;text-align:right"></span></div>`).join('');
+ $('shops').innerHTML=G.H.filter(e=>e.hum).map(e=>`<div class="pn" style="--c:${e.col}"><div class="ph"><b>${e.name}</b><span id="co${e.i}"></span></div><div class="pg">${G.min?`<button id="bb${e.i}" onclick="buy(${e.i})"></button>${UP.map((u,j)=>`<button id="u${e.i}_${j}" onclick="upg(${e.i},${j})"></button>`).join('')}<button id="cm${e.i}" onclick="cmd(${e.i})"></button>`:''}<button id="ds${e.i}" onclick="dash(${e.i})"></button></div></div>`).join('');
+ $('chips').innerHTML=[{klassik:'Klassik',minion:'Minion-Schlacht',only:'Minion Only'}[cfg.mode],G.tm?'Teams':'Jeder gegen jeden',cols+'×'+rows,cfg.win>0?'Sofortsieg '+cfg.win+'%':''].filter(Boolean).map(s=>`<span>${s}</span>`).join('');
+ $('menu').classList.add('hide');$('game').classList.remove('hide');$('ov').style.display='none';$('pz').textContent='⏸';cancelAnimationFrame(raf);loop()}
+function gain(e,v){v*=1+.25*e.up[2];e.coin+=v;e.earn+=v}
+function paint(o,cx,cy,f){if(G.cfgw){cx=(cx+G.cols)%G.cols;cy=(cy+G.rows)%G.rows}else if(cx<0||cy<0||cx>=G.cols||cy>=G.rows)return;
+ const id=cy*G.cols+cx,p=G.own[id];if(p==o||p==9)return;if(p&&!f&&(cfg.over=='0'||(G.tm&&tmOf(p)==tmOf(o))||G.H[p-1].sh>0))return;
+ if(p)G.cnt[p]--;G.own[id]=o;G.cnt[o]++;if(!f)gain(G.H[o-1],p?.5:.25)}
+function shape(o,x,y,b){const cx=Math.floor(x/G.cs),cy=Math.floor(y/G.cs);if(b>=7){for(let a=-3;a<=3;a++)for(let c=-3;c<=3;c++)paint(o,cx+a,cy+c)}else SH[b].forEach(([a,c])=>paint(o,cx+a,cy+c))}
+function pick(e,n,near){const h=G.H[e.o-1],eb=h.pers==1?G.cs*6:G.cs*G.d*1.2;let best=null,bs=1e9;
+ for(let k=0;k<n;k++){let cx,cy;if(near){cx=Math.floor(near.x/G.cs+(R()-.5)*14);cy=Math.floor(near.y/G.cs+(R()-.5)*14);if(cx<0||cy<0||cx>=G.cols||cy>=G.rows)continue}else{cx=Math.floor(R()*G.cols);cy=Math.floor(R()*G.rows)}
+  const ow=G.own[cy*G.cols+cx];if(ow==e.o||ow==9||(ow&&G.tm&&tmOf(ow)==tmOf(e.o)))continue;
+  const x=(cx+.5)*G.cs,y=(cy+.5)*G.cs;let s=Math.hypot(x-e.x,y-e.y)-(ow?eb:0);if(s<bs){bs=s;best={x,y}}}
  return best||{x:R()*G.W,y:R()*G.Hh}}
 function toward(e,t,s){const dx=t.x-e.x,dy=t.y-e.y,d=Math.hypot(dx,dy)||1;if(d<=s){e.x=t.x;e.y=t.y;return 1}e.x+=dx/d*s;e.y+=dy/d*s;return 0}
-function clampE(e){if(cfg.wrap=='1'){e.x=(e.x+G.W)%G.W;e.y=(e.y+G.Hh)%G.Hh}else{e.x=Math.max(1,Math.min(G.W-1,e.x));e.y=Math.max(1,Math.min(G.Hh-1,e.y))}}
-function buy(i,j){if(!G||G.over)return;const e=G.H[i],m=MT[j];if(e.coin<m.c||e.mn>=+cfg.cap)return;e.coin-=m.c;e.mn++;G.M.push({o:e.o,x:e.x,y:e.y,s:m.s,b:m.b,tg:null,col:e.col})}
+function clampE(e){if(G.cfgw){e.x=(e.x+G.W)%G.W;e.y=(e.y+G.Hh)%G.Hh}else{e.x=Math.max(1,Math.min(G.W-1,e.x));e.y=Math.max(1,Math.min(G.Hh-1,e.y))}}
+function buy(i){if(!G||G.over||G.cd>0||!G.min)return;const e=G.H[i],c=costM(e);if(e.coin<c||e.mn>=+cfg.cap)return;e.coin-=c;e.mn++;G.M.push({o:e.o,x:e.x,y:e.y,tg:null,col:e.col});if(e.hum)snd(660,.07)}
+function upg(i,j){if(!G||G.over||!G.min)return;const e=G.H[i],c=costU(e,j);if(e.up[j]>=UP[j].max||e.coin<c)return;e.coin-=c;e.up[j]++;if(e.hum)snd(880,.1,'triangle')}
+function cmd(i){if(G&&G.min)G.H[i].cmd^=1}
+function dash(i){if(!G||G.over||G.cd>0)return;const e=G.H[i];if(e.dcd>0)return;e.dsh=22;e.dcd=480;snd(300,.12,'sawtooth')}
+function fx(x,y,t){G.FX.push({x,y,t,a:50})}
+function spawnPU(){G.PU.push({x:(Math.floor(R()*G.cols)+.5)*G.cs,y:(Math.floor(R()*G.rows)+.5)*G.cs,t:Math.floor(R()*5)})}
+function tscore(o){if(!G.tm)return G.cnt[o];return G.H.filter(h=>tmOf(h.o)==tmOf(o)).reduce((a,h)=>a+G.cnt[h.o],0)}
+function evnt(){const k=Math.floor(R()*3);
+ if(k==0){G.H.forEach(e=>gain(e,25));toast('💰 Goldregen: +25 Münzen für alle')}
+ else if(k==1){const l=[...G.H].sort((a,b)=>G.cnt[a.o]-G.cnt[b.o])[0];let n=0;for(let t=0;t<900&&n<35;t++){const id=Math.floor(R()*G.own.length);if(G.own[id]!=l.o&&G.own[id]!=9){paint(l.o,id%G.cols,Math.floor(id/G.cols),1);n++}}toast('🌧 Farbregen für '+l.name+' (Aufholhilfe)')}
+ else{for(let i=0;i<4;i++)spawnPU();toast('🌪 Power-Up-Sturm!')}snd(520,.2,'triangle')}
 function step(){
- G.cfgw=cfg.wrap=='1';const T=++G.T,base=G.cs*5/60*G.sp,sz=[24,150,300,520],DS=[.75,.95,1.1,1.3][G.d];
- for(const e of G.H){if(e.fz>0){e.fz--;continue}if(e.sp>0)e.sp--;
-  let s=base*(e.sp>0?1.6:1)*(e.hum?1:DS);
+ const T=++G.T,F=G.cs*5/60*G.sp,DS=[.75,.95,1.1,1.3][G.d],sz=[24,150,300,520],only=G.mode=='only';G.cfgw=cfg.wrap=='1';
+ if(T%60==0){if(G.min)for(const e of G.H)gain(e,+cfg.income);G.hist.push(G.cnt.slice());drawHist();
+  if(+cfg.win>0)for(const e of G.H)if(tscore(e.o)/G.tot*100>=+cfg.win){finish();return}}
+ if(cfg.events=='1'&&T%1500==0)evnt();
+ for(const e of G.H){if(e.dsh>0)e.dsh--;if(e.dcd>0)e.dcd--;if(e.sh>0)e.sh--;if(e.fz>0){e.fz--;continue}if(e.sp>0)e.sp--;
+  const s=F*(e.sp>0?1.6:1)*(e.dsh>0?2.6:1)*(1+.12*e.up[3])*(e.hum?1:DS);
   if(e.hum){const k=KEYS[e.i];let dx=(keys.has(k.r)?1:0)-(keys.has(k.l)?1:0),dy=(keys.has(k.d)?1:0)-(keys.has(k.u)?1:0);
    if(dx||dy){const d=Math.hypot(dx,dy);e.x+=dx/d*s;e.y+=dy/d*s;e.pt=null}else if(e.pt&&toward(e,e.pt,s))e.pt=null}
-  else{if(!e.tg||Math.hypot(e.tg.x-e.x,e.tg.y-e.y)<s*1.5||(T%120==0&&R()<.4)){e.tg=pick(e,sz[G.d],1);
-    if(G.d>=1)for(const p of G.PU)if(Math.hypot(p.x-e.x,p.y-e.y)<G.cs*(4+G.d*2)){e.tg={x:p.x,y:p.y};break}}
-   toward(e,e.tg,s)}
-  clampE(e);shape(e.o,e.x,e.y,+cfg.brush);
-  for(let j=G.PU.length-1;j>=0;j--){const p=G.PU[j];if(Math.hypot(p.x-e.x,p.y-e.y)<G.cs){G.PU.splice(j,1);
-   if(p.t==0)e.sp=300;else if(p.t==1)shape(e.o,e.x,e.y,4);else G.H.forEach(o=>{if(o!==e)o.fz=120})}}
-  for(let j=G.M.length-1;j>=0;j--){const m=G.M[j];if(m.o!==e.o&&Math.hypot(m.x-e.x,m.y-e.y)<G.cs*.8){G.M.splice(j,1);G.H[m.o-1].mn--;e.coin+=2}}}
- for(const m of G.M){const s=base*m.s,h=G.H[m.o-1];if(h.fz>0)continue;
-  if(!m.tg||Math.hypot(m.tg.x-m.x,m.tg.y-m.y)<s*1.5)m.tg=pick(m,70+G.d*30,1);toward(m,m.tg,s);clampE(m);shape(m.o,m.x,m.y,m.b)}
- if(cfg.power=='1'&&T%360==0&&G.PU.length<3)G.PU.push({x:(Math.floor(R()*G.cols)+.5)*G.cs,y:(Math.floor(R()*G.rows)+.5)*G.cs,t:Math.floor(R()*3)});
- if(G.min&&T%30==0)for(const e of G.H)if(!e.hum&&R()<.3+G.d*.15){const j=e.coin>=70&&R()<.5?2:e.coin>=35&&R()<.6?1:0;buy(e.i,j)}
+  else{if(!e.tg||Math.hypot(e.tg.x-e.x,e.tg.y-e.y)<s*1.5||(T%120==0&&R()<.4)){e.tg=only?{x:R()*G.W,y:R()*G.Hh}:pick(e,sz[G.d]);
+    if(G.d>=1||only)for(const p of G.PU)if(Math.hypot(p.x-e.x,p.y-e.y)<G.cs*(3+G.d*2+(e.pers==2?6:0))){e.tg={x:p.x,y:p.y};break}}toward(e,e.tg,s)}
+  clampE(e);if(!only)shape(e.o,e.x,e.y,+cfg.brush);
+  for(let j=G.PU.length-1;j>=0;j--){const p=G.PU[j];if(Math.hypot(p.x-e.x,p.y-e.y)<G.cs){G.PU.splice(j,1);snd(740,.12,'square');
+   if(p.t==0){e.sp=300;fx(e.x,e.y,'⚡')}else if(p.t==1){shape(e.o,e.x,e.y,7);fx(e.x,e.y,'💥')}else if(p.t==2){G.H.forEach(o=>{if(o!==e&&(!G.tm||tmOf(o.o)!=tmOf(e.o)))o.fz=110});fx(e.x,e.y,'❄')}
+   else if(p.t==3){gain(e,25);fx(e.x,e.y,'+25🪙')}else{e.sh=360;fx(e.x,e.y,'🛡')}}}}
+ for(const m of G.M){const f=G.H[m.o-1];if(f.fz>0)continue;const s=F*1.1*(1+.15*f.up[0]);
+  if(!m.tg||Math.hypot(m.tg.x-m.x,m.tg.y-m.y)<s*1.5)m.tg=pick(m,70+G.d*30,f.cmd?f:null);toward(m,m.tg,s);clampE(m);shape(m.o,m.x,m.y,SHP[f.up[1]])}
+ for(const p of G.FX)p.a--;G.FX=G.FX.filter(p=>p.a>0);
+ if(cfg.power=='1'&&T%360==0&&G.PU.length<3)spawnPU();
+ if(G.min&&T%25==0)for(const e of G.H)if(!e.hum&&R()<.35+G.d*.15){if(e.mn>=3&&R()<.3){const j=Math.floor(R()*4);if(e.coin>=costU(e,j))upg(e.i,j)}else if(e.coin>=costM(e))buy(e.i)}
  if(T>=cfg.time*60)finish()}
-function finish(){G.over=1;const H=[...G.H].sort((a,b)=>G.cnt[b.o]-G.cnt[a.o]),n=H.length,D={};H.forEach(e=>D[e.name]=0);
- for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){const a=H[i],b=H[j];if(G.cnt[a.o]==G.cnt[b.o])continue;const w=el(a.name),l=el(b.name),st=Math.floor(Math.abs(l-w)/100);
+function finish(){G.over=1;const H=[...G.H].sort((a,b)=>tscore(b.o)-tscore(a.o)||G.cnt[b.o]-G.cnt[a.o]),n=H.length,D={};H.forEach(e=>D[e.name]=0);
+ for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){const a=H[i],b=H[j];if(tscore(a.o)==tscore(b.o)||(G.tm&&tmOf(a.o)==tmOf(b.o)))continue;const w=el(a.name),l=el(b.name),st=Math.floor(Math.abs(l-w)/100);
   const gn=Math.max(1,Math.min(10,l>w?5+st:5-st))/(n-1);D[a.name]+=gn;D[b.name]-=gn}
- const tot=G.cols*G.rows;let h='<h2 style="margin:0 0 8px">🏁 Ergebnis</h2><table>';
+ const win=H[0];let h=`<h2 style="margin:0 0 4px">🏁 ${G.tm?'Team '+(tmOf(win.o)+1)+' gewinnt':win.name+' gewinnt'}!</h2><div class="mut" style="margin-bottom:8px">Runde nach ${(G.T/60).toFixed(0)} s</div><table>`;
  H.forEach((e,i)=>{const d=Math.round(D[e.name]);ELO[e.name]=(ELO[e.name]??1500)+D[e.name];
-  h+=`<tr><td>${i+1}.</td><td style="color:${e.col}"><b>${e.name}</b></td><td>${(G.cnt[e.o]/tot*100).toFixed(1)}%</td><td>${el(e.name)} <span class="mut">(${d>=0?'+':''}${d})</span></td></tr>`});
- sv();$('res').innerHTML=h+'</table><p><button class="big" onclick="start()">Nochmal</button> <button onclick="toMenu()">Menü</button></p>';$('ov').style.display='flex'}
+  h+=`<tr><td>${['🥇','🥈','🥉'][i]||i+1+'.'}</td><td style="color:${e.col}"><b>${e.name}</b>${G.tm?' <span class="mut">T'+(tmOf(e.o)+1)+'</span>':''}</td><td>${(G.cnt[e.o]/G.tot*100).toFixed(1)}%</td><td class="mut">${G.min?'🧱'+e.mn+' · 🪙'+Math.round(e.earn):''}</td><td>${el(e.name)} <span style="color:${d>=0?'#00ff88':'#ff6b6b'}">(${d>=0?'+':''}${d})</span></td></tr>`});
+ sv();snd(523,.25,'triangle');$('res').innerHTML=h+'</table><div class="acts"><button class="big" onclick="start()">Nochmal</button><button onclick="toMenu()">Menü</button></div>';$('ov').style.display='flex'}
 function toMenu(){cancelAnimationFrame(raf);G=null;$('ov').style.display='none';$('game').classList.add('hide');$('menu').classList.remove('hide');eloTab()}
-function draw(){const{cols,rows,cs}=G;g.fillStyle='#0b0d14';g.fillRect(0,0,cv.width,cv.height);g.globalAlpha=.6;
- for(let i=0;i<G.own.length;i++){const o=G.own[i];if(o){g.fillStyle=COL[o-1];g.fillRect((i%cols)*cs,Math.floor(i/cols)*cs,cs+.5,cs+.5)}}
- g.globalAlpha=1;g.font=cs*.9+'px sans-serif';g.textAlign='center';g.textBaseline='middle';
- for(const p of G.PU)g.fillText(['⚡','💣','❄'][p.t],p.x,p.y);
- for(const m of G.M){g.fillStyle=m.col;g.strokeStyle='#000';g.lineWidth=1;const r=cs*(.18+.08*m.b);g.fillRect(m.x-r,m.y-r,r*2,r*2);g.strokeRect(m.x-r,m.y-r,r*2,r*2)}
- for(const e of G.H){g.beginPath();g.arc(e.x,e.y,cs*.48,0,7);g.fillStyle=e.col;g.shadowColor=e.col;g.shadowBlur=14;g.fill();g.shadowBlur=0;
-  g.lineWidth=2;g.strokeStyle=e.fz>0?'#9fe':e.sp>0?'#ff0':'#000';g.stroke();g.fillStyle='#000';g.font='bold '+cs*.6+'px sans-serif';g.fillText(e.hum?e.i+1:'B',e.x,e.y+1)}
- const tot=cols*rows;if(G.T%5==0){G.H.forEach(e=>{const r=$('sb').children[e.i];r.querySelector('i').style.width=G.cnt[e.o]/tot*100*(1.6)+'%';$('st'+e.i).textContent=(G.cnt[e.o]/tot*100).toFixed(0)+'%'+(G.min?' · 🪙'+Math.floor(e.coin)+' · 🧱'+e.mn:'');
-  const c=$('co'+e.i);if(c)c.textContent='🪙'+Math.floor(e.coin)+' · 🧱'+e.mn})
+function drawHist(){const w=hc.width,h=hc.height,n=G.hist.length;hg.clearRect(0,0,w,h);if(n<2)return;let base=new Array(n).fill(0);
+ for(const e of G.H){hg.beginPath();const top=G.hist.map((c,i)=>base[i]+c[e.o]);top.forEach((v,i)=>hg[i?'lineTo':'moveTo'](i/(n-1)*w,h-v/G.tot*h));for(let i=n-1;i>=0;i--)hg.lineTo(i/(n-1)*w,h-base[i]/G.tot*h);hg.closePath();hg.fillStyle=e.col;hg.globalAlpha=.75;hg.fill();base=top}hg.globalAlpha=1}
+function draw(){const{cols,cs}=G;g.fillStyle='#0a0c13';g.fillRect(0,0,cv.width,cv.height);
+ for(let i=0;i<G.own.length;i++){const o=G.own[i];if(!o)continue;const x=(i%cols)*cs,y=Math.floor(i/cols)*cs;
+  if(o==9){g.fillStyle='#232b40';g.fillRect(x,y,cs,cs);g.fillStyle='#2f3a57';g.fillRect(x+1,y+1,cs-2,cs-2)}
+  else{g.globalAlpha=G.H[o-1].sh>0?.95:.62;g.fillStyle=COL[o-1];g.fillRect(x+.4,y+.4,cs-.8,cs-.8)}}
+ g.globalAlpha=1;g.textAlign='center';g.textBaseline='middle';g.font=cs*.9+'px sans-serif';
+ for(const p of G.PU){g.shadowColor='#fff';g.shadowBlur=10;g.fillText(['⚡','💣','❄','🪙','🛡'][p.t],p.x,p.y);g.shadowBlur=0}
+ for(const m of G.M){const f=G.H[m.o-1],r=cs*(.2+.06*f.up[1]);g.fillStyle=m.col;g.strokeStyle='#000';g.lineWidth=1.2;g.beginPath();g.arc(m.x,m.y,r,0,7);g.fill();g.stroke()}
+ for(const e of G.H){const r=cs*(G.mode=='only'?.4:.48);g.beginPath();g.arc(e.x,e.y,r,0,7);g.fillStyle=e.col;g.shadowColor=e.col;g.shadowBlur=16;g.fill();g.shadowBlur=0;
+  g.lineWidth=2.5;g.strokeStyle=e.fz>0?'#aef':e.sh>0?'#8f8':e.sp>0||e.dsh>0?'#ff0':'#000';g.stroke();g.fillStyle='#000';g.font='bold '+cs*.6+'px sans-serif';g.fillText(e.hum?e.i+1:'B',e.x,e.y+1)}
+ for(const p of G.FX){g.globalAlpha=Math.min(1,p.a/25);g.fillStyle='#fff';g.font='bold '+cs*.8+'px sans-serif';g.fillText(p.t,p.x,p.y-(50-p.a)*.5)}g.globalAlpha=1;
+ if(G.cd>0){const n=Math.ceil(G.cd/60),t=G.cd>0?(n>0?String(n):'LOS'):'';g.fillStyle='rgba(0,0,0,.5)';g.fillRect(0,0,cv.width,cv.height);g.fillStyle='#fff';g.font='bold 110px system-ui';g.fillText(t,cv.width/2,cv.height/2)}
+ if(G.T%5==0||G.cd>0){const sc=G.H.map(e=>tscore(e.o)),mx=Math.max(...sc);
+  G.H.forEach(e=>{$('b'+e.i).style.width=Math.min(100,G.cnt[e.o]/G.tot*100*(G.H.length>2?2:1.6))+'%';$('rk'+e.i).textContent=G.T>60&&tscore(e.o)==mx?'👑 ':'';
+   $('st'+e.i).textContent=(G.cnt[e.o]/G.tot*100).toFixed(0)+'%'+(G.min?' · 🧱'+e.mn:'');
+   if(e.hum){$('co'+e.i).textContent='🪙 '+Math.floor(e.coin)+(G.min?'  ·  🧱 '+e.mn+'/'+cfg.cap:'');
+    if(G.min){const c=costM(e),b=$('bb'+e.i);b.innerHTML=`🤖 Minion<small>${c} 🪙 [${KEYS[e.i].b.toUpperCase()}]</small>`;b.className=e.coin>=c&&e.mn<+cfg.cap?'':'no';
+     UP.forEach((u,j)=>{const x=$(`u${e.i}_${j}`),mx2=e.up[j]>=u.max,cc=costU(e,j);x.innerHTML=`${u.ic} ${u.n}<small>Stufe ${e.up[j]}/${u.max} · ${mx2?'MAX':cc+' 🪙'}</small>`;x.className=!mx2&&e.coin>=cc?'':'no'});
+     $('cm'+e.i).innerHTML=e.cmd?'🧲 Folgen<small>Minions bleiben nah</small>':'🧭 Schwärmen<small>Minions verteilen sich</small>'}
+    const d=$('ds'+e.i);d.innerHTML=`💨 Dash<small>${e.dcd>0?Math.ceil(e.dcd/60)+' s':'bereit ['+KEYS[e.i].x.toUpperCase()+']'}</small>`;d.className=e.dcd>0?'no':''}});
   $('tm').textContent=Math.max(0,Math.ceil(cfg.time-G.T/60))+'s'}}
-function loop(){if(G&&!G.over){if(!G.pz)step();if(G)draw()}raf=requestAnimationFrame(loop)}
-$('go').onclick=start;$('mn').onclick=toMenu;$('pz').onclick=()=>{if(G){G.pz=!G.pz;$('pz').textContent=G.pz?'Weiter':'Pause'}};
+function loop(){if(G&&!G.over){if(G.cd>0){G.cd--;if(G.cd%60==0)snd(G.cd?440:880,.12)}else if(!G.pz)step();if(G)draw()}raf=requestAnimationFrame(loop)}
+$('go').onclick=()=>{snd(600,.05);start()};$('mn').onclick=toMenu;$('pz').onclick=()=>{if(G){G.pz=!G.pz;$('pz').textContent=G.pz?'▶':'⏸'}};
 addEventListener('keydown',e=>{if(!G||G.over)return;const k=e.key,kl=k.toLowerCase();if(k==' '){$('pz').click();e.preventDefault();return}
  if(k.startsWith('Arrow'))e.preventDefault();keys.add(k);keys.add(kl);keys.add(e.code);
- if(G.min)G.H.forEach(h=>{if(h.hum){const j=KEYS[h.i].b.indexOf(kl);if(j>=0)buy(h.i,j)}})});
+ G.H.forEach(h=>{if(!h.hum)return;const K=KEYS[h.i];if(kl==K.b)buy(h.i);if(kl==K.x)dash(h.i);const j=K.up.indexOf(kl);if(j>=0)upg(h.i,j)})});
 addEventListener('keyup',e=>{keys.delete(e.key);keys.delete(e.key.toLowerCase());keys.delete(e.code)});
 const PM={};
 function ptr(e){if(!G||G.over)return;const r=cv.getBoundingClientRect(),p={x:(e.clientX-r.left)/r.width*cv.width,y:(e.clientY-r.top)/r.height*cv.height};let h=PM[e.pointerId];
