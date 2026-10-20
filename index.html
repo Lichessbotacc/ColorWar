@@ -1,1 +1,118 @@
-
+<!DOCTYPE html>
+<html lang="de"><head><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Farbkrieg</title>
+<style>
+:root{--bg:#0b0d14;--fg:#e8ecf5;--card:#141826;--mut:#8b93a6;--line:#262c3f;--ac:#00e5ff;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:light){:root:not([data-theme="dark"]){--bg:#eef0f5;--fg:#141826;--card:#fff;--mut:#5d6579;--line:#d5d9e6;--ac:#0090b3}}
+:root[data-theme="light"]{--bg:#eef0f5;--fg:#141826;--card:#fff;--mut:#5d6579;--line:#d5d9e6;--ac:#0090b3}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;touch-action:manipulation;margin:0;padding:12px;background:var(--bg);color:var(--fg);font:15px/1.4 system-ui,sans-serif}
+.w{max-width:720px;margin:0 auto}h1{margin:0 0 4px;font-size:26px;letter-spacing:1px}
+.mut{color:var(--mut);font-size:13px}.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px;margin-top:10px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px}
+label{display:flex;flex-direction:column;font-size:13px;color:var(--mut);gap:3px}
+select,button{background:var(--bg);color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font:inherit}
+button{cursor:pointer}button.big{background:var(--ac);color:#001018;font-weight:700;border:0;padding:12px 18px;font-size:16px}
+canvas{width:auto;max-width:100%;max-height:64vh;margin:0 auto;display:block;background:#0b0d14;border:1px solid var(--line);border-radius:10px;touch-action:none}
+.row{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap}
+.sb{display:flex;flex-direction:column;gap:4px;margin-bottom:8px}.sr{display:flex;align-items:center;gap:8px;font-size:13px}
+.sr .nm{width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.bar{flex:1;height:10px;background:var(--line);border-radius:5px;overflow:hidden}.bar i{display:block;height:100%;width:0}
+.shop{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px;align-items:center}.shop button{padding:10px 12px;font-size:14px}
+#ov{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;padding:16px;z-index:5}
+#ov .card{max-width:440px;width:100%}.hide{display:none!important}table{width:100%;border-collapse:collapse}td{padding:3px 4px}td:last-child{text-align:right}
+</style></head><body><div class="w">
+<div id="menu"><h1>🎨 FARBKRIEG</h1><div class="mut">Male mehr Fläche als alle anderen. Lokal bis 4 Menschen, bis 6 Spieler gesamt.</div>
+<div class="card"><div class="grid" id="opts"></div></div>
+<div class="card mut">Steuerung: <b>iPad/Touch:</b> Finger ins Feld ziehen, dein Held läuft dorthin (mehrere Finger = mehrere Spieler, jeder Finger schnappt sich den nächsten freien Helden). <b>P1</b> WASD · <b>P2</b> Pfeile · <b>P3</b> IJKL · <b>P4</b> Numpad 8/4/5/6. Shop-Tasten stehen an den Buttons.<br>
+Power-Ups: ⚡ Tempo · 💣 Bombe · ❄ friert Gegner ein. In der <b>Minion-Schlacht</b> gibt Malen Münzen, damit kaufst du Minions, die für dich malen. Gegnerische Helden zerstören deine Minions beim Berühren.</div>
+<p><button class="big" id="go">Spiel starten</button> <button id="rs">Bot-ELO zurücksetzen</button></p><div class="card"><b>Bot- und Spieler-ELO</b><table id="elo"></table></div></div>
+<div id="game" class="hide"><div class="row"><b>🎨 Farbkrieg</b><span><span id="tm" class="mut"></span> <button id="pz">Pause</button> <button id="mn">Menü</button></span></div>
+<div class="card"><div class="sb" id="sb"></div><canvas id="c" width="640" height="400"></canvas><div id="shops"></div></div></div>
+</div><div id="ov"><div class="card" id="res"></div></div>
+<script>
+const $=id=>document.getElementById(id),R=Math.random,cv=$('c'),g=cv.getContext('2d');
+const COL=['#00e5ff','#00ff88','#ff4dd8','#ffb020','#ffee58','#a78bfa'],BN=['Nova','Blitz','Echo','Rex','Pixel','Volt'];
+const KEYS=[{u:'w',d:'s',l:'a',r:'d',b:['1','2','3']},{u:'ArrowUp',d:'ArrowDown',l:'ArrowLeft',r:'ArrowRight',b:['8','9','0']},{u:'i',d:'k',l:'j',r:'l',b:['u','o','p']},{u:'Numpad8',d:'Numpad5',l:'Numpad4',r:'Numpad6',b:[',','.','/']}];
+const MT=[{n:'Scout',c:15,s:1.35,b:1,i:'🔹'},{n:'Maler',c:35,s:.95,b:2,i:'🔷'},{n:'Panzer',c:70,s:.6,b:3,i:'🟦'}];
+const OPT=[['mode','Modus',[['klassik','Klassik'],['minion','Minion-Schlacht']]],['humans','Menschen',[0,1,2,3,4]],['bots','Bots',[0,1,2,3,4,5,6]],
+['diff','Bot-Stärke',[['0','Leicht'],['1','Normal'],['2','Schwer'],['3','Wahnsinn']]],['grid','Spielfeld',[['24','Klein'],['32','Mittel'],['48','Groß']]],
+['time','Rundenzeit (s)',[30,60,90,180]],['speed','Tempo',[['0.7','Langsam'],['1','Normal'],['1.4','Schnell']]],['brush','Pinsel',[['1','Klein'],['2','Kreuz'],['3','Groß']]],
+['power','Power-Ups',[['1','An'],['0','Aus']]],['wrap','Wände',[['0','Solide'],['1','Durchgang']]],['over','Überschreiben',[['1','Erlaubt'],['0','Gesperrt']]],['cap','Max. Minions',[4,8,16,32]]];
+let cfg={mode:'klassik',humans:1,bots:3,diff:'1',grid:'32',time:60,speed:'1',brush:'1',power:'1',wrap:'0',over:'1',cap:8},ELO={};
+try{Object.assign(cfg,JSON.parse(localStorage.getItem('fk_cfg')||'{}'));ELO=JSON.parse(localStorage.getItem('fk_elo')||'{}')}catch(e){}
+const sv=()=>{try{localStorage.setItem('fk_cfg',JSON.stringify(cfg));localStorage.setItem('fk_elo',JSON.stringify(ELO))}catch(e){}};
+OPT.forEach(([k,l,o])=>{const lb=document.createElement('label'),s=document.createElement('select');lb.textContent=l;
+ o.forEach(v=>{const a=Array.isArray(v)?v:[v,v],op=new Option(a[1],a[0]);s.add(op)});s.value=String(cfg[k]);s.onchange=()=>{cfg[k]=s.value;sv()};lb.append(s);$('opts').append(lb)});
+const el=n=>Math.round(ELO[n]??1500);
+function eloTab(){const names=[...new Set([...BN,'Spieler 1','Spieler 2','Spieler 3','Spieler 4'])];$('elo').innerHTML=names.map(n=>`<tr><td>${n}</td><td>${el(n)}</td></tr>`).join('')}
+$('rs').onclick=()=>{ELO={};sv();eloTab()};eloTab();
+let G=null,keys=new Set(),raf=0;
+const SH={1:[[0,0]],2:[[0,0],[1,0],[-1,0],[0,1],[0,-1]],3:[[0,0],[1,0],[-1,0],[0,1],[0,-1],[1,1],[1,-1],[-1,1],[-1,-1]]};
+function start(){
+ let h=+cfg.humans,b=+cfg.bots;if(h+b<2)b=2-h;if(h+b>6)b=6-h;
+ const cols=+cfg.grid,rows=Math.round(cols*.625),cs=640/cols;cv.height=Math.round(rows*cs);
+ const P=[[.08,.1],[.92,.9],[.92,.1],[.08,.9],[.5,.08],[.5,.92]];
+ G={cols,rows,cs,own:new Uint8Array(cols*rows),cnt:[0,0,0,0,0,0,0],H:[],M:[],PU:[],T:0,over:0,pz:0,min:cfg.mode=='minion',d:+cfg.diff,sp:+cfg.speed,W:cols*cs,Hh:rows*cs};
+ for(let i=0;i<h+b;i++)G.H.push({i,o:i+1,hum:i<h,name:i<h?'Spieler '+(i+1):BN[i-h],col:COL[i],x:P[i][0]*G.W,y:P[i][1]*G.Hh,coin:0,mn:0,fz:0,sp:0,tg:null,pt:null});
+ $('sb').innerHTML=G.H.map(e=>`<div class="sr"><span class="nm" style="color:${e.col}">${e.name} <span class="mut">${el(e.name)}</span></span><div class="bar"><i style="background:${e.col}"></i></div><span id="st${e.i}" class="mut"></span></div>`).join('');
+ $('shops').innerHTML=G.min?G.H.filter(e=>e.hum).map(e=>`<div class="shop"><b style="color:${e.col}">${e.name}</b><span id="co${e.i}"></span>${MT.map((m,j)=>`<button onclick="buy(${e.i},${j})">${m.i} ${m.n} ${m.c}🪙 [${KEYS[e.i].b[j]}]</button>`).join('')}</div>`).join(''):'';
+ $('menu').classList.add('hide');$('game').classList.remove('hide');$('ov').style.display='none';cancelAnimationFrame(raf);loop()}
+function paint(o,cx,cy){const G_=G;if(G_.cfgw){cx=(cx+G_.cols)%G_.cols;cy=(cy+G_.rows)%G_.rows}else if(cx<0||cy<0||cx>=G_.cols||cy>=G_.rows)return;
+ const id=cy*G_.cols+cx,p=G_.own[id];if(p==o||(p&&cfg.over=='0'))return;if(p)G_.cnt[p]--;G_.own[id]=o;G_.cnt[o]++;G_.H[o-1].coin+=p?.5:.25}
+function shape(o,x,y,b){const cx=Math.floor(x/G.cs),cy=Math.floor(y/G.cs);if(b>=4){for(let a=-3;a<=3;a++)for(let c=-3;c<=3;c++)paint(o,cx+a,cy+c)}else SH[b].forEach(([a,c])=>paint(o,cx+a,cy+c))}
+function pick(e,n,isH){let best=null,bs=1e9;for(let k=0;k<n;k++){const cx=Math.floor(R()*G.cols),cy=Math.floor(R()*G.rows),ow=G.own[cy*G.cols+cx];if(ow==e.o)continue;
+  const x=(cx+.5)*G.cs,y=(cy+.5)*G.cs;let s=Math.hypot(x-e.x,y-e.y)-(ow&&isH?G.d*G.cs*1.5:0);if(s<bs){bs=s;best={x,y}}}
+ return best||{x:R()*G.W,y:R()*G.Hh}}
+function toward(e,t,s){const dx=t.x-e.x,dy=t.y-e.y,d=Math.hypot(dx,dy)||1;if(d<=s){e.x=t.x;e.y=t.y;return 1}e.x+=dx/d*s;e.y+=dy/d*s;return 0}
+function clampE(e){if(cfg.wrap=='1'){e.x=(e.x+G.W)%G.W;e.y=(e.y+G.Hh)%G.Hh}else{e.x=Math.max(1,Math.min(G.W-1,e.x));e.y=Math.max(1,Math.min(G.Hh-1,e.y))}}
+function buy(i,j){if(!G||G.over)return;const e=G.H[i],m=MT[j];if(e.coin<m.c||e.mn>=+cfg.cap)return;e.coin-=m.c;e.mn++;G.M.push({o:e.o,x:e.x,y:e.y,s:m.s,b:m.b,tg:null,col:e.col})}
+function step(){
+ G.cfgw=cfg.wrap=='1';const T=++G.T,base=G.cs*5/60*G.sp,sz=[24,150,300,520],DS=[.75,.95,1.1,1.3][G.d];
+ for(const e of G.H){if(e.fz>0){e.fz--;continue}if(e.sp>0)e.sp--;
+  let s=base*(e.sp>0?1.6:1)*(e.hum?1:DS);
+  if(e.hum){const k=KEYS[e.i];let dx=(keys.has(k.r)?1:0)-(keys.has(k.l)?1:0),dy=(keys.has(k.d)?1:0)-(keys.has(k.u)?1:0);
+   if(dx||dy){const d=Math.hypot(dx,dy);e.x+=dx/d*s;e.y+=dy/d*s;e.pt=null}else if(e.pt&&toward(e,e.pt,s))e.pt=null}
+  else{if(!e.tg||Math.hypot(e.tg.x-e.x,e.tg.y-e.y)<s*1.5||(T%120==0&&R()<.4)){e.tg=pick(e,sz[G.d],1);
+    if(G.d>=1)for(const p of G.PU)if(Math.hypot(p.x-e.x,p.y-e.y)<G.cs*(4+G.d*2)){e.tg={x:p.x,y:p.y};break}}
+   toward(e,e.tg,s)}
+  clampE(e);shape(e.o,e.x,e.y,+cfg.brush);
+  for(let j=G.PU.length-1;j>=0;j--){const p=G.PU[j];if(Math.hypot(p.x-e.x,p.y-e.y)<G.cs){G.PU.splice(j,1);
+   if(p.t==0)e.sp=300;else if(p.t==1)shape(e.o,e.x,e.y,4);else G.H.forEach(o=>{if(o!==e)o.fz=120})}}
+  for(let j=G.M.length-1;j>=0;j--){const m=G.M[j];if(m.o!==e.o&&Math.hypot(m.x-e.x,m.y-e.y)<G.cs*.8){G.M.splice(j,1);G.H[m.o-1].mn--;e.coin+=2}}}
+ for(const m of G.M){const s=base*m.s,h=G.H[m.o-1];if(h.fz>0)continue;
+  if(!m.tg||Math.hypot(m.tg.x-m.x,m.tg.y-m.y)<s*1.5)m.tg=pick(m,70+G.d*30,1);toward(m,m.tg,s);clampE(m);shape(m.o,m.x,m.y,m.b)}
+ if(cfg.power=='1'&&T%360==0&&G.PU.length<3)G.PU.push({x:(Math.floor(R()*G.cols)+.5)*G.cs,y:(Math.floor(R()*G.rows)+.5)*G.cs,t:Math.floor(R()*3)});
+ if(G.min&&T%30==0)for(const e of G.H)if(!e.hum&&R()<.3+G.d*.15){const j=e.coin>=70&&R()<.5?2:e.coin>=35&&R()<.6?1:0;buy(e.i,j)}
+ if(T>=cfg.time*60)finish()}
+function finish(){G.over=1;const H=[...G.H].sort((a,b)=>G.cnt[b.o]-G.cnt[a.o]),n=H.length,D={};H.forEach(e=>D[e.name]=0);
+ for(let i=0;i<n;i++)for(let j=i+1;j<n;j++){const a=H[i],b=H[j];if(G.cnt[a.o]==G.cnt[b.o])continue;const w=el(a.name),l=el(b.name),st=Math.floor(Math.abs(l-w)/100);
+  const gn=Math.max(1,Math.min(10,l>w?5+st:5-st))/(n-1);D[a.name]+=gn;D[b.name]-=gn}
+ const tot=G.cols*G.rows;let h='<h2 style="margin:0 0 8px">🏁 Ergebnis</h2><table>';
+ H.forEach((e,i)=>{const d=Math.round(D[e.name]);ELO[e.name]=(ELO[e.name]??1500)+D[e.name];
+  h+=`<tr><td>${i+1}.</td><td style="color:${e.col}"><b>${e.name}</b></td><td>${(G.cnt[e.o]/tot*100).toFixed(1)}%</td><td>${el(e.name)} <span class="mut">(${d>=0?'+':''}${d})</span></td></tr>`});
+ sv();$('res').innerHTML=h+'</table><p><button class="big" onclick="start()">Nochmal</button> <button onclick="toMenu()">Menü</button></p>';$('ov').style.display='flex'}
+function toMenu(){cancelAnimationFrame(raf);G=null;$('ov').style.display='none';$('game').classList.add('hide');$('menu').classList.remove('hide');eloTab()}
+function draw(){const{cols,rows,cs}=G;g.fillStyle='#0b0d14';g.fillRect(0,0,cv.width,cv.height);g.globalAlpha=.6;
+ for(let i=0;i<G.own.length;i++){const o=G.own[i];if(o){g.fillStyle=COL[o-1];g.fillRect((i%cols)*cs,Math.floor(i/cols)*cs,cs+.5,cs+.5)}}
+ g.globalAlpha=1;g.font=cs*.9+'px sans-serif';g.textAlign='center';g.textBaseline='middle';
+ for(const p of G.PU)g.fillText(['⚡','💣','❄'][p.t],p.x,p.y);
+ for(const m of G.M){g.fillStyle=m.col;g.strokeStyle='#000';g.lineWidth=1;const r=cs*(.18+.08*m.b);g.fillRect(m.x-r,m.y-r,r*2,r*2);g.strokeRect(m.x-r,m.y-r,r*2,r*2)}
+ for(const e of G.H){g.beginPath();g.arc(e.x,e.y,cs*.48,0,7);g.fillStyle=e.col;g.shadowColor=e.col;g.shadowBlur=14;g.fill();g.shadowBlur=0;
+  g.lineWidth=2;g.strokeStyle=e.fz>0?'#9fe':e.sp>0?'#ff0':'#000';g.stroke();g.fillStyle='#000';g.font='bold '+cs*.6+'px sans-serif';g.fillText(e.hum?e.i+1:'B',e.x,e.y+1)}
+ const tot=cols*rows;if(G.T%5==0){G.H.forEach(e=>{const r=$('sb').children[e.i];r.querySelector('i').style.width=G.cnt[e.o]/tot*100*(1.6)+'%';$('st'+e.i).textContent=(G.cnt[e.o]/tot*100).toFixed(0)+'%'+(G.min?' · 🪙'+Math.floor(e.coin)+' · 🧱'+e.mn:'');
+  const c=$('co'+e.i);if(c)c.textContent='🪙'+Math.floor(e.coin)+' · 🧱'+e.mn})
+  $('tm').textContent=Math.max(0,Math.ceil(cfg.time-G.T/60))+'s'}}
+function loop(){if(G&&!G.over){if(!G.pz)step();if(G)draw()}raf=requestAnimationFrame(loop)}
+$('go').onclick=start;$('mn').onclick=toMenu;$('pz').onclick=()=>{if(G){G.pz=!G.pz;$('pz').textContent=G.pz?'Weiter':'Pause'}};
+addEventListener('keydown',e=>{if(!G||G.over)return;const k=e.key,kl=k.toLowerCase();if(k==' '){$('pz').click();e.preventDefault();return}
+ if(k.startsWith('Arrow'))e.preventDefault();keys.add(k);keys.add(kl);keys.add(e.code);
+ if(G.min)G.H.forEach(h=>{if(h.hum){const j=KEYS[h.i].b.indexOf(kl);if(j>=0)buy(h.i,j)}})});
+addEventListener('keyup',e=>{keys.delete(e.key);keys.delete(e.key.toLowerCase());keys.delete(e.code)});
+const PM={};
+function ptr(e){if(!G||G.over)return;const r=cv.getBoundingClientRect(),p={x:(e.clientX-r.left)/r.width*cv.width,y:(e.clientY-r.top)/r.height*cv.height};let h=PM[e.pointerId];
+ if(!h){let b=null,bd=1e9;const used=Object.values(PM);for(const pass of[1,2]){for(const x of G.H)if(x.hum&&(pass==2||!used.includes(x))){const d=Math.hypot(x.x-p.x,x.y-p.y);if(d<bd){bd=d;b=x}}if(b)break}h=PM[e.pointerId]=b}
+ if(h)h.pt=p}
+cv.addEventListener('pointerdown',e=>{e.preventDefault();ptr(e)});cv.addEventListener('pointermove',e=>{if(e.buttons||PM[e.pointerId])ptr(e)});
+['pointerup','pointercancel'].forEach(t=>addEventListener(t,e=>{delete PM[e.pointerId]}));
+</script></body></html>
