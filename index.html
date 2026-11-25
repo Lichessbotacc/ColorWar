@@ -241,7 +241,7 @@ kbd{
 'use strict';
 /* ---------- Konstanten ---------- */
 const W=5500,H=5500,TAU=Math.PI*2;
-const START_M=25,MAXC=16,SPLIT_MIN=35,EJECT_MIN=36,EJECT_COST=16,EJECT_M=13,MERGE_CD=0.5;
+const START_M=25,MAXC=16,SPLIT_MIN=35,EJECT_MIN=36,EJECT_COST=16,EJECT_M=13,MERGE_CD=0.8,SPLIT_V0=480;
 const VIRUS_M=100,VIRUS_POP=130,VIRUS_N=30,VIRUS_MAX=46,FOOD_N=2000;
 const BIN=250,NB=W/BIN,BOOST_K=3.5;
 const FONT='"Baloo 2", system-ui, sans-serif';
@@ -249,7 +249,7 @@ const FC=['#ff6b6b','#ffa94d','#ffd43b','#69db7c','#38d9a9','#4dabf7','#748ffc',
 const clamp=(v,a,b)=>v<a?a:(v>b?b:v);
 const rOf=m=>6*Math.sqrt(m);
 const speedOf=m=>390*Math.pow(m,-0.22);
-const splitReach=m=>{const r2=rOf(m/2);return (700+3*r2)/BOOST_K+r2*0.8;};
+const splitReach=m=>{const r2=rOf(m/2);return (SPLIT_V0+3*r2)/BOOST_K+r2*0.8;};
 const VIRUS_R=60; // im Video sind Viren winzig (kleiner als ein normales Stück)
 // Double/Triple Split ohne Macro: zwischen den Splits liegen wie bei einem Menschen ca. 170 ms.
 const HGAP=0.24,SPLIT_GAP=0.2,GAPK=Math.exp(-BOOST_K*SPLIT_GAP);
@@ -257,7 +257,7 @@ const HGAP=0.24,SPLIT_GAP=0.2,GAPK=Math.exp(-BOOST_K*SPLIT_GAP);
 function splitReachN(m,n){
   let mm=m,pos=0,v=0;
   for(let k=1;k<=n;k++){
-    mm/=2;v=700+3*rOf(mm);
+    mm/=2;v=SPLIT_V0+3*rOf(mm);
     if(k<n){pos+=v/BOOST_K*(1-GAPK);v*=GAPK;}
   }
   return pos+v/BOOST_K+rOf(mm)*0.8;
@@ -355,7 +355,7 @@ function splitPlayer(p){
     dx/=d;dy/=d;
     const half=c.m/2;c.m=half;c.r=rOf(half);c.mt=MERGE_CD;
     const n=new Cell(p,c.x+dx*c.r*0.5,c.y+dy*c.r*0.5,half);
-    const v=700+3*n.r;n.bx=dx*v;n.by=dy*v;n.mt=MERGE_CD;n.tx=c.tx;n.ty=c.ty;
+    const v=SPLIT_V0+3*n.r;n.bx=dx*v;n.by=dy*v;n.mt=MERGE_CD;n.tx=c.tx;n.ty=c.ty;
     p.cells.push(n);
   }
   p.splitT=G.t;p.nSplit++;
@@ -1002,7 +1002,7 @@ function step(dt){
             big.m=tot;big.r=rOf(tot);sm.dead=true;
           }
         }else{
-          const ov=rs-d,s=Math.min(1,dt*12)*ov,nx=dx/d,ny=dy/d,wa=b.m/(a.m+b.m),wb=1-wa;
+          const ov=rs-d,s=Math.min(1,dt*5)*ov,nx=dx/d,ny=dy/d,wa=b.m/(a.m+b.m),wb=1-wa;
           a.x-=nx*s*wa;a.y-=ny*s*wa;b.x+=nx*s*wb;b.y+=ny*s*wb;
         }
       }else{
