@@ -650,7 +650,22 @@ function mkDeck(){
   const a=[...d],avg=a.reduce((s,i)=>s+CARDS[i].cost,0)/8,n=a.filter(i=>CARDS[i].type==='spell').length;
   if(avg>=2.9&&avg<=4.3&&n<=2&&a.some(i=>CARDS[i].hitsAir))return a;}
 }
-function mkBots(){return BOT_NAMES.map((n,i)=>Object.assign(newAccount(),{id:i,name:n,av:AVATARS[i%AVATARS.length],act:+(.08+Math.pow(Math.random(),1.4)*.92).toFixed(2),skill:+(.1+((i*.6180339887)%1)*.9).toFixed(2),aggr:+(.15+Math.random()*.75).toFixed(2),taste:Math.floor(Math.random()*1e6),online:false,sessEnd:0,idle:rnd(2,20),inMatch:false,lastSeen:0,wait:0,think:rnd(1,8)}));}
+const NAME_A=['Blitz','Feuer','Eis','Schatten','Donner','Turbo','Mega','Pixel','Nebel','Sturm','Gold','Silber','Wolken','Zucker','Keks','Chaos','Mond','Sonnen','Wald','Berg'];
+const NAME_B=['Fuchs','Ritter','Drache','Hexe','Bär','Falke','Golem','Zwerg','Wolf','König','Prinz','Pirat','Ninja','Kobold','Elch','Otter','Panda','Troll','Geist','Jäger'];
+function genName(used){
+ for(let k=0;k<60;k++){const n=pick(NAME_A)+pick(NAME_B)+(Math.random()<.5?Math.floor(Math.random()*99)+1:'');if(!used.has(n))return n;}
+ let i=1;while(used.has('Bot'+i))i++;return 'Bot'+i;
+}
+function mkBot(i,name,rndSkill){
+ return Object.assign(newAccount(),{id:i,name:name,av:pick(AVATARS),act:+(.08+Math.pow(Math.random(),1.4)*.92).toFixed(2),skill:+(rndSkill?.1+Math.random()*.9:.1+((i*.6180339887)%1)*.9).toFixed(2),aggr:+(.15+Math.random()*.75).toFixed(2),taste:Math.floor(Math.random()*1e6),added:!!rndSkill,online:false,sessEnd:0,idle:rnd(2,20),inMatch:false,lastSeen:0,wait:0,think:rnd(1,8)});
+}
+const BOT_MIN=2,BOT_MAX=200;
+function mkBots(n){
+ n=Math.max(BOT_MIN,Math.min(BOT_MAX,n||BOT_NAMES.length));
+ const out=[],used=new Set();
+ for(let i=0;i<n;i++){const orig=i<BOT_NAMES.length,name=orig?BOT_NAMES[i]:genName(used);used.add(name);const b=mkBot(i,name,!orig);b.av=AVATARS[i%AVATARS.length];out.push(b);}
+ return out;
+}
 // Deckbau: bevorzugt hohe Level und persönliche Vorlieben, mit sinnvoller Mischung
 function botDeck(b){
  const own=PLAY_CARDS.filter(c=>b.cards[c.id].own);
@@ -732,10 +747,10 @@ function load(){
  return defSave();
 }
 let S=load();
-function botsInit(){const bs=mkBots();if(S.bots)S.bots.slice(0,bs.length).forEach((o,i)=>{repair(o,bs[i]);});return bs;}
+function botsInit(){delete S.custom;const bs=mkBots(S.botN);if(S.bots)S.bots.slice(0,bs.length).forEach((o,i)=>{repair(o,bs[i]);});return bs;}
 const world=new World(botsInit());
-world.bots.forEach((b,i)=>{b.skill=+(.1+((i*.6180339887)%1)*.9).toFixed(2);});
-const BKEYS=['act','skill','aggr','taste','trophies','best','gold','xp','lvl','wins','losses','draws','form','cards','deck','chests'];
+world.bots.forEach((b,i)=>{if(!b.added&&i<BOT_NAMES.length)b.skill=+(.1+((i*.6180339887)%1)*.9).toFixed(2);});S.botN=world.bots.length;
+const BKEYS=['name','av','added','act','skill','aggr','taste','trophies','best','gold','xp','lvl','wins','losses','draws','form','cards','deck','chests'];
 let noSave=false,saveWarned=false;
 function snapshot(){S.bots=world.bots.map(b=>Object.fromEntries(BKEYS.map(k=>[k,b[k]])));return JSON.stringify(S);}
 function save(){if(noSave)return;if(!store.set(SAVE_KEY,snapshot())&&!saveWarned){saveWarned=true;setTimeout(()=>toast('⚠️ Speichern nicht möglich'),300);}}
@@ -1037,7 +1052,7 @@ function renderTab(){
   const list=world.bots.map(b=>({...b,isBot:true,bot:b}));list.push({name:S.name+' (Du)',av:'👑',trophies:S.trophies,wins:S.wins,losses:S.losses,me:true});
   list.sort((a,b)=>b.trophies-a.trophies||b.wins-a.wins);
   const liveSet=new Set();world.matches.forEach(m=>{liveSet.add(m.A.id);liveSet.add(m.B.id);});
-  setHTML(c,`<div class="sect">Rangliste · ${list.length} Spieler</div><button class="btn red" style="width:100%;margin-bottom:10px" data-act="resetAsk">🔄 Alles zurücksetzen</button><div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn blue" style="flex:1" data-act="exportSave">💾 Exportieren</button><button class="btn blue" style="flex:1" data-act="importSave">📂 Importieren</button></div>${store.get(BACKUP_KEY)?'<button class="btn" style="width:100%;margin-bottom:10px" data-act="restoreAsk">↩️ Gesicherten Stand wiederherstellen</button>':''}`+list.map((p,i)=>{
+  setHTML(c,`<div class="sect">Rangliste · ${list.length} Spieler</div><div class="mrow" style="justify-content:center;gap:10px"><button class="btn red mini" data-act="botDel">➖</button><b style="font-size:16px;min-width:92px;text-align:center">🤖 ${world.bots.length} Bots</b><button class="btn green mini" data-act="botAdd">➕</button></div><button class="btn red" style="width:100%;margin-bottom:10px" data-act="resetAsk">🔄 Alles zurücksetzen</button><div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn blue" style="flex:1" data-act="exportSave">💾 Exportieren</button><button class="btn blue" style="flex:1" data-act="importSave">📂 Importieren</button></div>${store.get(BACKUP_KEY)?'<button class="btn" style="width:100%;margin-bottom:10px" data-act="restoreAsk">↩️ Gesicherten Stand wiederherstellen</button>':''}`+list.map((p,i)=>{
    let st='';if(p.me)st='<span class="rs">Das bist du</span>';else{const act=p.act>.65?'sehr aktiv':p.act>.35?'aktiv':'selten online';
     const status=liveSet.has(p.id)?'<span class="live">● LIVE</span>':p.inMatch?'<span class="live">● im Kampf</span>':p.online&&p.search!=null?'🔍 sucht Gegner':p.online?'<span class="dot"></span>online':'<span class="dot off"></span>offline';
     st=`<span class="rs">${status} · ${act} · ${p.wins}S/${p.losses}N · Lv ${p.lvl}</span>`;}
@@ -1066,6 +1081,13 @@ function openCard(id){
  <button class="btn" style="width:100%;margin-top:8px" data-act="close">Schließen</button>`);
 }
 const ACT={
+ botAdd(){if(world.bots.length>=BOT_MAX)return toast('Maximum erreicht ('+BOT_MAX+')');
+  const used=new Set(world.bots.map(b=>b.name)),free=BOT_NAMES.filter(n=>!used.has(n)),b=mkBot(world.bots.length,free.length?pick(free):genName(used),true);
+  if(Math.random()<.4+b.act*.3){b.online=true;b.sessEnd=rnd(60,400);b.idle=rnd(0,12);}
+  world.bots.push(b);S.botN=world.bots.length;save();lastHTML.tab='';renderTab();toast('🤖 '+b.name+' ist dabei');},
+ botDel(){if(world.bots.length<=BOT_MIN)return toast('Mindestens '+BOT_MIN+' Bots');
+  let i=world.bots.length-1;while(i>=0&&world.bots[i].inMatch)i--;if(i<0)return toast('Alle Bots kämpfen gerade');
+  const b=world.bots.splice(i,1)[0];world.bots.forEach((x,k)=>x.id=k);S.botN=world.bots.length;save();lastHTML.tab='';renderTab();toast('🤖 '+b.name+' entfernt');},
  tab(el){tab=el.dataset.t;lastHTML.tab='';renderTab();$('#content').scrollTop=0;},
  close(){closeModal();},
  exportSave(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([snapshot()],{type:'application/json'}));a.download='kronenkampf-spielstand.json';document.body.appendChild(a);a.click();a.remove();toast('Spielstand exportiert');},
@@ -1074,7 +1096,7 @@ const ACT={
  restore(){const raw=store.get(BACKUP_KEY);if(parseSave(raw))replaceSave(raw);else toast('Keine Sicherung vorhanden');},
  cancelSearch(){stopSearch();$('#vs').classList.add('hidden');},
  resetAsk(){showModal(`<h2>Alles zurücksetzen?</h2><div style="text-align:center;font-size:14px;margin-bottom:12px">Trophäen, Level, Karten, Gold, Truhen und Statistiken von dir und allen Bots werden gelöscht. Der jetzige Stand wird vorher gesichert und lässt sich wiederherstellen.</div><button class="btn red" style="width:100%" data-act="resetAll">Ja, alles löschen</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`);},
- resetAll(){store.set(BACKUP_KEY,snapshot());Object.assign(S,newAccount(),{bots:null});Object.assign(world,new World(mkBots()));save();closeModal();lastHTML={};renderTab();toast('Alles zurückgesetzt');},
+ resetAll(){store.set(BACKUP_KEY,snapshot());Object.assign(S,newAccount(),{bots:null});Object.assign(world,new World(mkBots(S.botN)));save();closeModal();lastHTML={};renderTab();toast('Alles zurückgesetzt');},
  arenas(){showModal(`<h2>Arenen</h2>${ARENAS.map(a=>`<div class="sect">${S.best>=a.min?'✅':'🔒'} ${a.i?'Arena '+a.i+' · ':''}${a.n} <span class="chip">${a.min} 🏆</span></div><div class="minideck">${PLAY_CARDS.filter(c=>c.ar===a.i).map(c=>`<div data-act="card" data-id="${c.id}">${cardHTML(c.id,0)}</div>`).join('')}</div>`).join('')}<button class="btn" style="width:100%;margin-top:10px" data-act="close">Schließen</button>`);},
  closeBg(el,e){if(e.target===el)closeModal();},
  mute(){S.mute=!S.mute;renderTop();save();},
@@ -1308,7 +1330,6 @@ function frame(now){
 const st=document.createElement('style');
 st.textContent=`input,select{user-select:text;-webkit-user-select:text;font:inherit}.wp{display:flex;flex-direction:column}.wname{display:flex;justify-content:space-between;align-items:center;font-weight:900;font-size:13px;padding:1px 4px}#wTop .wname{order:-1}.wname .crowns{font-size:16px}.fld{display:block;margin:8px 0 2px;font-size:12px;font-weight:800}.mbox select,.mbox input[type=text]{width:100%;padding:8px;border-radius:10px;border:2px solid #7a68e0;background:#150e40;color:#fff}.mbox input[type=range]{width:100%}.mini{padding:6px 10px;font-size:12px}`;
 document.head.appendChild(st);
-S.custom=S.custom||[];
 
 // ---- 2. Zielwahl wie Clash Royale: nächstes Ziel (Truppe ODER Turm) in Sichtweite
 Match.prototype.findTarget=function(u){
@@ -1322,27 +1343,6 @@ Match.prototype.findTarget=function(u){
 const wpf=World.prototype.profile;
 World.prototype.profile=function(b){const p=wpf.call(this,b);p.brain=new Brain(Object.assign({},b,{skill:Math.min(1,.45+b.skill*.65)}));return p;};
 
-// ---- 3. Eigene Bots: Stil + Regeln (Lektionen)
-const B0=Brain;
-Brain=class extends B0{constructor(b){super(b);if(b.style!=null&&STYLES[b.style])this.st=STYLES[b.style];this.rules=b.rules||[];}};
-const th=B0.prototype.think;
-B0.prototype.think=function(m,me){
- if(this.rules&&this.rules.length&&this.eCard&&m.t-this.eT<=6){
-  for(const r of this.rules){if(r.t!=='counter'||r.enemy!==this.eCard.id)continue;const i=m.hand[me].indexOf(r.card),c=CARDS[r.card];
-   if(i>=0&&c&&c.type!=='spell'&&m.el[me]>=c.cost){const l=this.eLane;this.eCard=null;if(m.play(me,i,l?270:90,me===0?400:200))return;}}}
- return th.call(this,m,me);};
-const pl0=Match.prototype.play;
-Match.prototype.play=function(team,hi,x,y){
- const b=this.brains[team],R=b&&b.rules;
- if(R&&R.length){const c=CARDS[this.hand[team][hi]];if(c){
-  const en=this.units.filter(u=>u.team!==team&&u.hp>0),home=en.some(u=>team===0?u.y>RY:u.y<RY),el=this.el[team];
-  for(const r of R){if(r.card!==c.id)continue;
-   if(r.t==='minEl'&&el<r.n)return false;
-   if(r.t==='defOnly'&&!home)return false;
-   if(r.t==='back'&&!home&&c.type==='troop')y=team===0?545:55;
-   if(r.t==='spellMin'&&c.type==='spell'&&!c.own&&en.filter(u=>Math.hypot(u.x-x,u.y-y)<=c.radius+u.rad).length<r.n)return false;}}}
- return pl0.call(this,team,hi,x,y);};
-
 // ---- 4./5. Zuschauen: Namen + Kronen oben und unten, je Spieler
 const wp0=watchPanel;
 watchPanel=function(el,m,k){wp0(el,m,k);
@@ -1352,56 +1352,6 @@ watchPanel=function(el,m,k){wp0(el,m,k);
 const h0=hud;
 hud=function(m,w){h0(m,w);document.querySelectorAll('#hud .side').forEach(s=>s.style.visibility=w?'hidden':'');};
 
-// ---- Coach-UI
-document.querySelector('#nav').insertAdjacentHTML('beforeend','<button data-act="tab" data-t="coach"><span>🎓</span>Coach</button>');
-document.querySelector('#watchBar').insertAdjacentHTML('beforeend','<button class="btn green coachb hidden" data-act="coachOpen">🎓 Lektion</button><button class="btn coachb hidden" data-act="pause">⏯</button>');
-const cm=closeModal;closeModal=function(){cm();if(wm)wm.lesson=false;};
-const uw=updWatchBtns;updWatchBtns=function(){uw();document.querySelectorAll('.coachb').forEach(b=>b.classList.toggle('hidden',!(wm&&wm.coach)));};
-setInterval(()=>{if(mode==='watch'&&wm&&wm.coach&&!wm.over&&!wm.paused&&!wm.lesson){wm.acc=(wm.acc||0)+.05*wm.speed;let n=0;while(wm.acc>=1/30&&n<40){wm.step(1/30);wm.acc-=1/30;n++;}}},50);
-
-const rt=renderTab;
-renderTab=function(){if(tab!=='coach')return rt();renderTop();
- document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
- const L=S.custom;
- setHTML($('#content'),`<div class="sect">🎓 Deine Bots (${L.length})</div><button class="btn green" style="width:100%;margin-bottom:10px" data-act="cnew">➕ Neuen Bot erstellen</button>`+(L.length?L.map(b=>`<div class="mrow"><div style="font-size:30px">${b.av}</div><div class="t" style="text-align:left">${b.name}<br><span class="rs">${STYLES[b.style].n} · Lv ${b.lvl} · ${b.rules.length} Lektionen</span></div><button class="btn red mini" data-act="cstart" data-id="${b.id}">▶ Training</button><button class="btn blue mini" data-act="cedit" data-id="${b.id}">✏️</button><button class="btn mini" data-act="cdel" data-id="${b.id}">🗑</button></div>`).join(''):'<div class="stat">Noch kein Bot. Erstelle einen, schau ihm im Training zu und bring ihm mit „🎓 Lektion“ bei, wie er spielen soll.</div>'),'tab');};
-
-const sel=(id,o)=>`<select id="${id}">${o.map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select>`;
-const cprof=cb=>({name:cb.name,av:cb.av,trophies:0,deck:cb.deck.slice(),kingLvl:cb.lvl,lvl:id=>Math.min(cb.lvl,RAR[CARDS[id].rar].max),brain:new Brain(cb)});
-function ruleText(r){const n=CARDS[r.card]?CARDS[r.card].name:'';switch(r.t){case'minEl':return n+' erst ab '+r.n+' Elixier';case'defOnly':return n+' nur zur Verteidigung';case'back':return n+' hinten spielen';case'spellMin':return n+' erst bei ≥'+r.n+' Gegnern';case'counter':return 'Gegner spielt '+(CARDS[r.enemy]?CARDS[r.enemy].name:'?')+' → '+n;}return'';}
-function editorHTML(){const d=ed;
- const sl=(lab,val,mn,mx,key,mul)=>`<label class="fld">${lab}: <b>${val}</b></label><input type="range" min="${mn}" max="${mx}" value="${val}" oninput="ed.${key}=this.value/${mul};this.previousElementSibling.lastElementChild.textContent=this.value">`;
- return `<h2>${d.id!=null?'Bot bearbeiten':'Neuer Bot'}</h2><label class="fld">Name</label><input type="text" maxlength="16" value="${d.name}" oninput="ed.name=this.value.replace(/[<>&&quot;]/g,'')">
- <label class="fld">Avatar</label><select onchange="ed.av=this.value">${AVATARS.map(a=>`<option ${a===d.av?'selected':''}>${a}</option>`).join('')}</select>
- <label class="fld">Spielstil</label><select onchange="ed.style=+this.value">${STYLES.map((s,i)=>`<option value="${i}" ${i===d.style?'selected':''}>${s.n}</option>`).join('')}</select>
- ${sl('Können',Math.round(d.skill*100),5,100,'skill',100)}${sl('Angriffslust',Math.round(d.aggr*100),0,100,'aggr',100)}${sl('Kartenlevel',d.lvl,1,13,'lvl',1)}
- <label class="fld">Deck (${d.deck.length}/8)</label><div class="minideck">${PLAY_CARDS.map(c=>`<div data-act="cdeck" data-id="${c.id}">${cardHTML(c.id,0,d.deck.includes(c.id)?'sel':'')}</div>`).join('')}</div>
- ${d.rules.length?`<label class="fld">Gelernte Lektionen</label>`+d.rules.map((r,i)=>`<div class="mrow" style="padding:6px"><div class="t" style="text-align:left">${ruleText(r)}</div><button class="btn red mini" data-act="rdel" data-i="${i}">✖</button></div>`).join(''):''}
- <button class="btn green" style="width:100%;margin-top:10px" data-act="csave">Speichern</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`;}
-function reEd(){const b=document.querySelector('#modal .mbox'),s=b?b.scrollTop:0;showModal(editorHTML());document.querySelector('#modal .mbox').scrollTop=s;}
-Object.assign(ACT,{
- cnew(){window.ed={name:'Mein Bot',av:AVATARS[0],style:4,skill:.7,aggr:.5,lvl:9,deck:START_DECK.slice(),rules:[]};showModal(editorHTML());},
- cedit(el){window.ed=JSON.parse(JSON.stringify(S.custom.find(b=>b.id==el.dataset.id)));showModal(editorHTML());},
- cdeck(el){const id=el.dataset.id,i=ed.deck.indexOf(id);if(i>=0)ed.deck.splice(i,1);else if(ed.deck.length<8)ed.deck.push(id);else toast('Schon 8 Karten');reEd();},
- rdel(el){ed.rules.splice(+el.dataset.i,1);reEd();},
- csave(){if(ed.deck.length!==8)return toast('Das Deck braucht genau 8 Karten');if(!ed.name.trim())return toast('Name fehlt');
-  if(ed.id==null){ed.id=Date.now();S.custom.push(ed);}else{const i=S.custom.findIndex(b=>b.id==ed.id);S.custom[i]=ed;}
-  save();closeModal();lastHTML.tab='';renderTab();toast('Bot gespeichert');},
- cdel(el){S.custom=S.custom.filter(b=>b.id!=el.dataset.id);save();lastHTML.tab='';renderTab();},
- cstart(el){const id=el.dataset.id;showModal(`<h2>Gegner wählen</h2>`+[['weak','🟢 Schwacher Bot'],['mid','🟡 Mittlerer Bot'],['strong','🔴 Starker Bot']].map(([k,n])=>`<button class="btn blue" style="width:100%;margin:4px 0" data-act="cgo" data-id="${id}" data-o="${k}">${n}</button>`).join('')+S.custom.filter(b=>b.id!=id).map(b=>`<button class="btn" style="width:100%;margin:4px 0" data-act="cgo" data-id="${id}" data-o="${b.id}">${b.av} ${b.name}</button>`).join('')+`<button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`);},
- cgo(el){const cb=S.custom.find(b=>b.id==el.dataset.id),o=el.dataset.o;let pb;
-  if(['weak','mid','strong'].includes(o)){const t={weak:.1,mid:.5,strong:.95}[o];pb=world.profile(pick(world.bots.slice().sort((a,b)=>Math.abs(a.skill-t)-Math.abs(b.skill-t)).slice(0,5)));}
-  else pb=cprof(S.custom.find(b=>b.id==o));
-  const m=new Match(cprof(cb),pb);m.A={name:cb.name,av:cb.av,trophies:0};m.B={name:pb.name,av:pb.av,trophies:pb.trophies|0};m.coach=cb;m.id=-1;closeModal();startWatch(m);},
- pause(){if(wm)wm.paused=!wm.paused;},
- coachOpen(){if(!wm||!wm.coach)return;wm.lesson=true;
-  showModal(`<h2>🎓 Lektion für ${wm.coach.name}</h2><div style="font-size:12px;text-align:center">Kampf pausiert. Was soll dein Bot lernen?</div>
-  <label class="fld">Regel</label>${sel('lt',[['minEl','Karte erst ab N Elixier spielen'],['defOnly','Karte nur zur Verteidigung'],['back','Karte hinten spielen, nicht an der Brücke'],['spellMin','Zauber erst bei mindestens N Gegnern'],['counter','Wenn Gegner Karte X spielt, antworte mit Karte']])}
-  <label class="fld">Deine Karte</label>${sel('lc',wm.coach.deck.map(id=>[id,CARDS[id].name]))}
-  <label class="fld">Gegnerkarte (nur für Gegenzug)</label>${sel('le',PLAY_CARDS.map(c=>[c.id,c.name]))}
-  <label class="fld">Zahl N</label><input type="text" id="ln" inputmode="numeric" value="5">
-  <button class="btn green" style="width:100%;margin-top:10px" data-act="lsave">Lernen lassen</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Weiter zuschauen</button>`);},
- lsave(){const r={t:$('#lt').value,card:$('#lc').value,enemy:$('#le').value,n:+$('#ln').value||0};wm.coach.rules.push(r);save();toast('Gelernt: '+ruleText(r));closeModal();}
-});
 })();
 
 // === PATCH 2: Bot-Logik (Verteidigung nach Konter-Wissen, Platzierung, Konterangriff, Endspiel) ===
@@ -1466,578 +1416,6 @@ Brain.prototype.smart=function(m,me){
  }
  return false;
 };
-})();
-
-// === PATCH 3: Eigene Bots sind echte Spieler (Start bei 0, Matchmaking, Rangliste, Trophäen, Truhen) ===
-(function(){
-const mkCustom=k=>Object.assign(newAccount(),{custom:1,name:'Mein Bot',av:AVATARS[0],style:4,skill:.7,aggr:.5,act:.7,rules:[],taste:Math.floor(Math.random()*1e6),online:false,sessEnd:0,idle:rnd(2,20),inMatch:false,lastSeen:0,wait:0,think:rnd(1,8),search:null},k);
-// Alte Coach-Bots übernehmen (Einstellungen + Lektionen bleiben, Fortschritt startet bei 0)
-S.custom=(S.custom||[]).map(o=>{let b;
- if(o.cards){b=repair(o,newAccount());Object.assign(b,{custom:1,online:false,inMatch:false,search:null,sessEnd:0,idle:rnd(2,20),wait:0,think:rnd(1,8)});}
- else b=mkCustom({name:o.name,av:o.av,style:o.style,skill:o.skill,aggr:o.aggr,rules:o.rules||[]});
- if(!Array.isArray(b.rules))b.rules=[];return b;});
-S.custom.forEach(b=>{b.id=world.bots.length;world.bots.push(b);});
-// Eigene Bots: kein Können-Bonus, Deck bleibt wie vom Coach gewählt
-const wp1=World.prototype.profile;
-World.prototype.profile=function(b){const p=wp1.call(this,b);if(b.custom)p.brain=new Brain(b);return p;};
-const bm=botManage;
-botManage=function(b){if(b.custom){const d=b.deck.slice();bm(b);b.deck=d;}else bm(b);};
-const ra=ACT.resetAll;
-ACT.resetAll=function(){const keep=S.custom;ra();S.custom=keep;
- keep.forEach(b=>{const k={name:b.name,av:b.av,style:b.style,skill:b.skill,aggr:b.aggr,act:b.act,rules:b.rules,taste:b.taste};for(const x of Object.keys(b))delete b[x];Object.assign(b,mkCustom(k));b.id=world.bots.length;world.bots.push(b);});
- save();lastHTML={};renderTab();};
-// ---- Coach-Tab
-const rt2=renderTab;
-renderTab=function(){if(tab!=='coach')return rt2();renderTop();
- document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
- const L=S.custom;
- setHTML($('#content'),`<div class="sect">🎓 Deine Bots (${L.length})</div><div class="stat" style="margin:0 0 8px">Deine Bots spielen wie alle anderen: Start bei 0 🏆, Matchmaking, Rangliste, Truhen.</div><button class="btn green" style="width:100%;margin-bottom:10px" data-act="cnew">➕ Neuen Bot erstellen</button>`+(L.length?L.map(b=>`<div class="mrow"><div style="font-size:30px">${b.av}</div><div class="t" style="text-align:left">${b.name}<br><span class="rs">🏆 ${b.trophies} · ${STYLES[b.style].n} · ${Object.keys(b.know||{}).length} Konzepte · ${(b.prog||[]).length} Regeln · ${b.rules.length} Lektionen${b.inMatch?' · ⚔️':''}</span></div><button class="btn green mini" data-act="cwatch" data-id="${b.id}">📺 Zuschauen</button><button class="btn red mini" data-act="cstart" data-id="${b.id}">▶ Training</button><button class="btn blue mini" data-act="cedit" data-id="${b.id}">✏️</button><button class="btn mini" data-act="cdel" data-id="${b.id}">🗑</button></div>`).join(''):'<div class="stat">Noch kein Bot.</div>'),'tab');};
-// ---- Editor
-function ruleText(r){const n=CARDS[r.card]?CARDS[r.card].name:'';switch(r.t){case'minEl':return n+' erst ab '+r.n+' Elixier';case'defOnly':return n+' nur zur Verteidigung';case'back':return n+' hinten spielen';case'spellMin':return n+' erst bei ≥'+r.n+' Gegnern';case'counter':return 'Gegner spielt '+(CARDS[r.enemy]?CARDS[r.enemy].name:'?')+' → '+n;}return'';}
-const draft=b=>({id:b.id,name:b.name,av:b.av,style:b.style,skill:b.skill,aggr:b.aggr,act:b.act,deck:b.deck.slice(),rules:b.rules.map(r=>Object.assign({},r)),cards:b.cards});
-function editorHTML(){const d=ed;
- const sl=(lab,val,key)=>`<label class="fld">${lab}: <b>${val}</b></label><input type="range" min="5" max="100" value="${val}" oninput="ed.${key}=this.value/100;this.previousElementSibling.lastElementChild.textContent=this.value">`;
- return `<h2>${d.id!=null?'Bot bearbeiten':'Neuer Bot'}</h2><label class="fld">Name</label><input type="text" maxlength="16" value="${d.name}" oninput="ed.name=this.value.replace(/[<>&&quot;]/g,'')">
- <label class="fld">Avatar</label><select onchange="ed.av=this.value">${AVATARS.map(a=>`<option ${a===d.av?'selected':''}>${a}</option>`).join('')}</select>
- <label class="fld">Spielstil</label><select onchange="ed.style=+this.value">${STYLES.map((s,i)=>`<option value="${i}" ${i===d.style?'selected':''}>${s.n}</option>`).join('')}</select>
- ${sl('Können',Math.round(d.skill*100),'skill')}${sl('Angriffslust',Math.round(d.aggr*100),'aggr')}${sl('Aktivität (wie oft online)',Math.round(d.act*100),'act')}
- <div class="stat" style="margin:6px 0">Start bei 0 🏆 mit den Startkarten. Neue Karten findet der Bot selbst in Truhen, dann kannst du sie ins Deck legen.</div>
- <label class="fld">Deck (${d.deck.length}/8)</label><div class="minideck">${PLAY_CARDS.filter(c=>d.cards[c.id].own).map(c=>`<div data-act="cdeck" data-id="${c.id}">${cardHTML(c.id,d.cards[c.id].lvl,d.deck.includes(c.id)?'sel':'')}</div>`).join('')}</div>
- ${d.rules.length?`<label class="fld">Gelernte Lektionen</label>`+d.rules.map((r,i)=>`<div class="mrow" style="padding:6px"><div class="t" style="text-align:left">${ruleText(r)}</div><button class="btn red mini" data-act="rdel" data-i="${i}">✖</button></div>`).join(''):''}
- <button class="btn green" style="width:100%;margin-top:10px" data-act="csave">Speichern</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`;}
-function reEd(){const b=document.querySelector('#modal .mbox'),s=b?b.scrollTop:0;showModal(editorHTML());document.querySelector('#modal .mbox').scrollTop=s;}
-Object.assign(ACT,{
- cnew(){window.ed=Object.assign(draft(mkCustom({})),{id:null});showModal(editorHTML());},
- cedit(el){window.ed=draft(S.custom.find(b=>b.id==el.dataset.id));showModal(editorHTML());},
- cdeck(el){const id=el.dataset.id,i=ed.deck.indexOf(id);if(i>=0)ed.deck.splice(i,1);else if(ed.deck.length<8)ed.deck.push(id);else toast('Schon 8 Karten');reEd();},
- rdel(el){ed.rules.splice(+el.dataset.i,1);reEd();},
- csave(){if(ed.deck.length!==8)return toast('Das Deck braucht genau 8 Karten');if(!ed.name.trim())return toast('Name fehlt');
-  const f={name:ed.name,av:ed.av,style:ed.style,skill:ed.skill,aggr:ed.aggr,act:ed.act};
-  if(ed.id==null){const b=mkCustom(Object.assign(f,{deck:ed.deck.slice(),rules:ed.rules}));b.id=world.bots.length;b.online=true;b.sessEnd=rnd(120,400);b.idle=rnd(0,6);S.custom.push(b);world.bots.push(b);}
-  else{const b=S.custom.find(x=>x.id===ed.id);Object.assign(b,f,{deck:ed.deck.slice()});b.rules.length=0;ed.rules.forEach(r=>b.rules.push(r));}
-  save();closeModal();lastHTML.tab='';renderTab();toast('Bot gespeichert');},
- cdel(el){const b=S.custom.find(x=>x.id==el.dataset.id);if(!b)return;if(b.inMatch)return toast('Der Bot kämpft gerade');
-  S.custom=S.custom.filter(x=>x!==b);world.bots.splice(world.bots.indexOf(b),1);world.bots.forEach((x,i)=>x.id=i);save();lastHTML.tab='';renderTab();},
- cgo(el){const cb=S.custom.find(b=>b.id==el.dataset.id),o=el.dataset.o;let pb;
-  if(['weak','mid','strong'].includes(o)){const t={weak:.1,mid:.5,strong:.95}[o];pb=world.profile(pick(world.bots.filter(b=>!b.custom).sort((a,b)=>Math.abs(a.skill-t)-Math.abs(b.skill-t)).slice(0,5)));}
-  else pb=world.profile(S.custom.find(b=>b.id==o));
-  const m=new Match(world.profile(cb),pb);m.A={name:cb.name,av:cb.av,trophies:cb.trophies};m.B={name:pb.name,av:pb.av,trophies:pb.trophies|0};m.coach=cb;m.id=-1;closeModal();startWatch(m);}
-});
-})();
-
-// === PATCH 4: Lektionen einfach erklären (Text eingeben ODER Karte + Knopf tippen) ===
-(function(){
-window.les={card:null,n:6,text:''};
-const pl2=Match.prototype.play;
-Match.prototype.play=function(team,hi,x,y){const b=this.brains[team],R=b&&b.rules,id=this.hand[team][hi];
- if(R&&R.some(r=>r.t==='never'&&r.card===id))return false;return pl2.call(this,team,hi,x,y);};
-function ruleText(r){const n=CARDS[r.card]?CARDS[r.card].name:'';switch(r.t){case'minEl':return n+' erst ab '+r.n+' Elixier';case'defOnly':return n+' nur zur Verteidigung';case'back':return n+' immer hinten spielen';case'never':return n+' nie spielen';case'spellMin':return n+' erst bei ≥'+r.n+' Gegnern';case'counter':return 'Gegner spielt '+(CARDS[r.enemy]?CARDS[r.enemy].name:'?')+' → '+n;}return'';}
-const STOP=['elixier','elixiers'];
-function findCards(txt,deck){
- const w=txt.toLowerCase().replace(/[^a-zäöüß0-9\s-]/g,' ').split(/\s+/).filter(Boolean),by={};
- w.forEach((t,pos)=>{if(t.length<4||STOP.includes(t))return;
-  for(const c of PLAY_CARDS){const ks=c.name.toLowerCase().split(/[\s-]+/);
-   if(ks.some(k=>k.length>=4&&(k.startsWith(t)||t.startsWith(k.slice(0,5))))){const d=deck.includes(c.id)?0:1;if(!by[pos]||d<by[pos].d)by[pos]={c,d};}}});
- const out=[];Object.keys(by).map(Number).sort((a,b)=>a-b).forEach(p=>{if(!out.includes(by[p].c))out.push(by[p].c);});return out;}
-function parse(txt,bot){
- const t=txt.toLowerCase(),cs=findCards(txt,bot.deck),num=(t.match(/\d+/)||[])[0];if(!cs.length)return null;
- if(cs.length>=2&&/gegen|wenn|bei/.test(t))return{t:'counter',enemy:cs[0].id,card:cs[1].id};
- const c=cs[0];
- if(/\bnie\b|niemals|nicht spielen|weglassen/.test(t))return{t:'never',card:c.id};
- if(/verteidig|angreift|nur wenn.*gegner/.test(t))return{t:'defOnly',card:c.id};
- if(/hinten|hinter|nicht an der brücke|nicht vorne/.test(t))return{t:'back',card:c.id};
- if(num&&c.type==='spell'&&/gegner|einheiten|truppen|ziele/.test(t))return{t:'spellMin',card:c.id,n:+num};
- if(num&&/elixier|erst|\bab\b/.test(t))return{t:'minEl',card:c.id,n:Math.min(10,+num)};
- return null;}
-function lessonHTML(){const b=wm.coach,c=les.card?CARDS[les.card]:null;
- return `<h2>🎓 Lektion für ${b.name}</h2><div class="stat" style="margin:0 0 6px">Der Kampf ist pausiert.</div>
- <label class="fld">✍️ Schreib einfach, was er tun soll</label>
- <input type="text" placeholder="z. B. Steinhüne nur hinten spielen" value="${les.text}" oninput="les.text=this.value">
- <div class="stat" style="margin:4px 0">Beispiele: „Feuerkugel erst bei 3 Gegnern“ · „Pfeilhagel nur zur Verteidigung“ · „Jungritter nie spielen“ · „Gegen Steinhüne spiele Eisenkoloss“ · „Musketenmaid erst ab 6 Elixier“</div>
- <button class="btn green" style="width:100%" data-act="ltext">Lehren</button>
- <div class="stat" style="margin:12px 0 2px">… oder tippen: 1) Karte wählen</div>
- <div class="minideck">${b.deck.map(id=>`<div data-act="lcard" data-id="${id}">${cardHTML(id,b.cards[id].lvl,les.card===id?'sel':'')}</div>`).join('')}</div>
- ${c?`<div class="stat" style="margin:6px 0">2) Was soll er mit „${c.name}“ tun?</div>
- <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:6px"><button class="btn mini" data-act="lnum" data-d="-1">−</button><b style="font-size:18px">${les.n}</b><button class="btn mini" data-act="lnum" data-d="1">+</button><span style="font-size:11px">Zahl (Elixier / Gegner)</span></div>
- <button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="defOnly">🛡 Nur zur Verteidigung</button>
- <button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="back">⬅ Immer hinten spielen</button>
- ${c.type==='spell'?`<button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="spellMin">🎯 Erst bei ${les.n} Gegnern</button>`:`<button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="minEl">💧 Erst ab ${les.n} Elixier</button>`}
- <button class="btn red" style="width:100%;margin:3px 0" data-act="lrule" data-t="never">🚫 Nie spielen</button>`:''}
- ${b.rules.length?`<div class="stat" style="margin:12px 0 2px">Das hat er gelernt:</div>`+b.rules.map((r,i)=>`<div class="mrow" style="padding:6px"><div class="t" style="text-align:left">${ruleText(r)}</div><button class="btn red mini" data-act="ldel" data-i="${i}">✖</button></div>`).join(''):''}
- <button class="btn" style="width:100%;margin-top:10px" data-act="close">Weiter zuschauen</button>`;}
-function reLes(){const m=document.querySelector('#modal .mbox'),s=m?m.scrollTop:0;showModal(lessonHTML());document.querySelector('#modal .mbox').scrollTop=s;}
-function add(r){const R=wm.coach.rules;
- for(let i=R.length-1;i>=0;i--)if(R[i].t===r.t&&R[i].card===r.card&&(r.t!=='counter'||R[i].enemy===r.enemy))R.splice(i,1);
- R.push(r);save();toast('Gelernt: '+ruleText(r));les.text='';reLes();}
-Object.assign(ACT,{
- coachOpen(){if(!wm||!wm.coach)return;wm.lesson=true;showModal(lessonHTML());},
- lcard(el){les.card=les.card===el.dataset.id?null:el.dataset.id;reLes();},
- lnum(el){les.n=clamp(les.n+(+el.dataset.d),1,10);reLes();},
- lrule(el){if(les.card)add({t:el.dataset.t,card:les.card,n:les.n});},
- ltext(){const r=parse(les.text,wm.coach);if(r)add(r);else toast('Nicht verstanden – nenne eine Karte und was er tun soll');},
- ldel(el){wm.coach.rules.splice(+el.dataset.i,1);save();reLes();}
-});
-})();
-
-// === PATCH 5: Eigene Bots starten unwissend; sie spielen normal in der Ladder, du schaust zu und coachst ===
-(function(){
-const full=Brain.prototype.think;Brain.prototype.fullThink=full;
-Brain.prototype.think=function(m,me){return this.pf.custom?this.naive(m,me):full.call(this,m,me);};
-// Unwissender Bot: spielt planlos. Jedes beigebrachte Wissen schaltet ein Stück echte Logik frei.
-Brain.prototype.naive=function(m,me){
- const k=this.pf.know||{},n=Object.keys(k).length,el=m.el[me];
- if(n>=5)return full.call(this,m,me);                 // alles gelernt: volle Bot-Logik
- const aff=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})).filter(o=>o.c.cost<=el+1e-6);
- if(!aff.length)return;
- if(k.defend){this.cpT=k.push?(this.cpT===1e9?0:this.cpT):1e9;if(this.smart(m,me))return;}  // Verteidigen (+ Konterangriff)
- if(el<(k.save?6:2.5))return;                          // ohne "Elixier sparen": sofort wieder etwas spielen
- const en=m.units.filter(u=>u.team!==me&&u.hp>0),o=pick(aff),c=o.c;
- if(c.type==='spell'){
-  if(k.spells){const r=this.spellTarget(c,en,me);if(!r||r.v<c.cost)return;m.play(me,o.i,r.pos.x,r.pos.y);return;}
-  m.play(me,o.i,rnd(20,340),rnd(40,560));return;}      // Zauber irgendwohin
- let x=rnd(20,340),y=me===0?rnd(340,570):rnd(30,260);   // Truppen irgendwohin
- if(k.place){const lane=this.lane=Math.random()<.3?1-this.lane:this.lane,back=c.range>50||c.bOnly;x=lane?270:90;y=me===0?(back?540:470):(back?60:130);}
- m.play(me,o.i,x,y);
-};
-// Zuschauen in der normalen Ladder
-Object.assign(ACT,{
- cwatch(el){const b=S.custom.find(x=>x.id==el.dataset.id);if(!b)return;
-  const m=world.matches.find(x=>x.A===b||x.B===b);
-  if(m){m.coach=b;startWatch(m);return;}
-  b.online=true;b.sessEnd=Math.max(b.sessEnd||0,300);b.idle=0;b.search=Math.min(b.search==null?1:b.search,1);
-  window.waitFor={b,t:Date.now()};toast('Dein Bot sucht einen Gegner …');},
- speed(el){if(!wm)return;wm.us=+el.dataset.s;if(!wm.paused&&!wm.lesson)wm.speed=wm.us;updWatchBtns();}
-});
-const ew=endWatch;
-endWatch=function(){if(wm){wm.coach=null;wm.paused=false;wm.lesson=false;}ew();};
-setInterval(()=>{
- if(mode==='watch'&&wm&&wm.coach&&wm.id!==-1)wm.speed=(wm.paused||wm.lesson)?0:(wm.us||1);  // Pause fuer Lektion
- const w=window.waitFor;
- if(w&&mode==='menu'){const m=world.matches.find(x=>x.A===w.b||x.B===w.b);
-  if(m){window.waitFor=null;m.coach=w.b;startWatch(m);}else if(Date.now()-w.t>90000){window.waitFor=null;toast('Noch kein Gegner gefunden – tippe nochmal auf Zuschauen');}}
-},100);
-})();
-
-// === PATCH 6a: Bot-Gehirn (Wissen, Wenn-Dann-Regeln, Extras) ===
-(function(){
-const LN=l=>l?270:90;
-const isTank=c=>c.type==='troop'&&(isTankC(c)||(c.bOnly&&c.hp>=1400&&!c.fly));
-// Gegnerische Karte merken (Karte, Zeit, Spur)
-const sn0=Brain.prototype.seen;
-Brain.prototype.seen=function(c,x,y){sn0.call(this,c,x,y);if(y!=null)this.lastE={id:c.id,t:this.tNow||0,lane:x<180?0:1};};
-// Lagebild: alles, was Bedingungen wissen wollen
-Brain.prototype.ctx=function(m,me){
- const op=1-me,en=m.units.filter(u=>u.team===op&&u.hp>0),fr=m.units.filter(u=>u.team===me&&u.hp>0);
- const side=u=>me===0?u.y>RY:u.y<RY;
- const mine=en.filter(u=>side(u)&&!u.building);
- const lanes=[[],[]];mine.forEach(u=>lanes[u.x<180?0:1].push(u));
- const lp=lanes.map(l=>l.reduce((s,u)=>s+pw(u),0)),li=lp[0]>=lp[1]?0:1,T=lanes[li];
- const tx=T.length?T.reduce((s,u)=>s+u.x,0)/T.length:LN(li),ty=T.length?T.reduce((s,u)=>s+u.y,0)/T.length:(me===0?420:180);
- const foeT=m.tw[op],myT=m.tw[me],eDef=[0,0];
- en.forEach(u=>{if(!side(u)&&!u.building)eDef[u.x<180?0:1]+=pw(u);});
- const sc2=l=>eDef[l]+foeT[l].hp*.02+(foeT[l].dead?1e5:0),weak=sc2(0)<=sc2(1)?0:1;
- const push=fr.filter(u=>!u.building&&!side(u)&&u.hp>u.maxhp*.3);
- const frac=a=>Math.min(1,...a.filter(t=>!t.dead).map(t=>t.hp/t.maxhp));
- const le=this.lastE&&m.t-this.lastE.t<=8?this.lastE:null;
- return{m,me,en,fr,mine,lanes,lp,li,T,tx,ty,mineP:lp[0]+lp[1],foeT,weak,push,pushP:push.reduce((s,u)=>s+pw(u),0),
-  lead:m.crowns[me]-m.crowns[op],el:m.el[me],est:this.est,t:m.t,dbl:m.t>=120,le,myLow:frac(myT),foeLow:frac(foeT),eDef,side};
-};
-// Eine Bedingung auswerten
-Brain.prototype.cond=function(x,c){
- const v=+c.v,M=x.mine;
- switch(c.k){
-  case'el_ge':return x.el>=v;case'el_le':return x.el<=v;
-  case'est_le':return x.est<=v;case'est_ge':return x.est>=v;
-  case'time_ge':return x.t>=v;case'time_le':return x.t<=v;case'dbl':return x.dbl;
-  case'en_cnt':return M.length>=v;case'en_none':return M.length===0;
-  case'en_fly':return M.some(u=>u.fly);
-  case'en_swarm':return M.length>=3&&M.filter(u=>u.c.hp<260).length>=3;
-  case'en_tank':return M.some(u=>u.c.hp>=1100||u.bOnly);
-  case'en_ranged':return M.some(u=>u.range>=60);
-  case'en_bld':return x.en.some(u=>u.building);
-  case'en_card':return !!x.le&&x.le.id===c.v;
-  case'en_has':return x.en.some(u=>u.c.id===c.v&&(u.building||x.side(u)));
-  case'en_left':return M.length>0&&x.li===0;case'en_right':return M.length>0&&x.li===1;
-  case'push_on':return x.pushP>=60;case'push_off':return x.pushP<60;
-  case'lead_pos':return x.lead>0;case'lead_neg':return x.lead<0;case'lead_eq':return x.lead===0;
-  case'mytw_low':return x.myLow*100<v;case'foetw_low':return x.foeLow*100<v;
- }
- return false;
-};
-// Wohin spielt eine Regel ihre Karte? null = geht gerade nicht
-Brain.prototype.rpos=function(m,me,x,c,pos){
- const by=me===0?RY+RH+24:RY-RH-24,bk=me===0?540:60,sp=c.type==='spell';
- const lane={weak:x.weak,L:0,R:1,same:x.le?x.le.lane:x.weak,other:x.le?1-x.le.lane:x.weak};
- const spellAt=l=>{const t=x.foeT[l];return t.dead?null:{x:t.x,y:t.y};};
- const near=l=>{const t=x.foeT[l];return t.dead?{x:LN(l),y:by}:{x:t.x,y:t.y+(me===0?34:-34)};};
- if(c.anywhere&&(/^bridge_/.test(pos)||pos==='tower_weak')){const l=pos==='tower_weak'?(x.foeT[0].hp<=x.foeT[1].hp?0:1):lane[pos.slice(7)];return near(l);}
- switch(pos){
-  case'counter':case'cluster':{
-   if(sp){const r=this.spellTarget(c,pos==='cluster'?x.en:x.mine,me);if(r)return r.pos;return pos==='counter'&&x.mine.length?{x:x.tx,y:x.ty}:null;}
-   if(!x.mine.length)return null;
-   return this.place(m,me,c,x.tx,x.ty,x.mine.some(u=>u.bOnly),x.mine.some(u=>u.c.hp>=1100));}
-  case'bridge_weak':case'bridge_same':case'bridge_other':case'bridge_L':case'bridge_R':{
-   const l=lane[pos.slice(7)];return sp?spellAt(l):{x:LN(l),y:by};}
-  case'back_weak':case'back_same':case'back_other':case'back_L':case'back_R':{
-   if(sp)return null;return{x:LN(lane[pos.slice(5)]),y:bk};}
-  case'mid':return sp?null:{x:180,y:me===0?400:200};
-  case'tower_weak':{const l=x.foeT[0].dead?1:x.foeT[1].dead?0:(x.foeT[0].hp<=x.foeT[1].hp?0:1);return sp?spellAt(l):{x:LN(l),y:by};}
-  case'behind_push':{
-   if(!x.push.length)return null;const ld=x.push.slice().sort((a,b)=>b.hp-a.hp)[0];
-   if(sp)return{x:ld.x,y:ld.y};
-   return{x:clamp(ld.x,20,340),y:me===0?clamp(ld.y+50,335,520):clamp(ld.y-50,80,265)};}
- }
- return null;
-};
-// Wenn-Dann-Programm: erste passende Regel gewinnt
-Brain.prototype.runProg=function(m,me){
- const P=(this.pf.prog||[]).filter(r=>r.on!==false&&r.card&&CARDS[r.card]);if(!P.length)return false;
- const x=this.ctx(m,me);this.rcd=this.rcd||{};
- for(const r of P){
-  if(m.t-(this.rcd[r.id]===undefined?-999:this.rcd[r.id])<(r.cd||0))continue;
-  if(!(r.if||[]).every(c=>this.cond(x,c)))continue;
-  const i=m.hand[me].indexOf(r.card),c=CARDS[r.card];if(i<0||m.el[me]<c.cost-1e-6)continue;
-  const p=this.rpos(m,me,x,c,r.pos);if(!p)continue;
-  if(m.play(me,i,p.x,p.y)){this.rcd[r.id]=m.t;this.lastRule={r:r,t:m.t};this.nFired=(this.nFired||0)+1;return true;}
- }
- return false;
-};
-// Zusatzwissen (Konzepte außer den fünf Kern-Konzepten)
-Brain.prototype.extras=function(m,me){
- const k=this.pf.know||{};if(!Object.keys(k).length)return false;
- const x=this.ctx(m,me),el=x.el,hand=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})),aff=hand.filter(o=>o.c.cost<=el+1e-6),thr=x.mineP>=55;
- if(k.lane)this.lane=x.weak;
- if(k.lead&&m.t>=165&&!m.ot&&x.lead>0&&!thr&&el<9.3)return true;       // Vorsprung halten
- if(k.finish&&(m.t>=150||m.ot)){
-  for(const o of aff){const c=o.c;if(c.type!=='spell'||c.kind||c.own||!(c.dmg>0))continue;
-   const dm=c.dmg*sc(m.p[me].lvl(c.id))*.35,tg=x.foeT.filter(t=>!t.dead&&t.type!=='k'&&t.hp<=dm).sort((a,b)=>a.hp-b.hp)[0];
-   if(tg&&m.play(me,o.i,tg.x,tg.y))return true;}}
- if(!thr){
-  if(k.tank){
-   const tks=hand.filter(o=>isTank(o.c));
-   if(tks.length&&!x.fr.some(u=>isTank(u.c))){
-    const a=tks.find(o=>el>=o.c.cost+1);
-    if(a){if(m.play(me,a.i,LN(x.weak),me===0?545:55))return true;}
-    else if(el<9.5)return true;}}                                       // auf den Tank sparen
-  if(k.punish&&this.est<=3&&el>=5){
-   const val=c=>c.count*(c.hp/10+c.dps*1.2)/c.cost,f=aff.filter(o=>o.c.type==='troop'&&!o.c.heal&&!o.c.bOnly&&o.c.cost<=el-1).sort((a,b)=>val(b.c)-val(a.c))[0];
-   if(f){const l=this.lastE?1-this.lastE.lane:x.weak;if(!x.foeT[l].dead&&m.play(me,f.i,LN(l),me===0?RY+RH+24:RY-RH-24))return true;}}
- }
- return false;
-};
-// Unwissender Bot: Jedes Konzept schaltet ein Stück echte Logik frei
-Brain.prototype.naive=function(m,me){
- const k=this.pf.know||{},el=m.el[me];
- if(['defend','push','save','spells','place'].every(c=>k[c])){if(this.extras(m,me))return;return this.fullThink(m,me);}
- const aff=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})).filter(o=>o.c.cost<=el+1e-6);
- if(!aff.length)return;
- if(k.defend){this.cpT=k.push?(this.cpT===1e9?0:this.cpT):1e9;if(this.smart(m,me))return;}
- if(this.extras(m,me))return;
- let gate=k.save?6:2.5;if(k.double&&m.t>=120)gate-=1.5;if(k.cycle)gate=Math.min(gate,3);
- if(el<gate)return;
- const en=m.units.filter(u=>u.team!==me&&u.hp>0);let pool=aff;
- if(k.cycle){const tr=aff.filter(o=>o.c.type==='troop').sort((a,b)=>a.c.cost-b.c.cost);if(tr.length)pool=[tr[0]];}
- const o=pick(pool),c=o.c;
- if(c.type==='spell'){
-  if(k.spells){const r=this.spellTarget(c,en,me);if(!r||r.v<c.cost)return;m.play(me,o.i,r.pos.x,r.pos.y);return;}
-  m.play(me,o.i,rnd(20,340),rnd(40,560));return;}
- let x=rnd(20,340),y=me===0?rnd(340,570):rnd(30,260);
- if(k.place){const lane=k.lane?this.lane:(this.lane=Math.random()<.3?1-this.lane:this.lane),back=c.range>50||c.bOnly;x=lane?270:90;y=me===0?(back?540:470):(back?60:130);}
- m.play(me,o.i,x,y);
-};
-// Eigene Bots prüfen zuerst ihr Wenn-Dann-Programm
-const t5=Brain.prototype.think;
-Brain.prototype.think=function(m,me){if(this.pf.custom&&this.runProg(m,me))return;return t5.call(this,m,me);};
-})();
-
-// === PATCH 6b: Lektions-UI deluxe ===
-(function(){
-const KN=[
-['defend','🛡 Verteidigen','Gegner auf deiner Seite mit passenden Karten kontern (Flieger → Luftabwehr, Schwarm → Fläche, Tank → viel Schaden).',1],
-['push','⚔️ Konterangriff','Überlebende Truppen nach der Verteidigung mit weiteren Karten unterstützen.',1],
-['save','💧 Elixier sparen','Nicht jede Karte sofort spielen, erst ab ca. 6 Elixier angreifen.',1],
-['spells','🔥 Zauber zielen','Zauber nur einsetzen, wenn sie genug Gegner treffen.',1],
-['place','📍 Platzieren','Truppen an der Brücke einer Spur, Fernkämpfer und Tanks ganz hinten.',1],
-['tank','🗿 Tank-Plan','Auf einen Tank sparen, ihn hinten spielen und dahinter aufbauen.',0],
-['punish','🎯 Bestrafen','Hat der Gegner gerade viel Elixier ausgegeben, sofort auf der anderen Spur angreifen.',0],
-['lane','🛤 Schwache Spur','Immer die Spur angreifen, die der Gegner schwächer verteidigt.',0],
-['cycle','🔁 Zyklus','Billige Karten schnell durchspielen, um Gewinnkarten wieder zu bekommen.',0],
-['double','⚡ Doppeltes Elixier','Ab Minute 2 deutlich aggressiver spielen.',0],
-['finish','👑 Turm-Finisher','Am Ende Zauber auf angeschlagene Türme werfen.',0],
-['lead','🏁 Vorsprung halten','Bei Führung kurz vor Schluss nur noch verteidigen.',0]];
-const COND={
-el_ge:['💧 Mein Elixier mindestens …','n',7],el_le:['💧 Mein Elixier höchstens …','n',3],
-est_le:['🕵 Gegner-Elixier (geschätzt) höchstens …','n',3],est_ge:['🕵 Gegner-Elixier (geschätzt) mindestens …','n',8],
-time_ge:['⏱ Spielzeit ab … Sekunden','n',120],time_le:['⏱ Spielzeit bis … Sekunden','n',45],dbl:['⚡ Doppeltes Elixier läuft'],
-en_cnt:['👥 Mindestens … Gegner auf meiner Seite','n',2],en_none:['🕊 Kein Gegner auf meiner Seite'],
-en_fly:['🦇 Gegner-Flieger auf meiner Seite'],en_swarm:['🐜 Gegner-Schwarm auf meiner Seite'],en_tank:['🗿 Gegner-Tank/Turmjäger auf meiner Seite'],
-en_ranged:['🏹 Gegner-Fernkämpfer auf meiner Seite'],en_bld:['🏠 Gegner hat ein Gebäude'],
-en_card:['🃏 Gegner hat gerade (≤8 s) gespielt: …','card'],en_has:['🃏 Diese Gegnerkarte ist auf meiner Seite: …','card'],
-en_left:['⬅ Bedrohung auf linker Spur'],en_right:['➡ Bedrohung auf rechter Spur'],
-push_on:['⚔️ Mein Angriff läuft'],push_off:['🚫 Kein Angriff läuft'],
-lead_pos:['👑 Ich führe nach Kronen'],lead_neg:['😬 Ich liege zurück'],lead_eq:['🤝 Kronen gleich'],
-mytw_low:['🏰 Einer meiner Türme unter … %','n',50],foetw_low:['🎯 Ein Gegnerturm unter … %','n',50]};
-const POS=[['counter','🛡 Konter: vor die Bedrohung (Zauber: auf sie)'],['cluster','💥 Zauber auf größten Gegnerhaufen'],['bridge_weak','🌉 Brücke, schwächere Gegnerspur'],['bridge_same','🌉 Brücke, gleiche Spur wie Gegners letzte Karte'],['bridge_other','🌉 Brücke, andere Spur als Gegners letzte Karte'],['bridge_L','🌉 Brücke links'],['bridge_R','🌉 Brücke rechts'],['back_weak','⬇ Hinten, schwächere Spur'],['back_L','⬇ Hinten links'],['back_R','⬇ Hinten rechts'],['mid','🏠 Mitte (Gebäude)'],['tower_weak','🎯 Auf den schwächeren Gegnerturm'],['behind_push','🤝 Hinter meine vorderste Truppe (Zauber: auf sie)']];
-const POSD=Object.fromEntries(POS.map(p=>[p[0],p[1].replace(/^\S+\s/,'')]));
-const uid=()=>'r'+Date.now().toString(36)+Math.floor(Math.random()*1e5);
-const newRule=()=>({id:null,name:'',on:true,if:[],card:'',pos:'counter',cd:4});
-window.L6={tab:'know',rule:newRule(),cc:'el_ge',cn:'7',ck:PLAY_CARDS[0].id,text:'',card:null,n:6,sitCard:null,sitPos:'auto'};
-const condText=c=>{const d=COND[c.k];if(!d)return c.k;return d[0].replace('…',d[1]==='card'?(CARDS[c.v]?CARDS[c.v].name:'?'):(c.v==null?'':c.v));};
-const ruleDesc=r=>{const c=CARDS[r.card];return 'WENN '+((r.if&&r.if.length)?r.if.map(condText).join(' UND '):'immer')+' → '+(c?c.name:'?')+' ('+(POSD[r.pos]||r.pos)+', Pause '+(r.cd||0)+' s)';};
-function oldText(r){const n=CARDS[r.card]?CARDS[r.card].name:'';switch(r.t){case'minEl':return n+' erst ab '+r.n+' Elixier';case'defOnly':return n+' nur zur Verteidigung';case'back':return n+' immer hinten spielen';case'never':return n+' nie spielen';case'spellMin':return n+' erst bei ≥'+r.n+' Gegnern';case'counter':return 'Gegner spielt '+(CARDS[r.enemy]?CARDS[r.enemy].name:'?')+' → '+n;}return'';}
-const STOPW=['turm','türme','tuerme','brücke','bruecke','hinten','links','rechts','mitte','spur','gegner','dann','wenn','zauber','angriff','flieger','tank','karte','elixier','elixiers','spiele','sobald','falls'];
-function fc6(txt,deck){
- const w=txt.toLowerCase().replace(/[^a-zäöüß0-9\s-]/g,' ').split(/\s+/).filter(Boolean),by={};
- w.forEach((t,pos)=>{if(t.length<4||STOPW.includes(t))return;
-  for(const c of PLAY_CARDS){const ks=c.name.toLowerCase().split(/[\s-]+/);
-   if(ks.some(k=>k.length>=4&&(k.startsWith(t)||t.startsWith(k.slice(0,5))))){const d=deck.includes(c.id)?0:1;if(!by[pos]||d<by[pos].d)by[pos]={c,d};}}});
- const out=[];Object.keys(by).map(Number).sort((a,b)=>a-b).forEach(p=>{if(!out.includes(by[p].c))out.push(by[p].c);});return out;}
-function parseIf(txt,bot){
- const t=txt.toLowerCase();if(!/wenn|falls|sobald|solange/.test(t))return null;
- const m=t.match(/^(.*?)(?:\bdann\b|,)(.*)$/);if(!m)return null;
- const cp=m[1],ap=m[2],cs=[],num=re=>{const q=cp.match(re);return q?+(q[1]||q[2]):null;};
- const ac=fc6(ap,bot.deck);if(!ac.length)return null;
- const est=/gegner[^,]{0,25}elixier/.test(cp);let n;
- if((n=num(/(?:weniger als|höchstens|unter|maximal)\s*(\d+)\s*elixier/))!=null||(n=num(/elixier\s*(?:ist\s*)?(?:weniger als|höchstens|unter|maximal)\s*(\d+)/))!=null)cs.push({k:est?'est_le':'el_le',v:n});
- else if((n=num(/(\d+)\s*elixier/))!=null||(n=num(/elixier[^\d]{0,20}(\d+)/))!=null)cs.push({k:est?'est_ge':'el_ge',v:n});
- else if(/gegner.*(leer|ausgegeben|wenig elixier)/.test(cp))cs.push({k:'est_le',v:3});
- const cc=fc6(cp,bot.deck);
- if(cc.length)cs.push({k:/spielt|gespielt|setzt|legt/.test(cp)?'en_card':'en_has',v:cc[0].id});
- else{if(/flieger|luft|drache|ballon/.test(cp))cs.push({k:'en_fly'});if(/schwarm|skelett|horde/.test(cp))cs.push({k:'en_swarm'});
-  if(/\btank|riese|golem|koloss|turmjäger/.test(cp))cs.push({k:'en_tank'});if(/fernk|bogen|schütz/.test(cp))cs.push({k:'en_ranged'});}
- if(/gebäude/.test(cp))cs.push({k:'en_bld'});if(/doppelt/.test(cp))cs.push({k:'dbl'});
- if(/führ/.test(cp))cs.push({k:'lead_pos'});if(/zurück|rückstand/.test(cp))cs.push({k:'lead_neg'});if(/gleichstand|unentschieden/.test(cp))cs.push({k:'lead_eq'});
- if(/kein[^,]*angriff|ohne angriff|nicht angreif/.test(cp))cs.push({k:'push_off'});else if(/angriff läuft|angreife/.test(cp))cs.push({k:'push_on'});
- if((n=num(/(\d+)\s*sek/))!=null)cs.push({k:'time_ge',v:n});else if((n=num(/minute\s*(\d+)|(\d+)\.?\s*min/))!=null)cs.push({k:'time_ge',v:n*60});
- if(/links/.test(cp))cs.push({k:'en_left'});if(/rechts/.test(cp))cs.push({k:'en_right'});
- if(/kein gegner|nichts da/.test(cp))cs.push({k:'en_none'});
- if((n=num(/(\d+)\s*(?:gegner|einheiten|truppen)/))!=null)cs.push({k:'en_cnt',v:n});
- const sd=/links/.test(ap)?'L':/rechts/.test(ap)?'R':null;let pos='';
- if(/gegenspur|andere spur/.test(ap))pos='bridge_other';else if(/gleiche spur|selbe spur/.test(ap))pos='bridge_same';
- else if(/hinter.*(truppe|angriff)|unterstütz|dahinter/.test(ap))pos='behind_push';
- else if(/hinten|hinter/.test(ap))pos='back_'+(sd||'weak');
- else if(/brücke|bruecke|spur|angriff|vorne/.test(ap))pos='bridge_'+(sd||'weak');
- else if(/mitte/.test(ap))pos='mid';else if(/turm|türm/.test(ap))pos='tower_weak';else if(/gruppe|haufen/.test(ap))pos='cluster';
- else if(/konter|entgegen|davor|verteidig|dagegen/.test(ap))pos='counter';
- if(!pos)pos=cs.some(c=>/^en_(?!none|bld)/.test(c.k))?'counter':'bridge_weak';
- return{id:uid(),name:'',on:true,if:cs,card:ac[0].id,pos,cd:5};}
-function parseOld(txt,bot){
- const t=txt.toLowerCase(),cs=fc6(txt,bot.deck),num=(t.match(/\d+/)||[])[0];if(!cs.length)return null;
- if(cs.length>=2&&/gegen|wenn|bei/.test(t))return{t:'counter',enemy:cs[0].id,card:cs[1].id};
- const c=cs[0];
- if(/\bnie\b|niemals|nicht spielen|weglassen/.test(t))return{t:'never',card:c.id};
- if(/verteidig/.test(t))return{t:'defOnly',card:c.id};
- if(/hinten|hinter/.test(t))return{t:'back',card:c.id};
- if(num&&c.type==='spell'&&/gegner|einheiten|truppen|ziele/.test(t))return{t:'spellMin',card:c.id,n:+num};
- if(num&&/elixier|erst|\bab\b/.test(t))return{t:'minEl',card:c.id,n:Math.min(10,+num)};
- return null;}
-const KW=[['defend',/verteidig|abwehr|kontern/],['push',/konterangriff|gegenangriff|nachlegen/],['save',/spar|geduld|nicht sofort/],['spells',/zauber.*(ziel|gruppe|treff)|(ziel|treff).*zauber/],['place',/platzier/],['tank',/tank/],['punish',/bestraf|punish/],['lane',/schwach.*spur|spur.*wechsel|schwächere/],['cycle',/zyklus|durchspielen|billig/],['double',/doppelt/],['finish',/finish|abschließ/],['lead',/vorsprung|führung halten/]];
-const cb=()=>wm&&wm.coach;
-function reL(){const m=document.querySelector('#modal .mbox'),s=m?m.scrollTop:0;showModal(lessonHTML());const n=document.querySelector('#modal .mbox');if(n)n.scrollTop=s;}
-function curBrain(){if(!cb())return null;const i=wm.p.findIndex(p=>p.bot===wm.coach);return i<0?null:{i,br:wm.brains[i]};}
-const sel=(oc,opts,cur)=>`<select onchange="${oc}">${opts.map(([k,n])=>`<option value="${k}" ${k===cur?'selected':''}>${n}</option>`).join('')}</select>`;
-function advHTML(){
- const b=wm.coach,T=L6.tab;b.know=b.know||{};b.prog=b.prog||[];
- const tabs=[['know','📘 Wissen'],['rule','🧩 Wenn-Dann'],['text','✍️ Text'],['sit','🎯 Situation'],['cards','🃏 Karten'],['list','📋 Regeln']];
- let body='';
- if(T==='know')body=`<div class="stat" style="margin:0 0 6px">Die 5 Kern-Konzepte (🛡⚔️💧🔥📍) zusammen schalten seine komplette Bot-KI frei. Alle anderen sind Extras. Nochmal tippen = verlernen.</div>`+KN.map(([k,n,d,core])=>{const on=!!b.know[k];return `<div class="mrow" style="padding:8px"><div class="t" style="text-align:left"><b>${n}</b>${core?'<span class="chip">Kern</span>':''}<br><span class="rs">${d}</span></div><button class="btn ${on?'green':'blue'} mini" data-act="lknow" data-k="${k}">${on?'✔ Kann er':'Lehren'}</button></div>`;}).join('');
- else if(T==='rule'){const R=L6.rule;
-  body=`<div class="stat" style="margin:0 0 4px">Regeln werden von oben nach unten geprüft. Die erste, bei der ALLE Bedingungen stimmen und die Karte in der Hand und bezahlbar ist, wird gespielt.</div>
-  <label class="fld">1) WENN … (alle müssen stimmen)</label>`+(R.if.length?R.if.map((c,i)=>`<div class="mrow" style="padding:5px"><div class="t" style="text-align:left">${condText(c)}</div><button class="btn red mini" data-act="cdelc" data-i="${i}">✖</button></div>`).join(''):'<div class="stat">Keine Bedingung = immer.</div>')+
-  sel('L6.cc=this.value',Object.entries(COND).map(([k,d])=>[k,d[0]]),L6.cc)+
-  `<input type="text" inputmode="numeric" value="${L6.cn}" oninput="L6.cn=this.value" placeholder="Zahl (falls nötig)"><select onchange="L6.ck=this.value">${PLAY_CARDS.map(c=>`<option value="${c.id}" ${c.id===L6.ck?'selected':''}>${c.name}</option>`).join('')}</select>
-  <button class="btn blue" style="width:100%;margin-top:4px" data-act="caddc">➕ Bedingung hinzufügen</button>
-  <label class="fld">2) DANN spiele …</label><select onchange="L6.rule.card=this.value"><option value="">– Karte wählen –</option>${b.deck.map(id=>`<option value="${id}" ${R.card===id?'selected':''}>${CARDS[id].name} (${CARDS[id].cost}💧)</option>`).join('')}</select>
-  <label class="fld">3) … und zwar hier</label>${sel('L6.rule.pos=this.value',POS,R.pos)}
-  <label class="fld">4) Pause zwischen zwei Auslösungen (Sekunden)</label><input type="text" inputmode="numeric" value="${R.cd}" oninput="L6.rule.cd=+this.value||0">
-  <button class="btn green" style="width:100%;margin-top:10px" data-act="rsave">${R.id?'💾 Regel aktualisieren':'💾 Regel speichern'}</button>${R.id?'<button class="btn" style="width:100%;margin-top:6px" data-act="rnew">Neue Regel statt bearbeiten</button>':''}`;}
- else if(T==='text')body=`<label class="fld">✍️ Schreib, was er tun soll</label><input type="text" placeholder="z. B. Wenn Gegner Flieger hat, dann Bogen-Duo hinten" value="${L6.text}" oninput="L6.text=this.value">
-  <button class="btn green" style="width:100%;margin-top:6px" data-act="ltext">Lehren</button>
-  <div class="stat" style="margin:8px 0;text-align:left;line-height:1.5">„Wenn der Gegner Steinhüne spielt, dann Eisenkoloss hinten links“<br>„Wenn Elixier mindestens 8 und kein Angriff läuft, dann Gobbo-Bande an der Brücke“<br>„Wenn Schwarm auf meiner Seite, dann Pfeilhagel“<br>„Wenn ich zurückliege, ab Minute 2, dann Rammbock-Brüder an die Brücke“<br>„Feuerkugel erst bei 3 Gegnern“ · „Jungritter nie spielen“ · „Steinhüne nur zur Verteidigung“<br>Konzepte: „verteidige“, „spare Elixier“, „bestrafe“, „Zyklus“, „Vorsprung halten“ …</div>`;
- else if(T==='sit'){const s=curBrain();
-  if(!s)body='<div class="stat">Keine Situation verfügbar.</div>';
-  else{const x=s.br.ctx(wm,s.i),grp={};x.mine.forEach(u=>grp[u.c.name]=(grp[u.c.name]||0)+1);
-   body=`<div class="stat" style="margin:0 0 6px;text-align:left;line-height:1.6">💧 Mein Elixier: <b>${x.el.toFixed(1)}</b> · Gegner geschätzt: <b>${x.est.toFixed(1)}</b> · Zeit ${fmt(180-wm.t)}<br>👑 ${x.lead>0?'ich führe':x.lead<0?'ich liege zurück':'Gleichstand'} · ⚔️ ${x.pushP>=60?'Angriff läuft':'kein Angriff'}<br>👥 Auf meiner Seite: ${Object.keys(grp).length?Object.entries(grp).map(([n,c])=>`<span class="tag">${c}× ${n}</span>`).join(''):'niemand'}<br>🃏 Gegner zuletzt: ${x.le?CARDS[x.le.id].name:'–'}<br>🧠 Letzte Regel: ${s.br.lastRule?ruleDesc(s.br.lastRule.r):'–'}</div>
-   <div class="stat">Wähle die Karte aus seiner Hand, die er <b>jetzt</b> spielen sollte:</div><div class="minideck">${wm.hand[s.i].map(id=>`<div data-act="sitcard" data-id="${id}">${cardHTML(id,0,L6.sitCard===id?'sel':'')}</div>`).join('')}</div>
-   <label class="fld">Position</label>${sel('L6.sitPos=this.value',[['auto','🤖 Automatisch'],...POS],L6.sitPos)}
-   <button class="btn green" style="width:100%;margin-top:8px" data-act="lsit">🎯 Aus dieser Situation lernen</button>`;}}
- else if(T==='cards'){const c=L6.card?CARDS[L6.card]:null;
-  body=`<div class="stat">1) Karte wählen</div><div class="minideck">${b.deck.map(id=>`<div data-act="lcard" data-id="${id}">${cardHTML(id,b.cards[id].lvl,L6.card===id?'sel':'')}</div>`).join('')}</div>`+(c?`<div class="stat" style="margin:6px 0">2) Was soll er mit „${c.name}“ tun?</div>
-  <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:6px"><button class="btn mini" data-act="lnum" data-d="-1">−</button><b style="font-size:18px">${L6.n}</b><button class="btn mini" data-act="lnum" data-d="1">+</button></div>
-  <button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="defOnly">🛡 Nur zur Verteidigung</button><button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="back">⬅ Immer hinten spielen</button>
-  ${c.type==='spell'?`<button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="spellMin">🎯 Erst bei ${L6.n} Gegnern</button>`:`<button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="minEl">💧 Erst ab ${L6.n} Elixier</button>`}<button class="btn red" style="width:100%;margin:3px 0" data-act="lrule" data-t="never">🚫 Nie spielen</button>`:'');}
- else body=(b.prog.length?b.prog.map((r,i)=>`<div class="mrow" style="padding:6px;${r.on===false?'opacity:.5':''}"><div class="t" style="text-align:left;font-size:12px"><b>${i+1}.</b> ${ruleDesc(r)}</div><div style="display:flex;flex-direction:column;gap:3px"><div style="display:flex;gap:3px"><button class="btn blue mini" data-act="rup" data-i="${i}">▲</button><button class="btn blue mini" data-act="rdown" data-i="${i}">▼</button></div><div style="display:flex;gap:3px"><button class="btn mini" data-act="rtog" data-i="${i}">${r.on===false?'▶':'⏸'}</button><button class="btn blue mini" data-act="redit" data-i="${i}">✏️</button><button class="btn red mini" data-act="rdelp" data-i="${i}">✖</button></div></div></div>`).join(''):'<div class="stat">Noch keine Wenn-Dann-Regeln.</div>')+
-  (b.rules.length?'<div class="stat" style="margin:10px 0 2px">Karten-Regeln:</div>'+b.rules.map((r,i)=>`<div class="mrow" style="padding:6px"><div class="t" style="text-align:left">${oldText(r)}</div><button class="btn red mini" data-act="ldel" data-i="${i}">✖</button></div>`).join(''):'');
- return `<button class="btn mini" data-act="ladv">⬅ Zurück zu einfach</button><h2>🎓 ${b.name}</h2><div class="stat" style="margin:0 0 6px">Kampf pausiert · ${Object.keys(b.know).length}/${KN.length} Konzepte · ${b.prog.length} Regeln</div>
- <div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-bottom:8px">${tabs.map(([k,n])=>`<button class="btn ${T===k?'green':'blue'} mini" data-act="ltab" data-t="${k}">${n}</button>`).join('')}</div>${body}<button class="btn" style="width:100%;margin-top:10px" data-act="close">Weiter zuschauen</button>`;}
-// ---- Einfache Lektion: freie Sätze verstehen
-const N=t=>t.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9\s,.:%-]/g,' ');
-const NUMW={eins:1,ein:1,eine:1,zwei:2,drei:3,vier:4,fuenf:5,sechs:6,sieben:7,acht:8,neun:9,zehn:10};
-const NUMRE=/\b(eins|zwei|drei|vier|fuenf|sechs|sieben|acht|neun|zehn)\b(?=\s*(elixier|sekunden?|sek|minuten?|min|gegner|einheiten|truppen|prozent|%))/g;
-const STOPS=new Set('gegner gegners feind feinde angriff angreifen angreift flieger schwarm schwaerme tank tanks elixier bruecke hinten links rechts mitte turm tuerme sekunden minute minuten vorne truppen einheiten gebaeude zauber karte karten spur seite immer nicht nur wenn dann spiele spiel spielt kommt lege setze mehr viele einmal kaum voll ende anfang beginn schluss bedrohung seiten gruppe gruppen sicher spielen angegriffen verteidigung verteidigen konter kontern erst ueber unter bevor danach'.split(' '));
-const ALIAS={ritter:'squire',knight:'squire',schuetzen:'archer',schuetzin:'archer',archer:'archer',archers:'archer',fledermaus:'moth',fledermaeuse:'moth',riese:'titan',giant:'titan',musketeer:'musk',musketierin:'musk',goblin:'goblins',goblins:'goblins',gobbos:'goblins',skelett:'bones',skelette:'bones',skeleton:'bones',skeletons:'bones',armee:'army',hexe:'witch',witch:'witch',drache:'wyvern',drachen:'wyvern',dragon:'wyvern',ballon:'balloon',balloon:'balloon',schwein:'boar',eber:'boar',hog:'boar',magier:'mage',wizard:'mage',prinz:'prince',prince:'prince',prinzessin:'princess',princess:'princess',golem:'golem',pekka:'pekka',koloss:'pekka',tunnelgraeber:'miner',miner:'miner',holzfaeller:'lumber',lumberjack:'lumber',bandit:'ninja',pfeile:'volley',arrows:'volley',feuerball:'fireball',fireball:'fireball',zap:'zap',funken:'zap',rakete:'rocket',rocket:'rocket',eiszauber:'frost',freeze:'frost',gift:'poison',poison:'poison',tornado:'tornado',wirbelsturm:'tornado',rage:'rage',wut:'rage',klon:'clone',clone:'clone',friedhof:'graveyard',graveyard:'graveyard',barbaren:'barbs',barbarians:'barbs',kanone:'turret',cannon:'turret',tesla:'tesla',moerser:'mortar',mortar:'mortar',armbrust:'xbow',xbow:'xbow',inferno:'inferno',heiler:'healer',healer:'healer',rammbock:'ram',ram:'ram',lavahund:'lava',megaritter:'megaknight',log:'log',stamm:'log',fass:'barrel',barrel:'barrel',wachen:'guards',wache:'guards',bomber:'bomber'};
-function lev(a,b){const d=[];for(let i=0;i<=a.length;i++){d[i]=[i];}for(let j=1;j<=b.length;j++)d[0][j]=j;
- for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[a.length][b.length];}
-const toks=s=>s.split(/[\s,.:]+/).filter(Boolean);
-// Karten im Text finden (tolerant bei Tippfehlern, Kurznamen, englischen Namen)
-function cardsIn(s,deck){
- const out=[];
- toks(s).forEach((t,i)=>{
-  let hit=ALIAS[t]?CARDS[ALIAS[t]]:null;
-  if(!hit&&t.length>=4&&!STOPS.has(t)){let best=9;
-   for(const c of PLAY_CARDS)for(const w of N(c.name).split(/[\s-]+/)){if(w.length<4)continue;
-    let d=9;if(w===t)d=0;else if(t.length>=5&&(w.startsWith(t)||t.startsWith(w)||w.includes(t)))d=1;
-    else if(t.length>=5&&Math.abs(w.length-t.length)<=2){const l=lev(w,t);if(l<=(t.length>6?2:1))d=1+l;}
-    if(d<best||(d===best&&hit&&deck.includes(c.id)&&!deck.includes(hit.id))){best=d;hit=c;}}
-   if(best>3)hit=null;}
-  if(hit&&!out.some(o=>o.c===hit))out.push({c:hit,i,t});});
- return out;}
-const strip=(s,cs)=>toks(s).map((t,i)=>cs.some(o=>o.i===i)?' ':t).join(' ');
-function condsFrom(s){
- const C=[],add=(k,v)=>{if(!C.some(c=>c.k===k&&c.v===v))C.push(v===undefined?{k}:{k,v});};let m;
- const re=/(\d+)\s*(?:elixier|tropfen)/g;
- while((m=re.exec(s))){const bf=s.slice(Math.max(0,m.index-32),m.index),af=s.slice(m.index+m[0].length,m.index+m[0].length+16);
-  const le=/(weniger|hoechstens|unter|max|nicht mehr als|bis zu|maximal|knapp)/.test(bf)||/(oder weniger|hoechstens|nicht mehr)/.test(af);
-  add((/gegner|feind/.test(bf)?'est_':'el_')+(le?'le':'ge'),+m[1]);}
- if(!C.length&&/elixier (ist )?voll|volles elixier|elixier maximal|voll(e)?m? elixier/.test(s))add('el_ge',9.5);
- if(!C.length&&/(ich|wir)\s*(hab\w*)?\s*(wenig|kaum|kein)\w*\s*elixier/.test(s))add('el_le',3);
- if(/(gegner|feind)\w*\s*(hat\s*)?(gerade\s*)?(wenig|kaum|kein|leer|nichts)\w*\s*elixier|gegner.*(ausgegeben|verbraucht|pleite)|gerade viel ausgegeben/.test(s))add('est_le',3);
- let q=s.match(/(\d+)\s*(?:sek\w*)/);if(q)add(/erste|innerhalb|\bvor\b|bis /.test(s)?'time_le':'time_ge',+q[1]);
- q=s.match(/(?:minute|min)\s*(\d+)|(\d+)\.?\s*min/);if(q)add(/erste|innerhalb|\bvor\b|bis /.test(s)?'time_le':'time_ge',(+(q[1]||q[2]))*60);
- if(/anfang|beginn|am start|fruehe phase/.test(s))add('time_le',45);
- if(/\bende\b|schluss|endphase|letzte minute|letzten sekunden|kurz vor/.test(s))add('time_ge',150);
- if(/doppelt\w* elixier|doppeltes|doppelt|x2|2x|verdoppel/.test(s))add('dbl');
- if(/verlaengerung|overtime/.test(s))add('time_ge',180);
- if(/flieg|luft|drache|ballon|fledermaus|\bair\b/.test(s))add('en_fly');
- if(/schwarm|schwaerme|viele kleine|skelette|horde|massen|mehrere kleine/.test(s))add('en_swarm');
- if(/\btanks?\b|dick|riese|riesen|schwer|grosse?\b|koloss|turmjaeger|gebaeudejaeger/.test(s))add('en_tank');
- if(/fernkaempf|schuetz|bogen|reichweite/.test(s))add('en_ranged');
- if(/gebaeude|kanone|huette/.test(s))add('en_bld');
- if(q=s.match(/(\d+)\s*(?:gegner|einheiten|truppen|feinde)/))add('en_cnt',+q[1]);
- if(!C.some(c=>/^en_/.test(c.k))&&/(gegner|feind|er)\s*(\w+\s*){0,2}(angreift|angriff|kommt|kommen|rueckt|stuermt|pusht|rusht|attackiert)|auf meiner seite|bei mir|vor meinem turm|bedroht|brenzlig/.test(s))add('en_cnt',1);
- if(/kein\w* gegner|nichts los|\bruhig|\bruhe\b|nicht angegriffen|keine bedrohung/.test(s))add('en_none');
- if(/(greife|greifen|angreife)\w*\s*nicht|kein\w* angriff|nicht (gerade )?(am )?angreif|ohne angriff|nichts am laufen/.test(s))add('push_off');
- else if(/(mein|ein|unser)\w* (angriff|push)\w*\s*(laeuft|steht|ist da)|ich (greife|pushe|spiele) an|gerade angreif|nach (der|dem) (verteidigung|konter)|ueberlebt|ueberlebende/.test(s))add('push_on');
- if(/(ich|wir)\s+(fuehr|gewinn|liege? vorn|bin vorn)|in fuehrung|vorsprung|vorne liege|mehr kronen|in front/.test(s))add('lead_pos');
- if(/zurueck|rueckstand|verlier|hinten liege|weniger kronen|hinterher|im nachteil/.test(s))add('lead_neg');
- if(/gleichstand|unentschieden|gleiche kronen/.test(s))add('lead_eq');
- if(/(mein|meine|meinen|unser)\w*\s*(\w+\s*){0,2}(turm|tuerme|koenig)\w*\s*(\w+\s*){0,3}(kaputt|fast|zerstoer|wenig|angeschlagen|niedrig|bedroht|schwach)|mein turm faellt/.test(s)){q=s.match(/unter (\d+)/);add('mytw_low',q?+q[1]:50);}
- if(/(gegner|feind)\w*\s*turm\w*\s*(\w+\s*){0,3}(kaputt|fast|zerstoer|wenig|angeschlagen|niedrig|schwach)|turm (vom|des) gegner\w*\s*(\w+\s*){0,3}(kaputt|fast|angeschlagen|schwach|wenig)/.test(s)){q=s.match(/unter (\d+)/);add('foetw_low',q?+q[1]:50);}
- if(/(gegner|angriff|bedrohung)\w*\s*(\w+\s*){0,3}links|links\s*(\w+\s*){0,2}(gegner|angriff|bedrohung)/.test(s))add('en_left');
- if(/(gegner|angriff|bedrohung)\w*\s*(\w+\s*){0,3}rechts|rechts\s*(\w+\s*){0,2}(gegner|angriff|bedrohung)/.test(s))add('en_right');
- return C;}
-const KWS=[['defend',/verteidig|abwehr|kontern|\bkonter\b|reagier|defens/],['push',/konterangriff|gegenangriff|nachlegen|unterstuetz|nach dem konter/],['save',/\bspar|geduld|nicht sofort|abwarten|\bwarte|nicht verschwend|sammeln/],['spells',/zauber.*(ziel|gruppe|treff|lohn|klug|sinnvoll)|(ziel|treff)\w*.*zauber/],['place',/platzier|aufstell|positionier/],['tank',/\btank/],['punish',/bestraf|punish/],['lane',/schwach\w* (spur|seite)|spur wechsel|seiten wechsel|schwaechere/],['cycle',/zyklus|durchspielen|schnell durch|billig\w* (karten )?(spielen|durch)|cyclen/],['double',/doppel\w* elixier|ab minute 2/],['finish',/finish|abschliess|zauber auf (den )?turm/],['lead',/vorsprung|fuehrung|nichts riskier|sicher spielen/]];
-function understandOne(raw,b){
- const out=[];let n=N(raw).replace(/\s+/g,' ').trim();if(!n)return out;
- n=n.replace(NUMRE,(w)=>NUMW[w]);
- const hasIf=/(^| )(wenn|falls|sobald|solange|bei|gegen|ab|sofern)( |$)/.test(n);let cp=n,ap=n,split=false,m;
- if(hasIf){m=n.match(/^(.*?)(?: dann |, ?)(.*)$/)||n.match(/^(.*?)\b(?:spiele|spiel|lege|setze|nimm|benutze|nutze|schick|schicke|wirf|platziere|bringe)\b(.*)$/);if(m&&m[2].trim()){cp=m[1];ap=m[2];split=true;}}
- let enC=[],miC=[],apS=ap,cpS=cp;
- if(split){enC=cardsIn(cp,b.deck);miC=cardsIn(ap,b.deck);if(!miC.length&&enC.length&&!/gegner|gegen|feind/.test(cp)){miC=enC;enC=[];}cpS=strip(cp,enC.concat(cardsIn(cp,b.deck)));apS=strip(ap,miC);}
- else{const all=cardsIn(n,b.deck),tk=toks(n);
-  for(const o of all){const prev=tk.slice(Math.max(0,o.i-3),o.i),nxt=tk[o.i+1]||'';
-   if(prev.some(t=>/^(gegner|gegners|gegen|feind)$/.test(t))||/^(kommt|spielt|taucht|erscheint|angreift|liegt|legt|setzt)$/.test(nxt))enC.push(o);else miC.push(o);}
-  if(hasIf&&all.length>=2&&!enC.length&&!miC.length===false&&/gegen/.test(n)){}
-  cpS=strip(n,all);apS=cpS;}
- let conds=condsFrom(cpS);
- for(const o of enC.slice(0,1))conds.push({k:/spielt|gespielt|setzt|legt|wirft|schickt|nimmt|bringt/.test(split?cp:n)&&!/gegen /.test(split?cp:n)?'en_card':'en_has',v:o.c.id});
- if(enC.length)conds=conds.filter(c=>!/^en_(fly|swarm|tank|ranged|cnt)$/.test(c.k)||true);
- if(miC.length){
-  const sd=/links/.test(apS)?'L':/rechts/.test(apS)?'R':null,hasEn=conds.some(c=>/^en_(?!none|bld)/.test(c.k));
-  const never=/\bnie\b|niemals|nicht mehr|weglassen|verbiet|aussortier|streich|nicht\s+(\w+\s+)?(spiel|benutz|nehm|leg|setz)/.test(n)&&!/(spiel|benutz|nehm|leg|setz)\w*\s+nicht\s+(sofort|so)/.test(n);
-  for(const o of miC.slice(0,3)){const c=o.c;
-   if(never){out.push({k:'old',r:{t:'never',card:c.id}});continue;}
-   if(/nur (zur|zum|bei|fuer|wenn|als)?\s*\w*\s*(verteidig|abwehr|konter|defens|angegriffen)|nur defensiv|nur verteidig/.test(n)){out.push({k:'old',r:{t:'defOnly',card:c.id}});continue;}
-   if(!split&&conds.length===1&&conds[0].k==='el_ge'&&/\berst\b|nicht (vor|bevor|frueher)/.test(n)){out.push({k:'old',r:{t:'minEl',card:c.id,n:Math.min(10,conds[0].v)}});continue;}
-   if(!split&&c.type==='spell'&&conds.length===1&&conds[0].k==='en_cnt'&&/erst|nur|mindestens/.test(n)){out.push({k:'old',r:{t:'spellMin',card:c.id,n:conds[0].v}});continue;}
-   if(!conds.length&&/(immer|nur|stets|ganz)\s*hinten|hinten (spielen|hinstellen)/.test(n)){out.push({k:'old',r:{t:'back',card:c.id}});continue;}
-   let pos='';
-   if(/gegenspur|andere (spur|seite)|gegenueber/.test(apS))pos='bridge_other';else if(/gleiche (spur|seite)|selbe (spur|seite)/.test(apS))pos='bridge_same';
-   else if(/dahinter|hinter (der|dem|den|meiner|meinen|die)\s*(\w+\s*)?(truppe|angriff|panzer|tank|einheit)|unterstuetz/.test(apS))pos='behind_push';
-   else if(/hinten|hinter|am turm|beim turm/.test(apS))pos='back_'+(sd||'weak');
-   else if(/bruecke|spur|angriff|angreif|vorne|pushen|rush|attackier/.test(apS))pos='bridge_'+(sd||'weak');
-   else if(/mitte/.test(apS))pos='mid';else if(/(auf|an|in) (den|dem) \w*\s*turm|turm (zerstoer|angreif|treff)|tuerme/.test(apS))pos='tower_weak';
-   else if(/gruppe|haufen|cluster|menge/.test(apS))pos='cluster';else if(/konter|entgegen|davor|dagegen|verteidig|abwehr/.test(apS))pos='counter';
-   if(!pos)pos=hasEn?'counter':c.type==='spell'?'tower_weak':(c.role==='TANK'||c.bOnly&&c.hp>=1400)?'back_weak':c.range>=100?'back_weak':'bridge_weak';
-   const cs=conds.length?conds:[{k:'el_ge',v:Math.min(10,c.cost+1)}];
-   let cd=5;if(/oefter|staendig|dauernd|schneller|haeufig/.test(n))cd=2;else if(/selten|nicht so oft|einmal/.test(n))cd=/einmal/.test(n)?999:15;
-   out.push({k:'prog',r:{id:uid(),name:'',on:true,if:cs.map(x=>Object.assign({},x)),card:c.id,pos,cd}});}
-  return out;}
- if(/alles (lernen|koennen|wissen)|profi|volle ki|sei (richtig |sehr |ein )?(gut|schlau|clever)|spiel (normal|richtig|wie ein profi)|werde (gut|besser)/.test(n)){['defend','push','save','spells','place'].forEach(k=>out.push({k:'know',key:k,on:true}));return out;}
- for(const [k,re] of KWS){const q=n.match(re);if(!q)continue;const neg=/\b(nicht|kein\w*|nie|ohne|weniger)\b/.test(n.slice(Math.max(0,q.index-16),q.index))||/^\w*\s*(nicht|nie|kein)\b/.test(n.slice(q.index+q[0].length));out.push({k:'know',key:k,on:!neg});}
- const st=[[/aggressiv|offensiv|angriffslustig|mehr angreif|\brush|druck/,{k:'aggr',d:.25}],[/defensiv|vorsichtig|passiv|konservativ|ruhiger/,{k:'aggr',d:-.25}],[/schlauer|klueger|intelligenter|mehr koennen|besser spielen/,{k:'skill',d:.15}],[/duemmer|schlechter spielen/,{k:'skill',d:-.15}],[/beatdown/,{k:'style',i:0}],[/zyklus|cycle/,{k:'style',i:1}],[/kontrolle|controll/,{k:'style',i:2}],[/bridge.?spam|\bspam/,{k:'style',i:3}],[/ausgewogen|balanced/,{k:'style',i:4}]];
- for(const [re,it] of st)if(re.test(n))out.push(it);
- if(!out.length&&conds.length)out.push({k:'hint',t:'Welche Karte soll er dann spielen? Schreib z. B. „… , dann Bogen-Duo“.'});
- return out;}
-const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
-function applyItem(b,it){
- b.know=b.know||{};b.prog=b.prog||[];b.rules=b.rules||[];
- if(it.k==='hint')return '❓ '+it.t;
- if(it.k==='prog'){const r=it.r,key=JSON.stringify(r.if);b.prog=b.prog.filter(x=>!(x.card===r.card&&x.pos===r.pos&&JSON.stringify(x.if)===key));b.prog.push(r);return 'Regel: '+ruleDesc(r);}
- if(it.k==='old'){const R=b.rules,r=it.r;for(let i=R.length-1;i>=0;i--)if(R[i].t===r.t&&R[i].card===r.card)R.splice(i,1);R.push(r);return oldText(r);}
- if(it.k==='know'){const e=KN.find(q=>q[0]===it.key);if(it.on){b.know[it.key]=true;return 'Gelernt: '+e[1];}delete b.know[it.key];return 'Verlernt: '+e[1];}
- if(it.k==='aggr'){b.aggr=clamp((b.aggr||.5)+it.d,.05,1);return 'Angriffslust jetzt '+Math.round(b.aggr*100)+' %';}
- if(it.k==='skill'){b.skill=clamp((b.skill||.7)+it.d,.05,1);return 'Können jetzt '+Math.round(b.skill*100)+' %';}
- if(it.k==='style'){b.style=it.i;return 'Spielstil: '+STYLES[it.i].n;}
- return '';}
-function lessonHTML(){
- const b=wm.coach;b.know=b.know||{};b.prog=b.prog||[];
- if(L6.adv)return advHTML();
- const kn=KN.filter(k=>b.know[k[0]]);
- return `<h2>🎓 Bring ${esc(b.name)} etwas bei</h2><div class="stat" style="margin:0 0 6px">Schreib einfach, was er tun soll – in normalen Sätzen, so wie du magst. Auch mehrere Sätze auf einmal.</div>
- <textarea rows="4" style="width:100%;padding:10px;border-radius:12px;border:2px solid #7a68e0;background:#150e40;color:#fff;font:inherit;font-size:14px;user-select:text;-webkit-user-select:text" placeholder="z. B. Wenn der Gegner Flieger spielt, nimm Bogen-Duo. Steinhüne immer hinten. Sei aggressiver." oninput="L6.text=this.value">${esc(L6.text||'')}</textarea>
- <button class="btn green big" style="width:100%;margin-top:8px;font-size:20px" data-act="lteach">🎓 Lehren</button>
- ${(L6.log||[]).map(l=>`<div class="stat" style="text-align:left;margin:4px 0;opacity:1">${l.startsWith('❓')?l:'✅ '+esc(l)}</div>`).join('')}
- <div class="stat" style="margin:10px 0 2px;text-align:left;line-height:1.5">💡 Zum Beispiel:<br>„Wenn Gegner Steinhüne spielt, dann Eisenkoloss“<br>„Ab 8 Elixier Gobbo-Bande an die Brücke“<br>„Feuerkugel nur bei mehr als 3 Gegnern“<br>„Jungritter nie spielen“ · „Sei schlauer“ · „Verteidige zuerst“ · „Spiel Zyklus“</div>
- <div class="sect">🧠 Das kann er</div>
- ${kn.length?`<div style="margin-bottom:6px">${kn.map(k=>`<span class="tag" data-act="lknow" data-k="${k[0]}" style="cursor:pointer">${k[1]} ✖</span>`).join('')}</div>`:''}
- <div class="stat" style="text-align:left;margin:0 0 4px">Stil: ${STYLES[b.style].n} · Angriffslust ${Math.round(b.aggr*100)} % · Können ${Math.round(b.skill*100)} %</div>
- ${b.prog.map((r,i)=>`<div class="mrow" style="padding:6px;${r.on===false?'opacity:.5':''}"><div class="t" style="text-align:left;font-size:12px">${esc(ruleDesc(r))}</div><button class="btn red mini" data-act="rdelp" data-i="${i}">✖</button></div>`).join('')}
- ${b.rules.map((r,i)=>`<div class="mrow" style="padding:6px"><div class="t" style="text-align:left;font-size:12px">${esc(oldText(r))}</div><button class="btn red mini" data-act="ldel" data-i="${i}">✖</button></div>`).join('')}
- ${(!kn.length&&!b.prog.length&&!b.rules.length)?'<div class="stat">Noch nichts gelernt.</div>':''}
- <button class="btn blue" style="width:100%;margin-top:10px" data-act="ladv">⚙️ Erweitert (Baukasten)</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Weiter zuschauen</button>`;}
-
-function addProg(r){const b=cb();b.prog=b.prog||[];b.prog.push(r);save();toast('Gelernt: '+ruleDesc(r));L6.tab='list';reL();}
-function teach(k){const b=cb();b.know=b.know||{};if(b.know[k]){delete b.know[k];toast('Verlernt');}else{b.know[k]=true;const e=KN.find(q=>q[0]===k);toast('Gelernt: '+e[1]);}save();reL();}
-const mv=(a,i,d)=>{const j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];};
-Object.assign(ACT,{
- ladv(){L6.adv=!L6.adv;reL();},
- lteach(){const b=cb(),txt=(L6.text||'').trim();if(!txt)return toast('Schreib erst etwas');
-  const ss=txt.split(/[.!?;\n]+|\bund dann\b|\bdanach\b|\bau(?:ß|ss)erdem\b/i).map(x=>x.trim()).filter(x=>x.length>2),log=[];
-  for(const x of ss){const its=understandOne(x,b);if(!its.length){log.push('❓ „'+esc(x)+'“ – nicht verstanden. Nenne eine Karte und wann/wo er sie spielen soll.');continue;}for(const it of its)log.push(applyItem(b,it));}
-  L6.log=log;L6.text='';save();reL();},
- coachOpen(){if(!cb())return;wm.lesson=true;showModal(lessonHTML());},
- ltab(el){L6.tab=el.dataset.t;reL();},
- lknow(el){teach(el.dataset.k);},
- caddc(){const k=L6.cc,d=COND[k];let v;if(d[1]==='n'){v=parseFloat(L6.cn);if(isNaN(v))return toast('Bitte eine Zahl eingeben');}else if(d[1]==='card')v=L6.ck;L6.rule.if.push(d[1]?{k,v}:{k});reL();},
- cdelc(el){L6.rule.if.splice(+el.dataset.i,1);reL();},
- rnew(){L6.rule=newRule();reL();},
- rsave(){const R=L6.rule;if(!R.card)return toast('Wähle eine Karte');const b=cb();b.prog=b.prog||[];const r=JSON.parse(JSON.stringify(R));
-  if(r.id){const i=b.prog.findIndex(x=>x.id===r.id);if(i>=0)b.prog[i]=r;else b.prog.push(r);}else{r.id=uid();b.prog.push(r);}
-  L6.rule=newRule();save();toast('Regel gespeichert');L6.tab='list';reL();},
- redit(el){const r=cb().prog[+el.dataset.i];L6.rule=JSON.parse(JSON.stringify(r));L6.tab='rule';reL();},
- rtog(el){const r=cb().prog[+el.dataset.i];r.on=r.on===false;save();reL();},
- rup(el){mv(cb().prog,+el.dataset.i,-1);save();reL();},rdown(el){mv(cb().prog,+el.dataset.i,1);save();reL();},
- rdelp(el){cb().prog.splice(+el.dataset.i,1);save();reL();},
- ldel(el){cb().rules.splice(+el.dataset.i,1);save();reL();},
- lcard(el){L6.card=L6.card===el.dataset.id?null:el.dataset.id;reL();},
- lnum(el){L6.n=clamp(L6.n+(+el.dataset.d),1,10);reL();},
- lrule(el){if(!L6.card)return;const R=cb().rules,r={t:el.dataset.t,card:L6.card,n:L6.n};
-  for(let i=R.length-1;i>=0;i--)if(R[i].t===r.t&&R[i].card===r.card)R.splice(i,1);R.push(r);save();toast('Gelernt: '+oldText(r));reL();},
- sitcard(el){L6.sitCard=L6.sitCard===el.dataset.id?null:el.dataset.id;reL();},
- lsit(){const s=curBrain();if(!s||!L6.sitCard)return toast('Wähle erst eine Karte');
-  const x=s.br.ctx(wm,s.i),id=L6.sitCard,cost=CARDS[id].cost,cs=[];let pos;
-  if(x.mine.length){const top=x.mine.slice().sort((a,b)=>pw(b)-pw(a))[0];cs.push({k:'en_has',v:top.c.id},{k:'el_ge',v:cost});pos='counter';}
-  else{cs.push({k:'el_ge',v:Math.max(cost,Math.min(Math.floor(x.el),cost+3))},{k:'en_none'},x.pushP>=60?{k:'push_on'}:{k:'push_off'});pos='bridge_weak';}
-  if(x.lead>0)cs.push({k:'lead_pos'});else if(x.lead<0)cs.push({k:'lead_neg'});
-  if(L6.sitPos!=='auto')pos=L6.sitPos;L6.sitCard=null;addProg({id:uid(),name:'',on:true,if:cs,card:id,pos,cd:5});},
- ltext(){const b=cb(),txt=L6.text.trim();if(!txt)return;b.know=b.know||{};
-  const r=parseIf(txt,b);if(r){L6.text='';return addProg(r);}
-  const o=parseOld(txt,b);if(o){const R=b.rules;for(let i=R.length-1;i>=0;i--)if(R[i].t===o.t&&R[i].card===o.card&&(o.t!=='counter'||R[i].enemy===o.enemy))R.splice(i,1);R.push(o);save();L6.text='';toast('Gelernt: '+oldText(o));L6.tab='list';return reL();}
-  const ks=KW.filter(([k,re])=>re.test(txt.toLowerCase())&&!b.know[k]);
-  if(ks.length){ks.forEach(([k])=>b.know[k]=true);save();L6.text='';toast('Gelernt: '+ks.map(([k])=>KN.find(q=>q[0]===k)[1]).join(', '));L6.tab='know';return reL();}
-  toast('Nicht verstanden – nenne Karte + Bedingung („Wenn …, dann …“)');}
-});
 })();
 
 renderTab();requestAnimationFrame(frame);
