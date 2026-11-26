@@ -194,7 +194,9 @@ Sp('fireball','Feuerkugel',4,'r',0,572,2.5,'Viel Schaden in einem mittleren Krei
 T('goblins','Gobbo-Bande','SCHWARM',2,'c',1,167,99,1.1,'v',.5,'Drei sehr schnelle Dolchkämpfer.',{count:3,rad:6});
 T('speargob','Speer-Gobbos','FERN',2,'c',1,110,67,1.3,'v',5,'Drei flinke Speerwerfer, auch gegen Luft.',{count:3,rad:6,hitsAir:1});
 Bd('gobhut','Gobbo-Hütte','SPAWNER',5,'r',1,1060,0,0,0,40,'Schickt regelmäßig Speer-Gobbos los.',{spawner:['speargob',1,4.9]});
-T('bomber','Bombenknochen','FLÄCHE',3,'c',1,310,225,1.9,'m',4.5,'Wirft Bomben auf Bodentruppen.',{splash:1.5,proj:'bomb'});
+T('skelknight','Knochenritter','NAH',3,'c',1,900,120,1,'m',.7,'Zäher Skelett-Krieger mit Schild.',{shield:200});
+T('icegob','Frost-Gobbo','FERN',2,'c',1,160,70,1.2,'m',4.5,'Schleudert Eisklumpen und bremst Gegner.',{hitsAir:1,rad:6,slowHit:1.5,proj:'ice'});
+T('bomber','Bombenknochen','FLÄCHE',3,'c',0,310,225,1.9,'m',4.5,'Wirft Bomben auf Bodentruppen.',{splash:1.5,proj:'bomb'});
 // Arena 2
 T('bones','Klapperhaufen','SCHWARM',1,'c',2,67,67,1,'f',.5,'Drei billige Skelette zum Ablenken.',{count:3,rad:5});
 Bd('tomb','Gruftstein','SPAWNER',3,'r',2,422,0,0,0,40,'Spuckt Skelette aus, beim Zerfall noch vier.',{spawner:['bones',1,2.9],spawnDeath:['bones',4]});
@@ -202,73 +204,73 @@ T('bigbones','Bombenhüne','TANK',6,'e',2,2780,167,1.5,'m',.8,'Hinterlässt beim
 T('balloon','Luftpiraten','TURMJAGD',5,'e',2,1396,798,3,'m',.5,'Fliegt nur zu Gebäuden, schwere Bomben.',{rad:13,fly:1,bOnly:1,death:[205,2]});
 // Arena 3
 T('barbs','Raufbolde','SCHWARM',5,'c',3,636,159,1.5,'m',.7,'Fünf kräftige Nahkämpfer.',{count:5,rad:8});
-T('axe','Axtwirbler','FLÄCHE',4,'r',3,1654,221,1.5,'m',.8,'Rundschlag um sich herum.',{splash:1.4,rad:11,self:1});
+T('axe','Axtwirbler','FLÄCHE',4,'r',1,1654,221,1.5,'m',.8,'Rundschlag um sich herum.',{splash:1.4,rad:11,self:1});
 Bd('turret','Böllerkanone','GEBÄUDE',3,'c',3,742,127,.8,5.5,30,'Schießt 30 Sekunden lang auf Bodentruppen.',{proj:'ball',noAir:1});
-T('megamoth','Panzerflatter','LUFT',3,'r',3,695,258,1.6,'m',1.2,'Starker einzelner Flieger.',{fly:1,hitsAir:1,rad:10});
-T('ram','Rammbock-Brüder','TURMJAGD',4,'r',3,967,246,1,'m',.5,'Stürmen mit Baumstamm los, danach zwei Raufbolde.',{rad:12,bOnly:1,charge:1,kami:1,spawnDeath:['barbs',2]});
+T('megamoth','Panzerflatter','LUFT',3,'r',7,695,258,1.6,'m',1.2,'Starker einzelner Flieger.',{fly:1,hitsAir:1,rad:10});
+T('ram','Rammbock-Brüder','TURMJAGD',4,'r',6,967,246,1,'m',.5,'Stürmen mit Baumstamm los, danach zwei Raufbolde.',{rad:12,bOnly:1,charge:1,kami:1,spawnDeath:['barbs',2]});
 // Arena 4
 T('pekka','Eisenkoloss','TANK',7,'e',4,3458,678,1.8,'s',1,'Zerlegt jedes Bodenziel.',{rad:15});
-T('wyvern','Drachenwelpe','LUFT',4,'e',4,1064,133,1.6,'f',3.5,'Fliegt und spuckt Flächenfeuer.',{fly:1,hitsAir:1,splash:1.2,proj:'fire',rad:11});
-T('army','Knochenheer','SCHWARM',3,'e',4,67,67,1,'f',.5,'Fünfzehn Skelette auf einmal.',{count:15,rad:5});
-T('witch','Gruftzauberin','SPAWNER',5,'e',4,696,111,1.1,'m',5,'Flächenangriff und ruft Skelette.',{hitsAir:1,splash:.8,proj:'magic',spawner:['bones',3,7]});
-Sp('barrel','Gobbo-Fass',3,'e',4,0,1.5,'Wirft drei Gobbos an jede Stelle.',{kind:'barrel',spawn:['goblins',3]});
-T('guards','Knochenwache','SCHWARM',3,'e',4,90,90,1.1,'f',1.2,'Drei Skelette mit Schild.',{count:3,rad:6,shield:240});
+T('wyvern','Drachenwelpe','LUFT',4,'e',0,1064,133,1.6,'f',3.5,'Fliegt und spuckt Flächenfeuer.',{fly:1,hitsAir:1,splash:1.2,proj:'fire',rad:11});
+T('army','Knochenheer','SCHWARM',3,'e',0,67,67,1,'f',.5,'Fünfzehn Skelette auf einmal.',{count:15,rad:5});
+T('witch','Gruftzauberin','SPAWNER',5,'e',0,696,111,1.1,'m',5,'Flächenangriff und ruft Skelette.',{hitsAir:1,splash:.8,proj:'magic',spawner:['bones',3,7]});
+Sp('barrel','Gobbo-Fass',3,'e',1,0,1.5,'Wirft drei Gobbos an jede Stelle.',{kind:'barrel',spawn:['goblins',3]});
+T('guards','Knochenwache','SCHWARM',3,'e',7,90,90,1.1,'f',1.2,'Drei Skelette mit Schild.',{count:3,rad:6,shield:240});
 // Arena 5
 T('mage','Funkenmagier','FLÄCHE',5,'r',5,598,234,1.4,'m',5.5,'Zauberkugeln treffen mehrere Gegner.',{hitsAir:1,splash:1.5,proj:'magic'});
 T('firesp','Glutgeister','FLÄCHE',2,'c',5,91,169,1,'v',2,'Drei Geister springen an und verpuffen.',{count:3,rad:6,hitsAir:1,splash:1.5,kami:1,proj:'fire'});
 Bd('inferno','Glutturm','GEBÄUDE',5,'r',5,1408,40,.4,6,40,'Strahl wird immer stärker.',{hitsAir:1,ramp:1,proj:'beam'});
-Bd('bombtower','Bombenturm','GEBÄUDE',5,'r',5,1672,184,1.6,6,40,'Flächenbomben gegen Bodentruppen.',{splash:1.5,proj:'bomb',noAir:1});
-Sp('rage','Wutelixier',2,'e',5,0,5,'Deine Truppen werden schneller.',{kind:'rage',dur:6});
+Bd('bombtower','Bombenturm','GEBÄUDE',5,'r',2,1672,184,1.6,6,40,'Flächenbomben gegen Bodentruppen.',{splash:1.5,proj:'bomb',noAir:1});
+Sp('rage','Wutelixier',2,'e',3,0,5,'Deine Truppen werden schneller.',{kind:'rage',dur:6});
 // Arena 6
 Sp('zap','Funkenstoß',2,'c',6,159,2.5,'Kurze Betäubung in kleinem Kreis.',{stun:.5});
 Bd('mortar','Mörser','GEBÄUDE',4,'c',6,1163,228,5,11.5,30,'Große Reichweite, nicht auf nahe Ziele.',{splash:2,proj:'bomb',noAir:1,minR:3.5,dep:3.5});
-Sp('rocket','Rakete',6,'r',6,1232,2,'Enormer Schaden, kleiner Kreis.',{delay:1.2});
+Sp('rocket','Rakete',6,'r',3,1232,2,'Enormer Schaden, kleiner Kreis.',{delay:1.2});
 T('boar','Eberreiter','TURMJAGD',4,'r',6,1408,264,1.6,'v',.8,'Springt über den Fluss direkt zu Gebäuden.',{rad:10,bOnly:1,jump:1});
-Bd('xbow','Riesenarmbrust','GEBÄUDE',6,'e',6,1330,26,.25,11.5,40,'Schnellfeuer bis zum gegnerischen Turm.',{noAir:1,dep:3.5});
-T('copter','Fliegende Büchse','LUFT',4,'r',6,510,142,1.1,'f',6,'Schießt aus der Luft von weit weg.',{fly:1,hitsAir:1,proj:'ball',rad:10});
+Bd('xbow','Riesenarmbrust','GEBÄUDE',6,'e',3,1330,26,.25,11.5,40,'Schnellfeuer bis zum gegnerischen Turm.',{noAir:1,dep:3.5});
+T('copter','Fliegende Büchse','LUFT',4,'r',9,510,142,1.1,'f',6,'Schießt aus der Luft von weit weg.',{fly:1,hitsAir:1,proj:'ball',rad:10});
 // Arena 7
 T('rgiant','Kanonenriese','TURMJAGD',6,'c',7,2544,254,1.7,'s',5,'Beschießt Gebäude aus der Ferne.',{rad:15,bOnly:1,proj:'ball'});
 T('trio','Musketen-Trio','FERN',9,'r',7,598,181,1.1,'m',6,'Drei Musketenmaiden auf einmal.',{count:3,hitsAir:1,proj:'ball'});
 T('dprince','Dunkelprinz','FLÄCHE',4,'e',7,1030,208,1.3,'m',1,'Schild, Anlauf und Rundschlag.',{charge:1,splash:1.1,self:1,shield:270,rad:11});
-T('prince','Lanzenprinz','NAH',5,'e',7,1669,325,1.4,'m',1.6,'Nach Anlauf doppelter Lanzenschaden.',{charge:1,rad:11});
-Sp('heal','Heilzauber',3,'r',7,0,3,'Heilt deine Truppen im Kreis.',{kind:'heal',dur:2.5,amount:90});
-Bd('elixir','Elixierpumpe','ELIXIR',6,'r',7,888,0,0,0,70,'Erzeugt mit der Zeit zusätzliches Elixier.',{elix:8.5});
+T('prince','Lanzenprinz','NAH',5,'e',0,1669,325,1.4,'m',1.6,'Nach Anlauf doppelter Lanzenschaden.',{charge:1,rad:11});
+Sp('heal','Heilzauber',3,'r',10,0,3,'Heilt deine Truppen im Kreis.',{kind:'heal',dur:2.5,amount:90});
+Bd('elixir','Elixierpumpe','ELIXIR',6,'r',6,888,0,0,0,70,'Erzeugt mit der Zeit zusätzliches Elixier.',{elix:8.5});
 // Arena 8
 T('icesp','Frostgeist','FLÄCHE',1,'c',8,190,91,1,'v',2,'Springt an und friert kurz ein.',{rad:6,hitsAir:1,splash:1.5,kami:1,stunHit:1.2,proj:'ice'});
 T('icegolem','Frostgolem','TANK',2,'r',8,1058,70,2.5,'s',.8,'Billiger Tank, explodiert frostig.',{rad:12,bOnly:1,death:[70,2]});
 T('lumber','Holzfäller','FLINK',4,'l',8,1060,200,.8,'v',.7,'Rasend schnell, lässt Wut zurück.',{deathSpell:'rage'});
-Sp('frost','Eiszauber',4,'e',8,95,3,'Friert alles für 4 Sekunden ein.',{stun:4});
-Sp('poison','Giftwolke',4,'e',8,600,3.5,'Schaden über 8 Sekunden und bremst.',{kind:'poison',dur:8});
+Sp('frost','Eiszauber',4,'e',4,95,3,'Friert alles für 4 Sekunden ein.',{stun:4});
+Sp('poison','Giftwolke',4,'e',9,600,3.5,'Schaden über 8 Sekunden und bremst.',{kind:'poison',dur:8});
 Sp('graveyard','Spukfriedhof',5,'l',8,0,4,'Skelette steigen im Kreis auf.',{kind:'grave',dur:9});
 T('bowler','Brockenwerfer','FLÄCHE',5,'e',8,1550,239,2.5,'s',5,'Rollt Felsen in Bodentruppen.',{splash:1.6,proj:'rock',rad:13});
 // Arena 9
 T('gang','Gobbo-Horde','SCHWARM',3,'c',9,167,99,1.1,'v',.5,'Drei Dolch- und zwei Speer-Gobbos.',{count:5,rad:6,mix:['goblins','goblins','goblins','speargob','speargob']});
 T('dart','Blasrohr-Gobbo','FERN',3,'r',9,216,108,.7,'v',6.5,'Schnelle Pfeile aus großer Distanz.',{rad:7,hitsAir:1});
-Bd('barbhut','Raufbold-Lager','SPAWNER',7,'r',9,1560,0,0,0,50,'Schickt immer wieder Raufbolde.',{spawner:['barbs',2,12],spawnDeath:['barbs',1],rad:15});
+Bd('barbhut','Raufbold-Lager','SPAWNER',7,'r',3,1560,0,0,0,50,'Schickt immer wieder Raufbolde.',{spawner:['barbs',2,12],spawnDeath:['barbs',1],rad:15});
 T('exec','Henkersknecht','FLÄCHE',5,'e',9,1010,270,2.4,'m',4.5,'Wurfaxt trifft ganze Gruppen.',{hitsAir:1,splash:1.5,proj:'axe',rad:11});
 Sp('tornado','Wirbelsturm',3,'e',9,200,5,'Saugt Gegner zur Mitte.',{kind:'tornado',dur:1.4});
-Sp('clone','Doppelgänger',3,'e',9,0,3,'Kopiert deine Truppen (1 Lebenspunkt).',{kind:'clone'});
+Sp('clone','Doppelgänger',3,'e',8,0,3,'Kopiert deine Truppen (1 Lebenspunkt).',{kind:'clone'});
 // Arena 10
 Bd('tesla','Blitzspule','GEBÄUDE',4,'c',10,954,150,1.1,5.5,35,'Trifft Boden und Luft.',{hitsAir:1,proj:'zap'});
-T('elite','Elite-Raufbolde','NAH',6,'c',10,1050,254,1.7,'v',.8,'Zwei sehr schnelle Schlägertypen.',{count:2,rad:10});
+T('elite','Elite-Raufbolde','NAH',6,'c',7,1050,254,1.7,'v',.8,'Zwei sehr schnelle Schlägertypen.',{count:2,rad:10});
 T('horde','Flatterschwarm','LUFT',5,'c',10,190,84,1,'f',1,'Sechs Flieger auf einmal.',{count:6,rad:6,fly:1,hitsAir:1});
 Bd('furnace','Glutofen','SPAWNER',4,'r',10,950,0,0,0,40,'Erzeugt Glutgeister.',{spawner:['firesp',2,10]});
 T('golem','Felsgolem','TANK',8,'e',10,4256,259,2.5,'s',.8,'Zerbricht in zwei kleine Golems.',{rad:16,bOnly:1,death:[259,2],spawnDeath:['golemlet',2]});
-T('bats','Nachtflatterer','LUFT',2,'c',10,67,67,1.1,'v',1,'Fünf winzige, schnelle Flieger.',{count:5,rad:5,fly:1,hitsAir:1});
+T('bats','Nachtflatterer','LUFT',2,'c',8,67,67,1.1,'v',1,'Fünf winzige, schnelle Flieger.',{count:5,rad:5,fly:1,hitsAir:1});
 // Arena 11
-T('ewiz','Voltmagier','FERN',4,'l',11,590,91,1.8,'f',5,'Betäubt zwei Ziele, Blitz beim Landen.',{hitsAir:1,multi:2,stunHit:.5,proj:'zap',land:[159,2.5,.5]});
+T('ewiz','Voltmagier','FERN',4,'l',7,590,91,1.8,'f',5,'Betäubt zwei Ziele, Blitz beim Landen.',{hitsAir:1,multi:2,stunHit:.5,proj:'zap',land:[159,2.5,.5]});
 T('idragon','Glutdrache','LUFT',4,'l',11,1070,40,.4,'m',3.5,'Strahl wird immer heißer.',{fly:1,hitsAir:1,ramp:1,proj:'beam',rad:11});
 T('sparky','Donnerkarre','FLÄCHE',6,'l',11,1200,1100,5,'s',5,'Lädt lange, dann gewaltiger Schlag.',{splash:1.8,proj:'zap',rad:14});
 T('miner','Tunnelgräber','FLINK',3,'l',11,1000,160,1.2,'f',.8,'Kann überall auftauchen.',{anywhere:1,tdmg:.4});
-T('princess','Turmprinzessin','FERN',3,'l',11,216,140,3,'m',9,'Brandpfeile aus riesiger Distanz.',{hitsAir:1,splash:2,proj:'fire',rad:7});
+T('princess','Turmprinzessin','FERN',3,'l',7,216,140,3,'m',9,'Brandpfeile aus riesiger Distanz.',{hitsAir:1,splash:2,proj:'fire',rad:7});
 Sp('log','Rollstamm',2,'l',11,240,2,'Rollt vorwärts und stößt Bodentruppen zurück.',{kind:'log',dur:1.3,own:1});
 // Arena 12 – Legendenarena
-T('ninja','Dolchräuberin','FLINK',3,'l',12,780,160,1,'f',.8,'Stürmt an und schlägt doppelt zu.',{charge:1});
-T('icewiz','Frostmagier','FLÄCHE',3,'l',12,590,75,1.7,'m',5.5,'Verlangsamt Gruppen.',{hitsAir:1,splash:1,slowHit:2,proj:'ice',land:[80,3]});
+T('ninja','Dolchräuberin','FLINK',3,'l',9,780,160,1,'f',.8,'Stürmt an und schlägt doppelt zu.',{charge:1});
+T('icewiz','Frostmagier','FLÄCHE',3,'l',5,590,75,1.7,'m',5.5,'Verlangsamt Gruppen.',{hitsAir:1,splash:1,slowHit:2,proj:'ice',land:[80,3]});
 T('lava','Magmahund','TANK',7,'l',12,3150,45,1.3,'s',3.5,'Fliegender Tank, zerfällt in Funken.',{fly:1,bOnly:1,rad:16,proj:'fire',spawnDeath:['lavapup',6]});
-T('nwitch','Nachthexe','SPAWNER',4,'l',12,750,260,1.5,'m',1.6,'Kämpft nah und ruft Flatterer.',{spawner:['bats',2,6],spawnDeath:['bats',3]});
-T('megaknight','Wuchtritter','FLÄCHE',7,'l',12,3300,222,1.7,'m',1.2,'Landet mit Wucht, trifft Gruppen.',{splash:1.4,self:1,rad:15,land:[444,2.5]});
-T('cart','Kanonenkarren','FERN',5,'e',12,1300,180,1.2,'m',5.5,'Rollende Kanone mit Schild.',{shield:700,proj:'ball',rad:12});
+T('nwitch','Nachthexe','SPAWNER',4,'l',8,750,260,1.5,'m',1.6,'Kämpft nah und ruft Flatterer.',{spawner:['bats',2,6],spawnDeath:['bats',3]});
+T('megaknight','Wuchtritter','FLÄCHE',7,'l',10,3300,222,1.7,'m',1.2,'Landet mit Wucht, trifft Gruppen.',{splash:1.4,self:1,rad:15,land:[444,2.5]});
+T('cart','Kanonenkarren','FERN',5,'e',10,1300,180,1.2,'m',5.5,'Rollende Kanone mit Schild.',{shield:700,proj:'ball',rad:12});
 T('healer','Heilerin','HEILT',4,'r',5,800,75,1.5,'m',4,'Heilt Verbündete in der Nähe.',{hitsAir:1,proj:'magic',heal:110});
 // Nur beschworen
 T('golemlet','Golembrocken','TANK',3,'e',99,860,52,2.5,'s',.6,'',{rad:10,bOnly:1,count:2,hidden:1,death:[52,1.5]});
@@ -349,9 +351,9 @@ class Match{
  gap(a,b){return Math.hypot(a.x-b.x,a.y-b.y)-a.rad-b.rad;}
  findTarget(u){
   const en=1-u.team;let best=null,bd=1e9;const sight=Math.max(110,u.range);
-  for(const o of this.units){if(o.team!==en||o.hp<=0)continue;if(u.bOnly&&!o.building)continue;if(o.fly&&!u.hitsAir)continue;const d=this.gap(u,o);if(d<u.c.minR)continue;if((u.bOnly||d<sight)&&d<bd){bd=d;best=o;}}
+  for(const o of this.units){if(o.team!==en||o.hp<=0)continue;if(u.bOnly&&!o.building)continue;if(o.fly&&!u.hitsAir)continue;const d=this.gap(u,o);if(d<u.c.minR)continue;{const dd=d-(o===u.tgt?60:0);if((u.bOnly||d<sight)&&dd<bd){bd=dd;best=o;}}}
   if(best&&!u.bOnly)return best;
-  for(const t of this.tw[en]){if(t.dead)continue;const d=this.gap(u,t);if(d<u.c.minR)continue;if(d<bd){bd=d;best=t;}}
+  for(const t of this.tw[en]){if(t.dead)continue;const g=this.gap(u,t);if(g<u.c.minR)continue;const d=g+Math.abs(t.x-u.x)*1.1-(t===u.tgt?60:0);if(d<bd){bd=d;best=t;}}
   return best;
  }
  waypoint(u,dest){
@@ -393,7 +395,7 @@ class Match{
    if(any)this.fx.push({t:'ring',x:u.x,y:u.y,r:62,age:0,dur:.5,col:'#7dffa8'});}}
   if(!c.atk)return;
   u.cd-=dt*sf;u.rt-=dt;
-  if(!alive(u.tgt)||u.rt<=0){const keep=alive(u.tgt)&&this.gap(u,u.tgt)<=u.range+4&&this.gap(u,u.tgt)>=c.minR;if(!keep){const n=this.findTarget(u);if(n!==u.tgt){u.tgt=n;u.ramp=0;}}u.rt=.3;}
+  if(!alive(u.tgt)||u.rt<=0){const gp=alive(u.tgt)?this.gap(u,u.tgt):1e9,keep=alive(u.tgt)&&gp>=c.minR&&(gp<=u.range+4||u.bOnly||(u.tgt.kind!=='tower'&&gp<Math.max(110,u.range)*1.8));if(!keep){const n=this.findTarget(u);if(n!==u.tgt){u.tgt=n;u.ramp=0;}}u.rt=.3;}
   const t=u.tgt;if(!t)return;
   if(this.gap(u,t)<=u.range){
    if(c.ramp)u.ramp+=dt;
@@ -423,7 +425,7 @@ class Match{
  }
  updTower(t,dt){
   if(t.dead)return;t.flash=Math.max(0,t.flash-dt);if(t.stun>0){t.stun-=dt;return;}if(!t.active)return;t.cd-=dt;
-  if(t.cd<=0){let b=null,bd=1e9;for(const u of this.units){if(u.team===t.team||u.hp<=0||u.dep>0)continue;const d=dist(t,u)-u.rad;if(d<=t.range&&d<bd){bd=d;b=u;}}
+  if(t.cd<=0){let b=null,bd=1e9;const cur=t.tgt;if(cur&&cur.kind==='unit'&&cur.hp>0&&cur.team!==t.team&&!(cur.dep>0)&&dist(t,cur)-cur.rad<=t.range)b=cur;else for(const u of this.units){if(u.team===t.team||u.hp<=0||u.dep>0)continue;const d=dist(t,u)-u.rad;if(d<=t.range&&d<bd){bd=d;b=u;}}
    if(b){this.projs.push({x:t.x,y:t.y-14,lx:b.x,ly:b.y,tgt:b,team:t.team,dmg:t.dmg,splash:0,kind:'arrow',sp:380,age:0,hitsAir:true,vx:0,vy:-1});t.cd=t.atk;t.tgt=b;}else{t.cd=.1;t.tgt=null;}}
  }
  hurt(e,d){
@@ -552,7 +554,7 @@ class Brain{
   if(nearT)thr*=.55;if(late&&lead>0)thr*=.8;
   if(L.p>thr){
    const dmin=Math.min(...L.u.map(u=>Math.min(...myT.filter(t=>!t.dead).map(t=>Math.hypot(u.x-t.x,u.y-t.y)),999)));
-   if(dmin>235&&el<8.6&&!L.u.some(u=>u.fly&&u.y*(me?-1:1)>0&&dmin<300)&&L.p<thr*2.2)return;
+   if(dmin>205&&el<8.8&&!L.u.some(u=>u.fly&&u.y*(me?-1:1)>0&&dmin<300)&&L.p<thr*2.2)return;
    const eCost=L.u.reduce((q,u)=>q+u.c.cost/(u.c.count||1),0);
    const cx=L.u.reduce((s,u)=>s+u.x,0)/L.u.length,cy=L.u.reduce((s,u)=>s+u.y,0)/L.u.length;
    const allFly=L.u.every(u=>u.fly),anyFly=L.u.some(u=>u.fly),bonly=L.u.some(u=>u.bOnly),swarm=L.u.length>=3&&L.p/L.u.length<110;
@@ -570,7 +572,7 @@ class Brain{
    if(best){m.play(me,best.o.i,best.pos.x,best.pos.y);return;}
   }
   // ---- Angriff
-  if(lanes[0].p+lanes[1].p>thr*.3&&el<9.3)return;
+  if(lanes[0].p+lanes[1].p>thr*.3&&el<9.3&&!(pf.aggr>.75&&el>=7))return;
   if(el>=5){for(const o of aff){const c=o.c;
    if(c.elix&&el>=8&&!fr.some(u=>u.c.elix)){if(m.play(me,o.i,pick([40,320]),me===0?500:100))return;}
    if((c.kind==='barrel'||c.kind==='grave')&&el>=Math.max(6,c.cost)){const t=pick(foeT.filter(t=>!t.dead));if(t&&m.play(me,o.i,t.x+(c.kind==='grave'?30:0),t.y))return;}
@@ -835,7 +837,7 @@ icegolem:{k:'rock',a:'#bfeaff',b:'#e8faff',eye:'#2a74e0'},golem:{k:'rock',a:'#6f
 bowler:{k:'giant',skin:'#6fa8e8',c:'#34507a',w:'rock'},megamoth:{k:'bat',a:'#3a4fb0',w:'#5a2a9a',armor:1},horde:{k:'bat',a:'#4fb8e8',w:'#7b4fd6',badge:'6'},bats:{k:'bat',a:'#4a3a5a',w:'#2a1f3f'},lavapup:{k:'spirit',a:'#c0391a',b:'#ffb347',wings:1},
 firesp:{k:'spirit',a:'#ff6a1a',b:'#ffd23a'},icesp:{k:'spirit',a:'#4ab8f0',b:'#e0f8ff'},idragon:{k:'dragon',a:'#b8402a',b:'#ff9a3d'},lava:{k:'lava'},balloon:{k:'balloon'},copter:{k:'copter'},
 sparky:{k:'sparky'},cart:{k:'cart'},tomb:{k:'tomb'},inferno:{k:'tower',t:'fire'},bombtower:{k:'tower',t:'bomb'},tesla:{k:'tesla'},mortar:{k:'mortar'},xbow:{k:'xbow'},furnace:{k:'furnace'},elixir:{k:'pump'},
-barrel:{k:'spell',t:'barrel'},rage:{k:'spell',t:'flask',a:'#d94fd0'},heal:{k:'spell',t:'heal'},zap:{k:'spell',t:'zap'},rocket:{k:'spell',t:'rocket'},poison:{k:'spell',t:'poison'},graveyard:{k:'spell',t:'grave'},tornado:{k:'spell',t:'tornado'},clone:{k:'spell',t:'clone'},log:{k:'spell',t:'log'}};
+barrel:{k:'spell',t:'barrel'},rage:{k:'spell',t:'flask',a:'#d94fd0'},heal:{k:'spell',t:'heal'},zap:{k:'spell',t:'zap'},rocket:{k:'spell',t:'rocket'},poison:{k:'spell',t:'poison'},graveyard:{k:'spell',t:'grave'},tornado:{k:'spell',t:'tornado'},clone:{k:'spell',t:'clone'},log:{k:'spell',t:'log'},skelknight:{k:'skel',w:'sword',hat:'helmet',sh:1},icegob:{k:'gob',w:'pipe',hat:'band'}};
 function drawKit(g,o,tc,t,H_){
  const{C,E,P,B,L,eyes,legs,O,fs}=H_,wing=Math.sin(t*14)*4;
  const weapon=w=>{switch(w){
