@@ -626,24 +626,25 @@ function settle(A,B,w){
 class World{
  constructor(bots){this.bots=bots;this.matches=[];this.recent=[];this.speed=1;this.id=1;for(const b of bots)if(Math.random()<.4+b.act*.3){b.online=true;b.sessEnd=rnd(60,400);b.idle=rnd(0,12);}}
  profile(b){return{name:b.name,av:b.av,trophies:b.trophies,deck:b.deck.slice(),kingLvl:b.lvl,lvl:id=>b.cards[id].lvl,brain:new Brain(b),bot:b};}
- startMatch(a,b){a.inMatch=b.inMatch=true;const m=new Match(this.profile(a),this.profile(b));m.id=this.id++;m.speed=this.speed;m.watch=false;m.A=a;m.B=b;m.onEnd=()=>this.endMatch(m);this.matches.push(m);return m;}
+ startMatch(a,b){a.inMatch=b.inMatch=true;a.search=b.search=null;const m=new Match(this.profile(a),this.profile(b));m.id=this.id++;m.speed=this.speed;m.watch=false;m.A=a;m.B=b;m.onEnd=()=>this.endMatch(m);this.matches.push(m);return m;}
  endMatch(m){
   const a=m.A,b=m.B,w=m.winner;settle(a,b,w);matchReward(a,w<0?0:w===0?1:-1,m.crowns[0]);matchReward(b,w<0?0:w===1?1:-1,m.crowns[1]);
   this.recent.unshift({a:a.name,b:b.name,av:a.av,bv:b.av,ca:m.crowns[0],cb:m.crowns[1],w});if(this.recent.length>10)this.recent.length=10;
   for(const x of[a,b]){x.inMatch=false;x.idle=rnd(4,14)/(.4+x.act);x.wait=0;}
  }
  pickOpponent(tr){
-  let best=null,bs=1e9;for(const b of this.bots){if(b.inMatch)continue;const s=Math.abs(b.trophies-tr)-(b.online?60:0)+Math.random()*40;if(s<bs){bs=s;best=b;}}
+  let best=null,bs=1e9;for(const b of this.bots){if(b.inMatch)continue;const s=Math.abs(b.trophies-tr)-(b.online?25:0)+Math.random()*15;if(s<bs){bs=s;best=b;}}
   if(best){best.inMatch=true;best.online=true;best.sessEnd=Math.max(best.sessEnd,120);}return best;
  }
  update(dt){
   for(const b of this.bots){if(b.inMatch)continue;
-   if(b.online){b.think-=dt;if(b.think<=0){b.think=rnd(3,9);botManage(b);}b.sessEnd-=dt;if(b.sessEnd<=0){b.online=false;b.lastSeen=Date.now();}else{b.idle-=dt;b.wait+=dt;}}
+   if(b.online){b.think-=dt;if(b.think<=0){b.think=rnd(3,9);botManage(b);}b.sessEnd-=dt;if(b.sessEnd<=0){b.online=false;b.search=null;b.lastSeen=Date.now();}else if(b.idle>0)b.idle-=dt;
+    else if(b.search==null){b.search=rnd(5,10);b.wait=0;}else{b.search-=dt;b.wait+=dt;}}
    else if(Math.random()<.0035*b.act*dt){b.online=true;b.sessEnd=rnd(90,420)*(.5+b.act);b.idle=rnd(1,6);b.wait=0;}}
-  const q=this.bots.filter(b=>b.online&&!b.inMatch&&b.idle<=0).sort((x,y)=>x.trophies-y.trophies),used=new Set();
+  const q=this.bots.filter(b=>b.online&&!b.inMatch&&b.search!=null&&b.search<=0).sort((x,y)=>x.trophies-y.trophies),used=new Set();
   for(const a of q){if(used.has(a.id))continue;let best=null,bd=1e9;
    for(const c of q){if(c===a||used.has(c.id))continue;const d=Math.abs(c.trophies-a.trophies);if(d<bd){bd=d;best=c;}}
-   if(best&&bd<=120+Math.max(a.wait,best.wait)*6){used.add(a.id);used.add(best.id);this.startMatch(a,best);}}
+   if(best&&bd<=60+Math.max(0,Math.max(a.wait,best.wait)-10)*8){used.add(a.id);used.add(best.id);this.startMatch(a,best);}}
   for(const m of this.matches.slice()){const h=m.watch?1/30:1/20;m.acc=(m.acc||0)+dt*m.speed;let n=0;
    while(m.acc>=h&&!m.over&&n<40){m.step(h);m.acc-=h;n++;}
    if(m.over){const i=this.matches.indexOf(m);if(i>=0)this.matches.splice(i,1);}}
@@ -876,7 +877,7 @@ function renderTab(){
   const liveSet=new Set();world.matches.forEach(m=>{liveSet.add(m.A.id);liveSet.add(m.B.id);});
   setHTML(c,`<div class="sect">Rangliste · ${list.length} Spieler</div><button class="btn red" style="width:100%;margin-bottom:10px" data-act="resetAsk">🔄 Alles zurücksetzen</button>`+list.map((p,i)=>{
    let st='';if(p.me)st='<span class="rs">Das bist du</span>';else{const act=p.act>.65?'sehr aktiv':p.act>.35?'aktiv':'selten online';
-    const status=liveSet.has(p.id)?'<span class="live">● LIVE</span>':p.inMatch?'<span class="live">● im Kampf</span>':p.online?'<span class="dot"></span>online':'<span class="dot off"></span>offline';
+    const status=liveSet.has(p.id)?'<span class="live">● LIVE</span>':p.inMatch?'<span class="live">● im Kampf</span>':p.online&&p.search!=null?'🔍 sucht Gegner':p.online?'<span class="dot"></span>online':'<span class="dot off"></span>offline';
     st=`<span class="rs">${status} · ${act} · ${p.wins}S/${p.losses}N · Lv ${p.lvl}</span>`;}
    return`<div class="row ${p.me?'me':''} ${i===0?'gold1':i===1?'gold2':i===2?'gold3':''}" ${p.me?'':`data-act="bot" data-id="${p.id}"`}><div class="rk">${i+1}</div><div class="ra">${p.av}</div><div style="flex:1;min-width:0"><div class="rn">${p.name}</div>${st}</div><div class="rt">🏆 ${p.trophies}</div></div>`;}).join(''),'tab');
  }else{
@@ -905,6 +906,7 @@ function openCard(id){
 const ACT={
  tab(el){tab=el.dataset.t;lastHTML.tab='';renderTab();$('#content').scrollTop=0;},
  close(){closeModal();},
+ cancelSearch(){stopSearch();$('#vs').classList.add('hidden');},
  resetAsk(){showModal(`<h2>Alles zurücksetzen?</h2><div style="text-align:center;font-size:14px;margin-bottom:12px">Trophäen, Level, Karten, Gold, Truhen und Statistiken von dir und allen Bots werden gelöscht. Das kann man nicht rückgängig machen.</div><button class="btn red" style="width:100%" data-act="resetAll">Ja, alles löschen</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`);},
  resetAll(){Object.assign(S,newAccount(),{bots:null});Object.assign(world,new World(mkBots()));save();closeModal();lastHTML={};renderTab();toast('Alles zurückgesetzt');},
  arenas(){showModal(`<h2>Arenen</h2>${ARENAS.map(a=>`<div class="sect">${S.best>=a.min?'✅':'🔒'} ${a.i?'Arena '+a.i+' · ':''}${a.n} <span class="chip">${a.min} 🏆</span></div><div class="minideck">${PLAY_CARDS.filter(c=>c.ar===a.i).map(c=>`<div data-act="card" data-id="${c.id}">${cardHTML(c.id,0)}</div>`).join('')}</div>`).join('')}<button class="btn" style="width:100%;margin-top:10px" data-act="close">Schließen</button>`);},
@@ -1065,12 +1067,20 @@ function evSound(m){for(const e of m.ev){if(e==='play0')SND.play0();else if(e===
 // ---- Kampf (Spieler)
 function playerProfile(){return{name:S.name,av:'👑',trophies:S.trophies,deck:S.deck.slice(),kingLvl:S.lvl,lvl:id=>S.cards[id].lvl,brain:null};}
 function showScreen(s){$('#menu').classList.toggle('hidden',s!=='menu');$('#battle').classList.toggle('hidden',s!=='battle');}
+let searching=null;
 function startBattle(){
- const opp=world.pickOpponent(S.trophies);if(!opp){toast('Gerade kein Gegner frei – gleich nochmal');return;}
- popp=opp;const v=$('#vs');v.classList.remove('hidden');
- v.innerHTML=`<div class="stat" style="font-size:16px">Gegner gefunden!</div><div class="pl"><div class="p">👑<small>${S.name}</small><small>🏆 ${S.trophies}</small></div><div class="vsx">VS</div><div class="p">${opp.av}<small>${opp.name}</small><small>🏆 ${opp.trophies} · Lv ${opp.lvl}</small></div></div>`;
+ if(searching)return;const v=$('#vs'),t0=performance.now(),dur=rnd(5000,10000);v.classList.remove('hidden');
+ v.innerHTML=`<div style="font-size:60px">🔍</div><div style="font-size:22px;font-weight:900">Suche Gegner …</div><div class="stat" style="font-size:16px">🏆 ${S.trophies} · <span id="searchT">0</span> s</div><button class="btn red" data-act="cancelSearch">Abbrechen</button>`;
+ const tick=setInterval(()=>{const e=$('#searchT');if(e)e.textContent=Math.floor((performance.now()-t0)/1000);},250);
+ searching={tick,to:setTimeout(found,dur)};
+}
+function stopSearch(){if(!searching)return;clearInterval(searching.tick);clearTimeout(searching.to);searching=null;}
+function found(){
+ const opp=world.pickOpponent(S.trophies),v=$('#vs');if(!opp){searching.to=setTimeout(found,1000);return;}
+ stopSearch();searching={};popp=opp;opp.search=null;
+ v.innerHTML=`<div class="stat" style="font-size:16px">Gegner gefunden!</div><div class="pl"><div class="p">👑<small>${S.name}</small><small>🏆 ${S.trophies} · Lv ${S.lvl}</small></div><div class="vsx">VS</div><div class="p">${opp.av}<small>${opp.name}</small><small>🏆 ${opp.trophies} · Lv ${opp.lvl}</small></div></div>`;
  sfx(300,.4,'sawtooth',.05,300);
- setTimeout(()=>{v.classList.add('hidden');beginMatch(opp);},2200);
+ setTimeout(()=>{searching=null;v.classList.add('hidden');beginMatch(opp);},2200);
 }
 function beginMatch(opp){
  pm=new Match(playerProfile(),world.profile(opp));pm.onEnd=()=>{pm.endAt=performance.now();};
