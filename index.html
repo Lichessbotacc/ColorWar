@@ -549,18 +549,19 @@ class Brain{
   for(const u of en)if(inMy(u)){const l=lanes[u.x<180?0:1];l.u.push(u);l.p+=pw(u);}
   const li=lanes[0].p>=lanes[1].p?0:1,L=lanes[li],lx=li?270:90;
   // ---- Fehler: schwache Bots spielen oft planlos
-  if(Math.random()<Math.pow(1-pf.skill,2)*.3&&el>=4){const o=pick(aff.filter(o=>o.c.type!=='spell'));if(o){m.play(me,o.i,rnd(30,330),me===0?rnd(340,560):rnd(40,260));return;}}
+  if(Math.random()<Math.pow(1-pf.skill,2)*.02&&el>=8){const o=pick(aff.filter(o=>o.c.type!=='spell'));if(o){m.play(me,o.i,rnd(30,330),me===0?rnd(340,560):rnd(40,260));return;}}
   // ---- Verteidigung
   const st=this.st,lead=m.crowns[me]-m.crowns[op],late=m.t>150;
-  let thr=95*(.8+.4*pf.skill)*st.def;
+  let thr=165*(.8+.4*pf.skill)*st.def;
   const myT=m.tw[me];const nearT=L.u.some(u=>myT.some(t=>!t.dead&&Math.hypot(u.x-t.x,u.y-t.y)<150));
   if(nearT)thr*=.55;if(late&&lead>0)thr*=.8;
   if(L.p>thr){
    if(pf.skill<.5&&Math.random()<(.5-pf.skill)*1.3)return;
    const dmin=Math.min(...L.u.map(u=>Math.min(...myT.filter(t=>!t.dead).map(t=>Math.hypot(u.x-t.x,u.y-t.y)),999)));
-   if(pf.skill>.4&&dmin>205&&el<8.8&&!L.u.some(u=>u.fly&&u.y*(me?-1:1)>0&&dmin<300)&&L.p<thr*2.2)return;
+   if(dmin>190&&el<9&&!L.u.some(u=>u.fly&&u.y*(me?-1:1)>0&&dmin<300)&&L.p<thr*3)return;
    const heavy=L.u.some(u=>u.bOnly||u.c.hp*(u.c.count||1)>=1400);
    const eCost=L.u.reduce((q,u)=>q+u.c.cost/(u.c.count||1),0);
+   if(eCost<=3.2&&el<7&&L.p<thr*1.6)return; // kleine Einzelziele erledigt der Turm
    const cx=L.u.reduce((s,u)=>s+u.x,0)/L.u.length,cy=L.u.reduce((s,u)=>s+u.y,0)/L.u.length;
    const allFly=L.u.every(u=>u.fly),anyFly=L.u.some(u=>u.fly),bonly=L.u.some(u=>u.bOnly),swarm=L.u.length>=3&&L.p/L.u.length<110;
    let best=null,bs=0;
@@ -597,9 +598,9 @@ class Brain{
     else y=(c.bOnly||c.hp*c.count>=900)?(me===0?530:70):c.range>50?(me===0?520:80):(me===0?470:130);
     if(y!=null){this.lastL=l;if(m.play(me,want.i,x,y)){delete this.sv[want.id];return;}}
    }}
-  let gate=5.6+(1-pf.aggr)*2+st.gate-(dbl?1.2:0)+(this.est>=7?1:0)-(this.est<=3?1.8:0)-clamp((el-this.est-2)*.5,0,1.6)+(late?(lead>0?1.4:lead<0?-1.6:0):0);gate+=rnd(-1.5,1.5)*(1-pf.skill);gate=clamp(gate,3.5,9.4);if(m.t<10)gate=Math.max(gate,7);
+  let gate=5.6+(1-pf.aggr)*2+st.gate-(dbl?1.2:0)+(this.est>=7?1:0)-(this.est<=3?1.8:0)-clamp((el-this.est-2)*.5,0,1.6)+(late?(lead>0?1.4:lead<0?-1.6:0):0);gate+=rnd(-1.5,1.5)*(1-pf.skill);gate=clamp(gate,5.5,9.4);if(m.t<10)gate=Math.max(gate,7);
   const fY=u=>me===0?u.y<RY+120:u.y>RY-120;const pushP=fr.reduce((q,u)=>q+(!u.building&&fY(u)?pw(u):0),0);
-  if(el<gate&&el<9.6&&!(pushP>=110&&el>=4))return;
+  if(el<gate&&el<9.6&&!(pushP>=110&&el>=5.5))return;
   const eTot=lanes[0].p+lanes[1].p;
   if(eTot>thr*.6&&el<9.2)return;
   // Zauber: Finisher oder Cluster in der gegnerischen Hälfte
