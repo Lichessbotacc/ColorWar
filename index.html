@@ -1440,7 +1440,6 @@ botDeck=function(b){return b.skill>=.6?eliteDeck(b):botDeck0(b);};
 
 })();
 
-world.bots.forEach(b=>{if(b.skill>=.6&&b.deck)b.deck=botDeck(b);});
 
 // === PATCH 8: Vorausschau-Bots (kurze Simulation der Optionen) ===
 (function(){
@@ -1655,9 +1654,7 @@ Brain.prototype.pro2=function(m,me){
     s=(L.reduce((q,u)=>q+ec(u),0)-c.cost)+Math.min(ad,2)*1.6;
     if(c.type==='building'&&tank)s+=1.5;
     // Position: auf der eigenen Seite, Fernkämpfer hinten, Konter zum Turm hin gezogen
-    let y=c.type==='building'?(me===0?395:205):(c.range>60?cy+(me===0?80:-80):cy+(me===0?35:-35));
-    y=me===0?clamp(y,340,515):clamp(y,85,260);
-    pos={x:clamp(c.type==='building'?180+(li?22:-22):cx+(lx-cx)*(tank?.6:.35),20,340),y};}
+    pos=this.place(m,me,c,cx,cy,L.some(u=>u.bOnly),!!tank);}
    s+=rnd(-.6,.6)*(1-r);if(s>bs){bs=s;best={o,pos};}}
   if(best&&(bs>-1.5||dmin<130))return m.play(me,best.o.i,best.pos.x,best.pos.y);
   return false;
@@ -1670,12 +1667,12 @@ Brain.prototype.pro2=function(m,me){
   if(el>=need+ (tri?0:1)){
    const l=weak(m,me,en),w=aff.filter(o=>o.c.type==='troop'&&!o.c.heal).sort((a,b)=>b.c.cost-a.c.cost)[0];
    const tank=aff.find(o=>isTankC(o.c)&&el>=o.c.cost+(tri?0:1));
-   if(tank&&!fr.some(u=>isTankC(u.c)))return m.play(me,tank.i,lx2(l),bk(me));
+   if(tank&&!fr.some(u=>isTankC(u.c))){const q=this.off(m,me,tank.c,l);return m.play(me,tank.i,q.x,q.y);}
    // Unterstützung hinter vorhandener Truppe
    const lead=fr.filter(u=>mineHalf(op,u)||(me===0?u.y<RY+60:u.y>RY-60)).sort((a,b)=>b.hp-a.hp)[0];
    if(lead){const sup=aff.filter(o=>o.c.type==='troop'&&!o.c.bOnly).sort((a,b)=>dps(b.c)/b.c.cost-dps(a.c)/a.c.cost)[0];
     if(sup)return m.play(me,sup.i,clamp(lead.x,20,340),me===0?clamp(lead.y+45,RY+30,520):clamp(lead.y-45,80,RY-30));}
-   if(w&&(tri||lead===undefined))return m.play(me,w.i,lx2(l),w.c.range>50?bk(me):br(me));
+   if(w&&(tri||lead===undefined)){const q=this.off(m,me,w.c,l);return m.play(me,w.i,q.x,q.y);}
   }
   return tri?false:true; // normale Verlängerung: sparen, auf Fehler warten
  }
@@ -1683,7 +1680,7 @@ Brain.prototype.pro2=function(m,me){
  // Überlebender Tank an der Brücke: Fernkämpfer/Schadensträger dahinter schicken
  const tk=fr.filter(u=>isTankC(u.c)&&(me===0?u.y<RY+110:u.y>RY-110)).sort((a,b)=>b.hp-a.hp)[0];
  if(tk&&el>=5.5){const sup=aff.filter(o=>o.c.type==='troop'&&!o.c.bOnly&&!o.c.heal&&o.c.cost<=el-1).sort((a,b)=>dps(b.c)-dps(a.c))[0];
-  if(sup)return m.play(me,sup.i,clamp(tk.x,20,340),me===0?tk.y+50:tk.y-50);}
+  if(sup){const q=this.off(m,me,sup.c,tk.x<180?0:1,tk);return m.play(me,sup.i,q.x,q.y);}}
  // Gegner überlegen: nichts riskieren
  if(this.est>=7&&el<8.6&&!tri)return true;
  // Spiel wenn Gegner ausgegeben hat und nichts von mir vorne ist -> Gegendruck
@@ -1695,6 +1692,251 @@ Brain.prototype.think=function(m,me){let h=false;try{h=this.pro2(m,me);}catch(e)
 // Schnellere Reaktion im Dreifach-Elixier
 const ptick=Brain.prototype.tick;
 Brain.prototype.tick=function(m,me,dt){if(m.ot&&m.t>=300&&this.pf.skill>.5)this.cd-=dt*1.5;return ptick.call(this,m,me,dt);};
+})();
+
+
+// === PATCH 11: Platzierungs-Wissen (hinten / neben Turm / hinter Turm / Mitte / vorne) ===
+(function(){
+// Eigene Prinzessinnentürme: y=465 (unten) bzw. 135 (oben). Königsturm y=552 / 48. d=+1 wenn ich unten spiele.
+const D=me=>me===0?1:-1,TY=me=>me===0?465:135,KY=me=>me===0?552:48,TX=l=>l?270:90;
+const lim=(me,y)=>me===0?clamp(y,RY+RH+10,585):clamp(y,15,RY-RH-10);
+// VERTEIDIGUNG: wohin gegen eine Bedrohung bei (cx,cy)?
+Brain.prototype.place=function(m,me,c,cx,cy,rush,tanky){
+ const d=D(me),l=cx<180?0:1,tx=TX(l),ty=TY(me),dang=Math.abs(cy-ty);
+ const ranged=c.range>60,splash=c.splash>0||c.count>=3,fastAir=c.fly&&c.spd>=30;
+ let x,y;
+ if(c.type==='building'){
+  // Spawner hinten in der Mitte, Verteidigungsgebäude mittig vor den Türmen: zieht Tanks und Rusher von beiden Türmen weg
+  if(c.spawner)return{x:180+(l?-20:20),y:me===0?430:170};
+  return{x:180+(l?22:-22),y:me===0?395:205};}
+ if(c.minR)return{x:tx,y:me===0?440:160}; // Mörser: weit hinten, aus sicherer Distanz
+ if(rush){ // Turmjäger/Rammbock: Ziel ist mein Turm -> neben/vor den Turm, Nahkämpfer fangen ihn VOR dem Turm ab, Fernkämpfer stehen hinter dem Turm
+  if(ranged||c.fly){x=tx+(cx<tx?-12:12);y=ty+d*32;}
+  else{x=tx+(cx<tx?-14:14);y=ty-d*8;}
+ }else if(tanky){ // Tank: Nahkämpfer mit viel Schaden vor dem Turm, Fernkämpfer hinter dem Turm (Turm tankt)
+  if(ranged){x=tx;y=ty+d*30;}else{x=tx+(cx-tx)*.5;y=ty-d*12;}
+ }else if(ranged){ // Fernkämpfer immer hinter dem Turm: Turm schützt, Reichweite deckt trotzdem
+  x=tx+(cx<tx?-10:10);y=ty+d*38;
+ }else if(splash){ // Schwarm/Fläche: dicht bei der Gruppe, im Turmradius, leicht davor
+  x=clamp(cx+(tx-cx)*.35,20,340);y=cy+d*28;
+ }else if(fastAir){x=tx;y=ty+d*25;}
+ else{ // normale Nahkämpfer: neben den Turm, etwas zur Gegner-Seite (Block, Turm schießt mit)
+  x=tx+(cx<tx?-18:18);y=ty-d*4+(dang>150?-d*10:0);
+ }
+ // Gegner schon tief in meiner Hälfte (neben meinem Turm): direkt daneben platzieren statt weit weg
+ if(dang<45){x=cx+(cx<tx?-16:16);y=cy+d*(ranged?40:20);}
+ return{x:clamp(x,20,340),y:lim(me,y)};
+};
+// ANGRIFF: wohin spiele ich eine Karte in Lane l? ref = vorhandene eigene Truppe (Unterstützung)
+Brain.prototype.off=function(m,me,c,l,ref){
+ const d=D(me),tx=TX(l),brY=me===0?RY+RH+22:RY-RH-22,bkY=KY(me)-d*8;
+ if(ref&&ref.x!=null){ // Unterstützung hinter die eigene Truppe: Fernkämpfer weiter zurück, Schaden/Schwarm nah dahinter
+  const back=c.range>60?60:c.splash||c.count>=3?38:45;return{x:clamp(ref.x+(c.range>60?(ref.x<180?10:-10):0),20,340),y:lim(me,ref.y+d*back)};}
+ if(c.anywhere){const t=m.tw[1-me][l];return{x:t.x,y:t.y+d*34};}                  // Tunnelgräber: direkt am Turm
+ if(c.type==='building')return{x:tx,y:me===0?348:252};                                 // Belagerung (Armbrust/Mörser) knapp hinter der Brücke
+ if(c.type==='spell')return{x:tx,y:m.tw[1-me][l].y};
+ if(c.role==='TANK'||c.hp*(c.count||1)>=2200)return{x:tx,y:bkY};                       // Tank ganz hinten: langer Weg = Elixier sammeln, Unterstützung kommt nach
+ if(c.bOnly&&c.fly)return{x:tx,y:KY(me)-d*30};                                         // Luft-Turmjäger hinten, fliegt über alles
+ if(c.charge||c.jump||c.spd>=40&&c.bOnly)return{x:tx,y:brY};                           // schnelle Turmjäger: direkt an die Brücke
+ if(c.range>60)return{x:tx+(l?-10:10),y:me===0?TY(me)+30:TY(me)-30};                   // Fernkämpfer hinter dem eigenen Turm
+ if(c.count>=3||c.cost<=3)return{x:tx,y:brY-d*6};                                      // billige Zyklus-Karten an der Brücke: Druck, Gegner muss reagieren
+ return{x:tx,y:me===0?RY+RH+60:RY-RH-60};                                              // normale Truppen etwas hinter der Brücke
+};
+})();
+
+// === PATCH 12: Bots behalten ihr Deck – ab und zu werden 1–3 Karten getestet und bei Gefallen behalten ===
+(function(){
+BKEYS.push('cx'); // Lernstand der Bots mitspeichern
+const prevDeck=botDeck;
+const TEST=4; // so viele Kämpfe dauert ein Test
+const hh=s=>{let h=0;for(const ch of String(s))h=(h*31+ch.charCodeAt(0))%997;return h/997;};
+const cur=b=>.25+.75*hh('c'+b.taste);          // Neugier: wie gern probiert der Bot Neues aus
+const aff=(b,id)=>hh(id+b.taste);              // persönlicher Geschmack pro Karte (0..1)
+const pause=b=>2+Math.floor(Math.random()*(8-4*cur(b))); // Kämpfe Ruhe bis zum nächsten Test
+function CX(b){
+ const x=b.cx||(b.cx={n:{},w:{},lk:{},m:0});
+ if(!x.out){x.tr=[];x.out=[];x.trN=0;x.tw=0;x.base=.5;x.cd=Math.floor(Math.random()*4);}
+ return x;
+}
+const good=b=>Array.isArray(b.deck)&&b.deck.length===8&&new Set(b.deck).size===8&&b.deck.every(id=>b.cards[id]&&b.cards[id].own);
+function valid(ids){
+ const cs=ids.map(id=>CARDS[id]);
+ return cs.filter(c=>c.type==='spell').length<=2&&cs.filter(c=>c.type==='building').length<=1&&cs.filter(c=>c.cost>=6).length<=2
+  &&cs.reduce((s,c)=>s+c.cost,0)/8<=4.4&&cs.some(c=>c.hitsAir||c.fly);
+}
+// Das Deck bleibt, wie es ist. Nur ein unvollständiges Deck wird neu aufgebaut.
+botDeck=function(b){return good(b)?b.deck.slice():prevDeck(b);};
+function draw(list,weight){
+ const ws=list.map(weight);let r=Math.random()*ws.reduce((s,v)=>s+v,0),i=0;
+ while(i<list.length-1&&r>ws[i]){r-=ws[i];i++;}
+ return list[i];
+}
+// Test starten: 1–3 Karten tauschen
+function startTest(b){
+ const x=CX(b);if(!good(b))return;
+ const own=PLAY_CARDS.filter(c=>b.cards[c.id].own).map(c=>c.id);
+ if(own.length<=8)return;
+ const r=Math.random(),k=r<.55?1:r<.85?2:3;
+ const wIn=id=>Math.exp(1.1*(x.lk[id]||0))*(.5+aff(b,id))*(1+.05*b.cards[id].lvl)*(x.n[id]?1:1+cur(b)*1.5);
+ const deck=b.deck.slice(),tr=[],out=[];
+ for(let t=0;t<60&&tr.length<k;t++){
+  const pool=own.filter(id=>!b.deck.includes(id)&&!deck.includes(id));if(!pool.length)break;
+  const neu=draw(pool,wIn);
+  // eher ungeliebte Karten ersetzen, am liebsten durch den gleichen Typ
+  const alt=draw(deck.filter(id=>!tr.includes(id)),id=>Math.exp(-1.5*(x.lk[id]||0))*(1.2-aff(b,id))*(CARDS[id].type===CARDS[neu].type?3:1));
+  const next=deck.map(id=>id===alt?neu:id);
+  if(!valid(next)&&valid(deck))continue;
+  deck[deck.indexOf(alt)]=neu;tr.push(neu);out.push(alt);
+ }
+ if(tr.length){b.deck=deck;x.tr=tr;x.out=out;x.trN=0;x.tw=0;}
+}
+// Test auswerten: gefällt die Karte -> behalten, sonst kommt die alte zurück
+function endTest(b){
+ const x=CX(b),diff=x.tw/x.trN-x.base;
+ let deck=b.deck.slice();const keep=[];
+ x.tr.forEach((neu,i)=>{
+  const alt=x.out[i],score=diff*1.5+(aff(b,neu)-aff(b,alt))*.8+(cur(b)-.5)*.2; // Ergebnis + Geschmack + Offenheit
+  if(score>0)keep.push(i);else deck=deck.map(id=>id===neu?alt:id);
+ });
+ const before=b.deck.map(id=>x.tr.includes(id)?x.out[x.tr.indexOf(id)]:id);
+ if(!valid(deck)&&valid(before)){deck=before;keep.length=0;} // Mischung passt nicht -> altes Deck
+ x.tr.forEach((neu,i)=>{
+  const ok=keep.includes(i),alt=x.out[i];
+  x.lk[neu]=ok?Math.min(1,(x.lk[neu]||0)+.8):-.8;
+  if(ok)x.lk[alt]=Math.max(-1,(x.lk[alt]||0)-.3);
+ });
+ b.deck=deck;x.tr=[];x.out=[];x.trN=0;x.tw=0;x.cd=pause(b);
+}
+// Nach jedem Kampf: Karten bewerten und Test weiterführen
+function learn(b,deck,res){
+ if(!b||!deck)return;
+ const x=CX(b);x.m++;
+ for(const id of deck){
+  x.n[id]=(x.n[id]||0)+1;x.w[id]=(x.w[id]||0)+res;
+  x.lk[id]=(x.lk[id]||0)*.96;
+  if(!x.tr.includes(id))x.lk[id]=Math.max(-1,Math.min(1,x.lk[id]+(res-.5)*.15));
+ }
+ if(x.tr.length){
+  if(!x.tr.every(id=>b.deck.includes(id))){x.tr=[];x.out=[];return;}
+  x.trN++;x.tw+=res;
+  if(x.trN>=TEST)endTest(b);
+ }else{
+  x.base=x.base*.8+res*.2;                      // bisherige Form des Decks
+  if(x.cd>0)x.cd--;else startTest(b);
+ }
+}
+const em=World.prototype.endMatch;
+World.prototype.endMatch=function(m){
+ const a=m.A,b=m.B,w=m.winner,da=m.p[0].deck.slice(),db=m.p[1].deck.slice();
+ em.call(this,m);
+ learn(a,da,w<0?.5:w===0?1:0);learn(b,db,w<0?.5:w===1?1:0);
+};
+const sr=showResult;
+showResult=function(m){
+ const opp=popp,deck=m.p[1].deck.slice(),w=m.winner;
+ sr(m);
+ learn(opp,deck,w<0?.5:w===1?1:0);
+};
+world.bots.forEach(CX);
+})();
+
+// === PATCH 13: Statistik-Tab mit vielen Statistiken ===
+// Einfügen direkt VOR der letzten Zeile "renderTab();requestAnimationFrame(frame);" (nach PATCH 12).
+(function(){
+const empty=()=>({plays:{},mine:{},matches:0,dur:0,crowns:0,ot:0,three:0,draws:0,towers:0,kings:0,pMatches:0,bMatches:0,maxCrowns:0,longest:0,shortest:0});
+S.stats=Object.assign(empty(),S.stats||{});
+const G=S.stats;
+// „Alles zurücksetzen“ löscht auch die Statistiken (die Sicherung davor enthält sie noch)
+const ra=ACT.resetAll;
+ACT.resetAll=function(...a){ra.apply(this,a);Object.assign(G,empty());save();lastHTML={};renderTab();};
+const real=m=>m&&(m.A||m.snd);
+// Kartenspiele zählen (Simulations-Klone der Elite-Bots werden ignoriert)
+const op=Match.prototype.play;
+Match.prototype.play=function(team,hi,x,y){
+ const id=this.hand[team][hi],ok=op.call(this,team,hi,x,y);
+ if(ok&&id&&real(this)){G.plays[id]=(G.plays[id]||0)+1;if(!this.A&&team===0)G.mine[id]=(G.mine[id]||0)+1;}
+ return ok;
+};
+function rec(m,player){
+ G.matches++;if(player)G.pMatches++;else G.bMatches++;
+ G.dur+=m.t;G.crowns+=m.crowns[0]+m.crowns[1];if(m.ot)G.ot++;if(m.winner<0)G.draws++;
+ const w=m.winner;if(w>=0&&m.crowns[w]>=3)G.three++;
+ for(const t of m.towers)if(t.dead){if(t.type==='k')G.kings++;else G.towers++;}
+ G.maxCrowns=Math.max(G.maxCrowns,m.crowns[0]+m.crowns[1]);
+ G.longest=Math.max(G.longest,m.t);G.shortest=G.shortest?Math.min(G.shortest,m.t):m.t;
+}
+const em=World.prototype.endMatch;
+World.prototype.endMatch=function(m){rec(m,false);return em.call(this,m);};
+const sr=showResult;
+showResult=function(m){rec(m,true);return sr(m);};
+
+// Nav-Button + Stil
+const nav=document.getElementById('nav');
+const btn=document.createElement('button');btn.dataset.act='tab';btn.dataset.t='stats';btn.innerHTML='<span>📊</span>Stats';nav.appendChild(btn);
+const st=document.createElement('style');
+st.textContent='.sb{display:flex;align-items:center;gap:6px;margin:3px 0;font-size:12px;font-weight:800}.sb .l{width:104px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.sb .t{flex:1;height:12px;background:#0006;border-radius:7px;overflow:hidden}.sb .t i{display:block;height:100%;border-radius:7px}.sb .v{min-width:54px;text-align:right}.sg{display:grid;grid-template-columns:1fr 1fr;gap:6px}.sg div{background:linear-gradient(#3b2d9a,#2d2182);border:2px solid #5a48c8;border-radius:12px;padding:6px;text-align:center;font-size:11px}.sg b{display:block;font-size:17px;color:#ffd75e}.sbox{background:#0003;border-radius:14px;padding:8px 10px;margin-bottom:8px}';
+document.head.appendChild(st);
+
+const nm=id=>CARDS[id].name;
+const pct=(a,b)=>b?Math.round(a/b*100)+'%':'–';
+function bars(rows,col,fmt){
+ if(!rows.length)return'<div class="stat">Noch keine Daten.</div>';
+ const mx=Math.max(...rows.map(r=>r[1]),1e-9);
+ return rows.map(r=>`<div class="sb"><span class="l">${r[0]}</span><span class="t"><i style="width:${Math.max(3,r[1]/mx*100)}%;background:${col}"></i></span><span class="v">${fmt?fmt(r[1],r):r[1]}</span></div>`).join('');
+}
+const grid=a=>'<div class="sg">'+a.map(([k,v])=>`<div>${k}<b>${v}</b></div>`).join('')+'</div>';
+const box=(t,h)=>`<div class="sect">${t}</div><div class="sbox">${h}</div>`;
+const ARCH={beatdown:'Beatdown',cycle:'Cycle',control:'Kontrolle',bridge:'Bridge-Spam',siege:'Belagerung',balanced:'Ausgewogen'};
+const top=(o,n,asc)=>Object.entries(o).sort((a,b)=>asc?a[1]-b[1]:b[1]-a[1]).slice(0,n);
+const fmtT=s=>Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0');
+
+function statsHTML(){
+ const bots=world.bots,N=bots.length||1;
+ const use={},own={},n={},w={},lk={},rar={c:0,r:0,e:0,l:0},cost={},typ={troop:0,spell:0,building:0},lvSum={};
+ let cs=0,dk=0,gold=0,lvl=0,maxed=0,cards=0;
+ for(const b of bots){
+  for(const id of b.deck){use[id]=(use[id]||0)+1;const c=CARDS[id];rar[c.rar]++;cost[c.cost]=(cost[c.cost]||0)+1;typ[c.type]++;cs+=c.cost;dk++;}
+  for(const c of PLAY_CARDS){const d=b.cards[c.id];if(d.own){own[c.id]=(own[c.id]||0)+1;cards++;lvSum[c.id]=(lvSum[c.id]||0)+d.lvl;if(d.lvl>=RAR[c.rar].max)maxed++;}}
+  const x=b.cx;if(x){for(const id in x.n){n[id]=(n[id]||0)+x.n[id];w[id]=(w[id]||0)+(x.w[id]||0);}for(const id in x.lk)lk[id]=(lk[id]||0)+x.lk[id];}
+  gold+=b.gold;lvl+=b.lvl;
+ }
+ const wr={};for(const id in n)if(n[id]>=10)wr[id]=w[id]/n[id];
+ const arch={};for(const b of bots){try{const a=ARCH[new Brain(b).arch];arch[a]=(arch[a]||0)+1;}catch(e){}}
+ const trial={};for(const b of bots)if(b.cx)for(const id of b.cx.tr)trial[id]=(trial[id]||0)+1;
+ const ar={};for(const b of bots){const a=arenaFor(b.trophies).n;ar[a]=(ar[a]||0)+1;}
+ const on=bots.filter(b=>b.online).length,lv=world.matches.length;
+ const ranked=bots.slice().sort((a,b)=>b.trophies-a.trophies);
+ const games=b=>b.wins+b.losses+b.draws;
+ const myRank=ranked.filter(b=>b.trophies>S.trophies).length+1;
+ const mg=S.wins+S.losses+S.draws;
+ const cl=c=>CARDS[c].name;
+ let h='';
+ h+=box('🌍 Übersicht',grid([['Kämpfe gesamt',G.matches],['Du gegen Bots',G.pMatches],['Bot gegen Bot',G.bMatches],['Live gerade',lv],['Online',on+' / '+N],['Ø Kampfdauer',G.matches?fmtT(G.dur/G.matches):'–'],['Längster Kampf',G.longest?fmtT(G.longest):'–'],['Kürzester Kampf',G.shortest?fmtT(G.shortest):'–'],['Ø Kronen / Kampf',G.matches?(G.crowns/G.matches).toFixed(2):'–'],['Verlängerung',pct(G.ot,G.matches)],['Remis',pct(G.draws,G.matches)],['3-Kronen-Siege',G.three],['Türme zerstört',G.towers],['Königstürme gefallen',G.kings],['Max. Kronen in 1 Kampf',G.maxCrowns],['Spieler gesamt',N+1]]));
+ h+=box('🃏 Beliebteste Karten im Deck (Top 15)',bars(top(use,15).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#6cf,#27c)',(v)=>v+' · '+pct(v,N)));
+ h+=box('🥀 Unbeliebteste Karten im Deck',bars(PLAY_CARDS.map(c=>[c.name,use[c.id]||0]).sort((a,b)=>a[1]-b[1]).slice(0,10),'linear-gradient(90deg,#f99,#c33)',(v)=>v+' · '+pct(v,N)));
+ h+=box('🏅 Höchste Siegquote (min. 10 Kämpfe)',bars(top(wr,10).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#8f8,#2a2)',v=>Math.round(v*100)+'%'));
+ h+=box('📉 Niedrigste Siegquote',bars(top(wr,8,true).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#fa8,#c52)',v=>Math.round(v*100)+'%'));
+ h+=box('⚔️ Meistgespielte Karten im Kampf',bars(top(G.plays,12).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#fd7,#e90)'));
+ h+=box('🙋 Deine meistgespielten Karten',bars(top(G.mine,8).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#fd7,#e90)'));
+ h+=box('💖 Lieblingskarten der Bots (nach Testphase)',bars(top(lk,8).filter(e=>e[1]>0).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#f9c,#c39)',v=>'+'+v.toFixed(1)));
+ h+=box('👎 Aussortierte Karten',bars(top(lk,8,true).filter(e=>e[1]<0).map(([id,v])=>[cl(id),-v]),'linear-gradient(90deg,#9ab,#567)',v=>'−'+v.toFixed(1)));
+ h+=box('🧪 Gerade im Test',Object.keys(trial).length?bars(top(trial,10).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#c9f,#73c)',v=>v+' Bots'):'<div class="stat">Aktuell testet niemand eine neue Karte.</div>');
+ h+=box('🧬 Deck-Zusammensetzung',grid([['Ø Elixier',dk?(cs/dk).toFixed(2):'–'],['Truppen',pct(typ.troop,dk)],['Zauber',pct(typ.spell,dk)],['Gebäude',pct(typ.building,dk)],['Gewöhnlich',pct(rar.c,dk)],['Selten',pct(rar.r,dk)],['Episch',pct(rar.e,dk)],['Legendär',pct(rar.l,dk)]])+'<div style="height:8px"></div>'+bars(Object.keys(cost).sort((a,b)=>a-b).map(k=>[k+' 💧',cost[k]]),'linear-gradient(90deg,#e6f,#a2d)',(v)=>pct(v,dk)));
+ h+=box('🎭 Spielstile der Bots',bars(top(arch,6).map(([k,v])=>[k,v]),'linear-gradient(90deg,#6df,#38c)',(v)=>v+' Bots'));
+ h+=box('🗺️ Spieler pro Arena',bars(ARENAS.map(a=>[a.n,ar[a.n]||0]).filter(r=>r[1]>0),'linear-gradient(90deg,#9e9,#5a5)'));
+ h+=box('📦 Kartenbesitz',grid([['Ø Karten pro Bot',(cards/N).toFixed(1)],['Karten auf Max-Level',maxed],['Ø Königslevel',(lvl/N).toFixed(1)],['Gold gesamt',gold.toLocaleString('de-DE')]])+'<div style="height:6px"></div><b style="font-size:12px">Am seltensten besessen</b>'+bars(PLAY_CARDS.map(c=>[c.name,own[c.id]||0]).sort((a,b)=>a[1]-b[1]).slice(0,6),'linear-gradient(90deg,#ccc,#889)',(v)=>pct(v,N))+'<div style="height:6px"></div><b style="font-size:12px">Höchstes Ø-Kartenlevel</b>'+bars(Object.keys(lvSum).map(id=>[nm(id),lvSum[id]/own[id]]).sort((a,b)=>b[1]-a[1]).slice(0,6),'linear-gradient(90deg,#fe9,#ca3)',v=>v.toFixed(1)));
+ h+=box('👑 Bestenlisten',`<b style="font-size:12px">Meiste Trophäen</b>`+bars(ranked.slice(0,5).map(b=>[b.av+' '+b.name,b.trophies]),'linear-gradient(90deg,#fd7,#e90)')+'<div style="height:6px"></div><b style="font-size:12px">Meiste Siege</b>'+bars(bots.slice().sort((a,b)=>b.wins-a.wins).slice(0,5).map(b=>[b.av+' '+b.name,b.wins]),'linear-gradient(90deg,#8f8,#2a2)')+'<div style="height:6px"></div><b style="font-size:12px">Beste Siegquote (min. 10 Kämpfe)</b>'+bars(bots.filter(b=>games(b)>=10).sort((a,b)=>b.wins/games(b)-a.wins/games(a)).slice(0,5).map(b=>[b.av+' '+b.name,b.wins/games(b)]),'linear-gradient(90deg,#6df,#38c)',v=>Math.round(v*100)+'%')+'<div style="height:6px"></div><b style="font-size:12px">Fleißigste Spieler</b>'+bars(bots.slice().sort((a,b)=>games(b)-games(a)).slice(0,5).map(b=>[b.av+' '+b.name,games(b)]),'linear-gradient(90deg,#c9f,#73c)',v=>v+' Kämpfe'));
+ h+=box('🙋 Deine Statistik',grid([['Rang',myRank+' / '+(N+1)],['Trophäen',S.trophies],['Bestwert',S.best],['Kämpfe',mg],['Siege',S.wins],['Niederlagen',S.losses],['Remis',S.draws],['Siegquote',pct(S.wins,mg)],['Form',(S.form||[]).join(' ')||'–'],['Königslevel',S.lvl],['Gold',S.gold],['Karten',PLAY_CARDS.filter(c=>S.cards[c.id].own).length+' / '+PLAY_CARDS.length]]));
+ return h;
+}
+// Tab in renderTab einhängen
+const rt=renderTab;
+renderTab=function(){
+ if(tab!=='stats')return rt();
+ renderTop();
+ document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+ setHTML($('#content'),`<div class="sect">📊 Statistiken</div>`+statsHTML(),'tab');
+};
 })();
 
 renderTab();requestAnimationFrame(frame);
