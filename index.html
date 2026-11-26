@@ -1648,7 +1648,7 @@ Brain.prototype.cond=function(x,c){
  switch(c.k){
   case'el_ge':return x.el>=v;case'el_le':return x.el<=v;
   case'est_le':return x.est<=v;case'est_ge':return x.est>=v;
-  case'time_ge':return x.t>=v;case'dbl':return x.dbl;
+  case'time_ge':return x.t>=v;case'time_le':return x.t<=v;case'dbl':return x.dbl;
   case'en_cnt':return M.length>=v;case'en_none':return M.length===0;
   case'en_fly':return M.some(u=>u.fly);
   case'en_swarm':return M.length>=3&&M.filter(u=>u.c.hp<260).length>=3;
@@ -1768,7 +1768,7 @@ const KN=[
 const COND={
 el_ge:['💧 Mein Elixier mindestens …','n',7],el_le:['💧 Mein Elixier höchstens …','n',3],
 est_le:['🕵 Gegner-Elixier (geschätzt) höchstens …','n',3],est_ge:['🕵 Gegner-Elixier (geschätzt) mindestens …','n',8],
-time_ge:['⏱ Spielzeit ab … Sekunden','n',120],dbl:['⚡ Doppeltes Elixier läuft'],
+time_ge:['⏱ Spielzeit ab … Sekunden','n',120],time_le:['⏱ Spielzeit bis … Sekunden','n',45],dbl:['⚡ Doppeltes Elixier läuft'],
 en_cnt:['👥 Mindestens … Gegner auf meiner Seite','n',2],en_none:['🕊 Kein Gegner auf meiner Seite'],
 en_fly:['🦇 Gegner-Flieger auf meiner Seite'],en_swarm:['🐜 Gegner-Schwarm auf meiner Seite'],en_tank:['🗿 Gegner-Tank/Turmjäger auf meiner Seite'],
 en_ranged:['🏹 Gegner-Fernkämpfer auf meiner Seite'],en_bld:['🏠 Gegner hat ein Gebäude'],
@@ -1836,7 +1836,7 @@ const cb=()=>wm&&wm.coach;
 function reL(){const m=document.querySelector('#modal .mbox'),s=m?m.scrollTop:0;showModal(lessonHTML());const n=document.querySelector('#modal .mbox');if(n)n.scrollTop=s;}
 function curBrain(){if(!cb())return null;const i=wm.p.findIndex(p=>p.bot===wm.coach);return i<0?null:{i,br:wm.brains[i]};}
 const sel=(oc,opts,cur)=>`<select onchange="${oc}">${opts.map(([k,n])=>`<option value="${k}" ${k===cur?'selected':''}>${n}</option>`).join('')}</select>`;
-function lessonHTML(){
+function advHTML(){
  const b=wm.coach,T=L6.tab;b.know=b.know||{};b.prog=b.prog||[];
  const tabs=[['know','📘 Wissen'],['rule','🧩 Wenn-Dann'],['text','✍️ Text'],['sit','🎯 Situation'],['cards','🃏 Karten'],['list','📋 Regeln']];
  let body='';
@@ -1868,12 +1868,144 @@ function lessonHTML(){
   ${c.type==='spell'?`<button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="spellMin">🎯 Erst bei ${L6.n} Gegnern</button>`:`<button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="minEl">💧 Erst ab ${L6.n} Elixier</button>`}<button class="btn red" style="width:100%;margin:3px 0" data-act="lrule" data-t="never">🚫 Nie spielen</button>`:'');}
  else body=(b.prog.length?b.prog.map((r,i)=>`<div class="mrow" style="padding:6px;${r.on===false?'opacity:.5':''}"><div class="t" style="text-align:left;font-size:12px"><b>${i+1}.</b> ${ruleDesc(r)}</div><div style="display:flex;flex-direction:column;gap:3px"><div style="display:flex;gap:3px"><button class="btn blue mini" data-act="rup" data-i="${i}">▲</button><button class="btn blue mini" data-act="rdown" data-i="${i}">▼</button></div><div style="display:flex;gap:3px"><button class="btn mini" data-act="rtog" data-i="${i}">${r.on===false?'▶':'⏸'}</button><button class="btn blue mini" data-act="redit" data-i="${i}">✏️</button><button class="btn red mini" data-act="rdelp" data-i="${i}">✖</button></div></div></div>`).join(''):'<div class="stat">Noch keine Wenn-Dann-Regeln.</div>')+
   (b.rules.length?'<div class="stat" style="margin:10px 0 2px">Karten-Regeln:</div>'+b.rules.map((r,i)=>`<div class="mrow" style="padding:6px"><div class="t" style="text-align:left">${oldText(r)}</div><button class="btn red mini" data-act="ldel" data-i="${i}">✖</button></div>`).join(''):'');
- return `<h2>🎓 ${b.name}</h2><div class="stat" style="margin:0 0 6px">Kampf pausiert · ${Object.keys(b.know).length}/${KN.length} Konzepte · ${b.prog.length} Regeln</div>
+ return `<button class="btn mini" data-act="ladv">⬅ Zurück zu einfach</button><h2>🎓 ${b.name}</h2><div class="stat" style="margin:0 0 6px">Kampf pausiert · ${Object.keys(b.know).length}/${KN.length} Konzepte · ${b.prog.length} Regeln</div>
  <div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-bottom:8px">${tabs.map(([k,n])=>`<button class="btn ${T===k?'green':'blue'} mini" data-act="ltab" data-t="${k}">${n}</button>`).join('')}</div>${body}<button class="btn" style="width:100%;margin-top:10px" data-act="close">Weiter zuschauen</button>`;}
+// ---- Einfache Lektion: freie Sätze verstehen
+const N=t=>t.toLowerCase().replace(/ä/g,'ae').replace(/ö/g,'oe').replace(/ü/g,'ue').replace(/ß/g,'ss').replace(/[^a-z0-9\s,.:%-]/g,' ');
+const NUMW={eins:1,ein:1,eine:1,zwei:2,drei:3,vier:4,fuenf:5,sechs:6,sieben:7,acht:8,neun:9,zehn:10};
+const NUMRE=/\b(eins|zwei|drei|vier|fuenf|sechs|sieben|acht|neun|zehn)\b(?=\s*(elixier|sekunden?|sek|minuten?|min|gegner|einheiten|truppen|prozent|%))/g;
+const STOPS=new Set('gegner gegners feind feinde angriff angreifen angreift flieger schwarm schwaerme tank tanks elixier bruecke hinten links rechts mitte turm tuerme sekunden minute minuten vorne truppen einheiten gebaeude zauber karte karten spur seite immer nicht nur wenn dann spiele spiel spielt kommt lege setze mehr viele einmal kaum voll ende anfang beginn schluss bedrohung seiten gruppe gruppen sicher spielen angegriffen verteidigung verteidigen konter kontern erst ueber unter bevor danach'.split(' '));
+const ALIAS={ritter:'squire',knight:'squire',schuetzen:'archer',schuetzin:'archer',archer:'archer',archers:'archer',fledermaus:'moth',fledermaeuse:'moth',riese:'titan',giant:'titan',musketeer:'musk',musketierin:'musk',goblin:'goblins',goblins:'goblins',gobbos:'goblins',skelett:'bones',skelette:'bones',skeleton:'bones',skeletons:'bones',armee:'army',hexe:'witch',witch:'witch',drache:'wyvern',drachen:'wyvern',dragon:'wyvern',ballon:'balloon',balloon:'balloon',schwein:'boar',eber:'boar',hog:'boar',magier:'mage',wizard:'mage',prinz:'prince',prince:'prince',prinzessin:'princess',princess:'princess',golem:'golem',pekka:'pekka',koloss:'pekka',tunnelgraeber:'miner',miner:'miner',holzfaeller:'lumber',lumberjack:'lumber',bandit:'ninja',pfeile:'volley',arrows:'volley',feuerball:'fireball',fireball:'fireball',zap:'zap',funken:'zap',rakete:'rocket',rocket:'rocket',eiszauber:'frost',freeze:'frost',gift:'poison',poison:'poison',tornado:'tornado',wirbelsturm:'tornado',rage:'rage',wut:'rage',klon:'clone',clone:'clone',friedhof:'graveyard',graveyard:'graveyard',barbaren:'barbs',barbarians:'barbs',kanone:'turret',cannon:'turret',tesla:'tesla',moerser:'mortar',mortar:'mortar',armbrust:'xbow',xbow:'xbow',inferno:'inferno',heiler:'healer',healer:'healer',rammbock:'ram',ram:'ram',lavahund:'lava',megaritter:'megaknight',log:'log',stamm:'log',fass:'barrel',barrel:'barrel',wachen:'guards',wache:'guards',bomber:'bomber'};
+function lev(a,b){const d=[];for(let i=0;i<=a.length;i++){d[i]=[i];}for(let j=1;j<=b.length;j++)d[0][j]=j;
+ for(let i=1;i<=a.length;i++)for(let j=1;j<=b.length;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[a.length][b.length];}
+const toks=s=>s.split(/[\s,.:]+/).filter(Boolean);
+// Karten im Text finden (tolerant bei Tippfehlern, Kurznamen, englischen Namen)
+function cardsIn(s,deck){
+ const out=[];
+ toks(s).forEach((t,i)=>{
+  let hit=ALIAS[t]?CARDS[ALIAS[t]]:null;
+  if(!hit&&t.length>=4&&!STOPS.has(t)){let best=9;
+   for(const c of PLAY_CARDS)for(const w of N(c.name).split(/[\s-]+/)){if(w.length<4)continue;
+    let d=9;if(w===t)d=0;else if(t.length>=5&&(w.startsWith(t)||t.startsWith(w)||w.includes(t)))d=1;
+    else if(t.length>=5&&Math.abs(w.length-t.length)<=2){const l=lev(w,t);if(l<=(t.length>6?2:1))d=1+l;}
+    if(d<best||(d===best&&hit&&deck.includes(c.id)&&!deck.includes(hit.id))){best=d;hit=c;}}
+   if(best>3)hit=null;}
+  if(hit&&!out.some(o=>o.c===hit))out.push({c:hit,i,t});});
+ return out;}
+const strip=(s,cs)=>toks(s).map((t,i)=>cs.some(o=>o.i===i)?' ':t).join(' ');
+function condsFrom(s){
+ const C=[],add=(k,v)=>{if(!C.some(c=>c.k===k&&c.v===v))C.push(v===undefined?{k}:{k,v});};let m;
+ const re=/(\d+)\s*(?:elixier|tropfen)/g;
+ while((m=re.exec(s))){const bf=s.slice(Math.max(0,m.index-32),m.index),af=s.slice(m.index+m[0].length,m.index+m[0].length+16);
+  const le=/(weniger|hoechstens|unter|max|nicht mehr als|bis zu|maximal|knapp)/.test(bf)||/(oder weniger|hoechstens|nicht mehr)/.test(af);
+  add((/gegner|feind/.test(bf)?'est_':'el_')+(le?'le':'ge'),+m[1]);}
+ if(!C.length&&/elixier (ist )?voll|volles elixier|elixier maximal|voll(e)?m? elixier/.test(s))add('el_ge',9.5);
+ if(!C.length&&/(ich|wir)\s*(hab\w*)?\s*(wenig|kaum|kein)\w*\s*elixier/.test(s))add('el_le',3);
+ if(/(gegner|feind)\w*\s*(hat\s*)?(gerade\s*)?(wenig|kaum|kein|leer|nichts)\w*\s*elixier|gegner.*(ausgegeben|verbraucht|pleite)|gerade viel ausgegeben/.test(s))add('est_le',3);
+ let q=s.match(/(\d+)\s*(?:sek\w*)/);if(q)add(/erste|innerhalb|\bvor\b|bis /.test(s)?'time_le':'time_ge',+q[1]);
+ q=s.match(/(?:minute|min)\s*(\d+)|(\d+)\.?\s*min/);if(q)add(/erste|innerhalb|\bvor\b|bis /.test(s)?'time_le':'time_ge',(+(q[1]||q[2]))*60);
+ if(/anfang|beginn|am start|fruehe phase/.test(s))add('time_le',45);
+ if(/\bende\b|schluss|endphase|letzte minute|letzten sekunden|kurz vor/.test(s))add('time_ge',150);
+ if(/doppelt\w* elixier|doppeltes|doppelt|x2|2x|verdoppel/.test(s))add('dbl');
+ if(/verlaengerung|overtime/.test(s))add('time_ge',180);
+ if(/flieg|luft|drache|ballon|fledermaus|\bair\b/.test(s))add('en_fly');
+ if(/schwarm|schwaerme|viele kleine|skelette|horde|massen|mehrere kleine/.test(s))add('en_swarm');
+ if(/\btanks?\b|dick|riese|riesen|schwer|grosse?\b|koloss|turmjaeger|gebaeudejaeger/.test(s))add('en_tank');
+ if(/fernkaempf|schuetz|bogen|reichweite/.test(s))add('en_ranged');
+ if(/gebaeude|kanone|huette/.test(s))add('en_bld');
+ if(q=s.match(/(\d+)\s*(?:gegner|einheiten|truppen|feinde)/))add('en_cnt',+q[1]);
+ if(!C.some(c=>/^en_/.test(c.k))&&/(gegner|feind|er)\s*(\w+\s*){0,2}(angreift|angriff|kommt|kommen|rueckt|stuermt|pusht|rusht|attackiert)|auf meiner seite|bei mir|vor meinem turm|bedroht|brenzlig/.test(s))add('en_cnt',1);
+ if(/kein\w* gegner|nichts los|\bruhig|\bruhe\b|nicht angegriffen|keine bedrohung/.test(s))add('en_none');
+ if(/(greife|greifen|angreife)\w*\s*nicht|kein\w* angriff|nicht (gerade )?(am )?angreif|ohne angriff|nichts am laufen/.test(s))add('push_off');
+ else if(/(mein|ein|unser)\w* (angriff|push)\w*\s*(laeuft|steht|ist da)|ich (greife|pushe|spiele) an|gerade angreif|nach (der|dem) (verteidigung|konter)|ueberlebt|ueberlebende/.test(s))add('push_on');
+ if(/(ich|wir)\s+(fuehr|gewinn|liege? vorn|bin vorn)|in fuehrung|vorsprung|vorne liege|mehr kronen|in front/.test(s))add('lead_pos');
+ if(/zurueck|rueckstand|verlier|hinten liege|weniger kronen|hinterher|im nachteil/.test(s))add('lead_neg');
+ if(/gleichstand|unentschieden|gleiche kronen/.test(s))add('lead_eq');
+ if(/(mein|meine|meinen|unser)\w*\s*(\w+\s*){0,2}(turm|tuerme|koenig)\w*\s*(\w+\s*){0,3}(kaputt|fast|zerstoer|wenig|angeschlagen|niedrig|bedroht|schwach)|mein turm faellt/.test(s)){q=s.match(/unter (\d+)/);add('mytw_low',q?+q[1]:50);}
+ if(/(gegner|feind)\w*\s*turm\w*\s*(\w+\s*){0,3}(kaputt|fast|zerstoer|wenig|angeschlagen|niedrig|schwach)|turm (vom|des) gegner\w*\s*(\w+\s*){0,3}(kaputt|fast|angeschlagen|schwach|wenig)/.test(s)){q=s.match(/unter (\d+)/);add('foetw_low',q?+q[1]:50);}
+ if(/(gegner|angriff|bedrohung)\w*\s*(\w+\s*){0,3}links|links\s*(\w+\s*){0,2}(gegner|angriff|bedrohung)/.test(s))add('en_left');
+ if(/(gegner|angriff|bedrohung)\w*\s*(\w+\s*){0,3}rechts|rechts\s*(\w+\s*){0,2}(gegner|angriff|bedrohung)/.test(s))add('en_right');
+ return C;}
+const KWS=[['defend',/verteidig|abwehr|kontern|\bkonter\b|reagier|defens/],['push',/konterangriff|gegenangriff|nachlegen|unterstuetz|nach dem konter/],['save',/\bspar|geduld|nicht sofort|abwarten|\bwarte|nicht verschwend|sammeln/],['spells',/zauber.*(ziel|gruppe|treff|lohn|klug|sinnvoll)|(ziel|treff)\w*.*zauber/],['place',/platzier|aufstell|positionier/],['tank',/\btank/],['punish',/bestraf|punish/],['lane',/schwach\w* (spur|seite)|spur wechsel|seiten wechsel|schwaechere/],['cycle',/zyklus|durchspielen|schnell durch|billig\w* (karten )?(spielen|durch)|cyclen/],['double',/doppel\w* elixier|ab minute 2/],['finish',/finish|abschliess|zauber auf (den )?turm/],['lead',/vorsprung|fuehrung|nichts riskier|sicher spielen/]];
+function understandOne(raw,b){
+ const out=[];let n=N(raw).replace(/\s+/g,' ').trim();if(!n)return out;
+ n=n.replace(NUMRE,(w)=>NUMW[w]);
+ const hasIf=/(^| )(wenn|falls|sobald|solange|bei|gegen|ab|sofern)( |$)/.test(n);let cp=n,ap=n,split=false,m;
+ if(hasIf){m=n.match(/^(.*?)(?: dann |, ?)(.*)$/)||n.match(/^(.*?)\b(?:spiele|spiel|lege|setze|nimm|benutze|nutze|schick|schicke|wirf|platziere|bringe)\b(.*)$/);if(m&&m[2].trim()){cp=m[1];ap=m[2];split=true;}}
+ let enC=[],miC=[],apS=ap,cpS=cp;
+ if(split){enC=cardsIn(cp,b.deck);miC=cardsIn(ap,b.deck);if(!miC.length&&enC.length&&!/gegner|gegen|feind/.test(cp)){miC=enC;enC=[];}cpS=strip(cp,enC.concat(cardsIn(cp,b.deck)));apS=strip(ap,miC);}
+ else{const all=cardsIn(n,b.deck),tk=toks(n);
+  for(const o of all){const prev=tk.slice(Math.max(0,o.i-3),o.i),nxt=tk[o.i+1]||'';
+   if(prev.some(t=>/^(gegner|gegners|gegen|feind)$/.test(t))||/^(kommt|spielt|taucht|erscheint|angreift|liegt|legt|setzt)$/.test(nxt))enC.push(o);else miC.push(o);}
+  if(hasIf&&all.length>=2&&!enC.length&&!miC.length===false&&/gegen/.test(n)){}
+  cpS=strip(n,all);apS=cpS;}
+ let conds=condsFrom(cpS);
+ for(const o of enC.slice(0,1))conds.push({k:/spielt|gespielt|setzt|legt|wirft|schickt|nimmt|bringt/.test(split?cp:n)&&!/gegen /.test(split?cp:n)?'en_card':'en_has',v:o.c.id});
+ if(enC.length)conds=conds.filter(c=>!/^en_(fly|swarm|tank|ranged|cnt)$/.test(c.k)||true);
+ if(miC.length){
+  const sd=/links/.test(apS)?'L':/rechts/.test(apS)?'R':null,hasEn=conds.some(c=>/^en_(?!none|bld)/.test(c.k));
+  const never=/\bnie\b|niemals|nicht mehr|weglassen|verbiet|aussortier|streich|nicht\s+(\w+\s+)?(spiel|benutz|nehm|leg|setz)/.test(n)&&!/(spiel|benutz|nehm|leg|setz)\w*\s+nicht\s+(sofort|so)/.test(n);
+  for(const o of miC.slice(0,3)){const c=o.c;
+   if(never){out.push({k:'old',r:{t:'never',card:c.id}});continue;}
+   if(/nur (zur|zum|bei|fuer|wenn|als)?\s*\w*\s*(verteidig|abwehr|konter|defens|angegriffen)|nur defensiv|nur verteidig/.test(n)){out.push({k:'old',r:{t:'defOnly',card:c.id}});continue;}
+   if(!split&&conds.length===1&&conds[0].k==='el_ge'&&/\berst\b|nicht (vor|bevor|frueher)/.test(n)){out.push({k:'old',r:{t:'minEl',card:c.id,n:Math.min(10,conds[0].v)}});continue;}
+   if(!split&&c.type==='spell'&&conds.length===1&&conds[0].k==='en_cnt'&&/erst|nur|mindestens/.test(n)){out.push({k:'old',r:{t:'spellMin',card:c.id,n:conds[0].v}});continue;}
+   if(!conds.length&&/(immer|nur|stets|ganz)\s*hinten|hinten (spielen|hinstellen)/.test(n)){out.push({k:'old',r:{t:'back',card:c.id}});continue;}
+   let pos='';
+   if(/gegenspur|andere (spur|seite)|gegenueber/.test(apS))pos='bridge_other';else if(/gleiche (spur|seite)|selbe (spur|seite)/.test(apS))pos='bridge_same';
+   else if(/dahinter|hinter (der|dem|den|meiner|meinen|die)\s*(\w+\s*)?(truppe|angriff|panzer|tank|einheit)|unterstuetz/.test(apS))pos='behind_push';
+   else if(/hinten|hinter|am turm|beim turm/.test(apS))pos='back_'+(sd||'weak');
+   else if(/bruecke|spur|angriff|angreif|vorne|pushen|rush|attackier/.test(apS))pos='bridge_'+(sd||'weak');
+   else if(/mitte/.test(apS))pos='mid';else if(/(auf|an|in) (den|dem) \w*\s*turm|turm (zerstoer|angreif|treff)|tuerme/.test(apS))pos='tower_weak';
+   else if(/gruppe|haufen|cluster|menge/.test(apS))pos='cluster';else if(/konter|entgegen|davor|dagegen|verteidig|abwehr/.test(apS))pos='counter';
+   if(!pos)pos=hasEn?'counter':c.type==='spell'?'tower_weak':(c.role==='TANK'||c.bOnly&&c.hp>=1400)?'back_weak':c.range>=100?'back_weak':'bridge_weak';
+   const cs=conds.length?conds:[{k:'el_ge',v:Math.min(10,c.cost+1)}];
+   let cd=5;if(/oefter|staendig|dauernd|schneller|haeufig/.test(n))cd=2;else if(/selten|nicht so oft|einmal/.test(n))cd=/einmal/.test(n)?999:15;
+   out.push({k:'prog',r:{id:uid(),name:'',on:true,if:cs.map(x=>Object.assign({},x)),card:c.id,pos,cd}});}
+  return out;}
+ if(/alles (lernen|koennen|wissen)|profi|volle ki|sei (richtig |sehr |ein )?(gut|schlau|clever)|spiel (normal|richtig|wie ein profi)|werde (gut|besser)/.test(n)){['defend','push','save','spells','place'].forEach(k=>out.push({k:'know',key:k,on:true}));return out;}
+ for(const [k,re] of KWS){const q=n.match(re);if(!q)continue;const neg=/\b(nicht|kein\w*|nie|ohne|weniger)\b/.test(n.slice(Math.max(0,q.index-16),q.index))||/^\w*\s*(nicht|nie|kein)\b/.test(n.slice(q.index+q[0].length));out.push({k:'know',key:k,on:!neg});}
+ const st=[[/aggressiv|offensiv|angriffslustig|mehr angreif|\brush|druck/,{k:'aggr',d:.25}],[/defensiv|vorsichtig|passiv|konservativ|ruhiger/,{k:'aggr',d:-.25}],[/schlauer|klueger|intelligenter|mehr koennen|besser spielen/,{k:'skill',d:.15}],[/duemmer|schlechter spielen/,{k:'skill',d:-.15}],[/beatdown/,{k:'style',i:0}],[/zyklus|cycle/,{k:'style',i:1}],[/kontrolle|controll/,{k:'style',i:2}],[/bridge.?spam|\bspam/,{k:'style',i:3}],[/ausgewogen|balanced/,{k:'style',i:4}]];
+ for(const [re,it] of st)if(re.test(n))out.push(it);
+ if(!out.length&&conds.length)out.push({k:'hint',t:'Welche Karte soll er dann spielen? Schreib z. B. „… , dann Bogen-Duo“.'});
+ return out;}
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+function applyItem(b,it){
+ b.know=b.know||{};b.prog=b.prog||[];b.rules=b.rules||[];
+ if(it.k==='hint')return '❓ '+it.t;
+ if(it.k==='prog'){const r=it.r,key=JSON.stringify(r.if);b.prog=b.prog.filter(x=>!(x.card===r.card&&x.pos===r.pos&&JSON.stringify(x.if)===key));b.prog.push(r);return 'Regel: '+ruleDesc(r);}
+ if(it.k==='old'){const R=b.rules,r=it.r;for(let i=R.length-1;i>=0;i--)if(R[i].t===r.t&&R[i].card===r.card)R.splice(i,1);R.push(r);return oldText(r);}
+ if(it.k==='know'){const e=KN.find(q=>q[0]===it.key);if(it.on){b.know[it.key]=true;return 'Gelernt: '+e[1];}delete b.know[it.key];return 'Verlernt: '+e[1];}
+ if(it.k==='aggr'){b.aggr=clamp((b.aggr||.5)+it.d,.05,1);return 'Angriffslust jetzt '+Math.round(b.aggr*100)+' %';}
+ if(it.k==='skill'){b.skill=clamp((b.skill||.7)+it.d,.05,1);return 'Können jetzt '+Math.round(b.skill*100)+' %';}
+ if(it.k==='style'){b.style=it.i;return 'Spielstil: '+STYLES[it.i].n;}
+ return '';}
+function lessonHTML(){
+ const b=wm.coach;b.know=b.know||{};b.prog=b.prog||[];
+ if(L6.adv)return advHTML();
+ const kn=KN.filter(k=>b.know[k[0]]);
+ return `<h2>🎓 Bring ${esc(b.name)} etwas bei</h2><div class="stat" style="margin:0 0 6px">Schreib einfach, was er tun soll – in normalen Sätzen, so wie du magst. Auch mehrere Sätze auf einmal.</div>
+ <textarea rows="4" style="width:100%;padding:10px;border-radius:12px;border:2px solid #7a68e0;background:#150e40;color:#fff;font:inherit;font-size:14px;user-select:text;-webkit-user-select:text" placeholder="z. B. Wenn der Gegner Flieger spielt, nimm Bogen-Duo. Steinhüne immer hinten. Sei aggressiver." oninput="L6.text=this.value">${esc(L6.text||'')}</textarea>
+ <button class="btn green big" style="width:100%;margin-top:8px;font-size:20px" data-act="lteach">🎓 Lehren</button>
+ ${(L6.log||[]).map(l=>`<div class="stat" style="text-align:left;margin:4px 0;opacity:1">${l.startsWith('❓')?l:'✅ '+esc(l)}</div>`).join('')}
+ <div class="stat" style="margin:10px 0 2px;text-align:left;line-height:1.5">💡 Zum Beispiel:<br>„Wenn Gegner Steinhüne spielt, dann Eisenkoloss“<br>„Ab 8 Elixier Gobbo-Bande an die Brücke“<br>„Feuerkugel nur bei mehr als 3 Gegnern“<br>„Jungritter nie spielen“ · „Sei schlauer“ · „Verteidige zuerst“ · „Spiel Zyklus“</div>
+ <div class="sect">🧠 Das kann er</div>
+ ${kn.length?`<div style="margin-bottom:6px">${kn.map(k=>`<span class="tag" data-act="lknow" data-k="${k[0]}" style="cursor:pointer">${k[1]} ✖</span>`).join('')}</div>`:''}
+ <div class="stat" style="text-align:left;margin:0 0 4px">Stil: ${STYLES[b.style].n} · Angriffslust ${Math.round(b.aggr*100)} % · Können ${Math.round(b.skill*100)} %</div>
+ ${b.prog.map((r,i)=>`<div class="mrow" style="padding:6px;${r.on===false?'opacity:.5':''}"><div class="t" style="text-align:left;font-size:12px">${esc(ruleDesc(r))}</div><button class="btn red mini" data-act="rdelp" data-i="${i}">✖</button></div>`).join('')}
+ ${b.rules.map((r,i)=>`<div class="mrow" style="padding:6px"><div class="t" style="text-align:left;font-size:12px">${esc(oldText(r))}</div><button class="btn red mini" data-act="ldel" data-i="${i}">✖</button></div>`).join('')}
+ ${(!kn.length&&!b.prog.length&&!b.rules.length)?'<div class="stat">Noch nichts gelernt.</div>':''}
+ <button class="btn blue" style="width:100%;margin-top:10px" data-act="ladv">⚙️ Erweitert (Baukasten)</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Weiter zuschauen</button>`;}
+
 function addProg(r){const b=cb();b.prog=b.prog||[];b.prog.push(r);save();toast('Gelernt: '+ruleDesc(r));L6.tab='list';reL();}
 function teach(k){const b=cb();b.know=b.know||{};if(b.know[k]){delete b.know[k];toast('Verlernt');}else{b.know[k]=true;const e=KN.find(q=>q[0]===k);toast('Gelernt: '+e[1]);}save();reL();}
 const mv=(a,i,d)=>{const j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];};
 Object.assign(ACT,{
+ ladv(){L6.adv=!L6.adv;reL();},
+ lteach(){const b=cb(),txt=(L6.text||'').trim();if(!txt)return toast('Schreib erst etwas');
+  const ss=txt.split(/[.!?;\n]+|\bund dann\b|\bdanach\b|\bau(?:ß|ss)erdem\b/i).map(x=>x.trim()).filter(x=>x.length>2),log=[];
+  for(const x of ss){const its=understandOne(x,b);if(!its.length){log.push('❓ „'+esc(x)+'“ – nicht verstanden. Nenne eine Karte und wann/wo er sie spielen soll.');continue;}for(const it of its)log.push(applyItem(b,it));}
+  L6.log=log;L6.text='';save();reL();},
  coachOpen(){if(!cb())return;wm.lesson=true;showModal(lessonHTML());},
  ltab(el){L6.tab=el.dataset.t;reL();},
  lknow(el){teach(el.dataset.k);},
