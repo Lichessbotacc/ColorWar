@@ -2012,5 +2012,151 @@ Object.assign(ACT,{
 const ra2=ACT.resetAll;ACT.resetAll=function(...a){S.clans=[];S.cn=1;ra2.apply(this,a);};
 })();
 
+// === PATCH 14: Bot-Gehirn – Bots erkennen eigene Fehler und Stärken und passen ihr Spiel langfristig an ===
+// Einfügen direkt VOR der letzten Zeile "renderTab();requestAnimationFrame(frame);".
+(function(){
+BKEYS.push('br'); // Gehirn jedes Bots wird mitgespeichert
+const cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+// Einstellungen, die ein Bot selbst verändern darf (Grenzen verhindern Ausreißer)
+const LIM={def:[.6,1.5],gate:[-.8,1.2],spell:[.6,1.6],bridge:[-.1,.45],react:[.7,1.5],sk:[-.12,.12]};
+const DEF0={def:1,gate:0,spell:1,bridge:0,react:1,sk:0};
+function BR(b){
+ let x=b.br;if(!x||typeof x!=='object')x=b.br={};
+ if(!x.t||typeof x.t!=='object')x.t={};
+ for(const k in DEF0)if(typeof x.t[k]!=='number'||!isFinite(x.t[k]))x.t[k]=DEF0[k];
+ x.n=x.n|0;if(typeof x.ema!=='number'||!isFinite(x.ema))x.ema=.5;
+ if(!x.m||typeof x.m!=='object')x.m={};
+ if(!x.keep||typeof x.keep!=='object')x.keep={};
+ if(!x.cnt||typeof x.cnt!=='object')x.cnt={};
+ if(!x.best||!x.best.t)x.best={t:Object.assign({},x.t),s:.5,n:x.n};
+ if(!Array.isArray(x.fe))x.fe=[];if(!Array.isArray(x.st))x.st=[];
+ return x;
+}
+// Lerntempo: jeder Bot lernt unterschiedlich schnell (Veranlagung + Können)
+const lr=b=>(.6+.8*(((b.taste||0)*2654435761%1000)/1000))*(.7+.6*cl(b.skill||0,0,1));
+const OB=()=>({T:0,ov:0,lo:0,pl:0,sp:0,fl:-1});
+
+// ---- Beobachten: Elixier-Verschwendung, Elixier-Leere, Zauber, erster Gegentreffer
+const pt=Brain.prototype.tick;
+Brain.prototype.tick=function(m,me,dt){
+ if(this.bot){const o=this.ob||(this.ob=OB());o.T+=dt;const e=m.el[me];
+  if(e>=9.6)o.ov+=dt;else if(e<1.5)o.lo+=dt;
+  if(o.fl<0&&m.crowns[1-me]>0)o.fl=m.t;}
+ return pt.call(this,m,me,dt);
+};
+const mp=Match.prototype.play;
+Match.prototype.play=function(team,hi,x,y){
+ const id=this.hand&&this.hand[team]?this.hand[team][hi]:null;
+ const r=mp.call(this,team,hi,x,y);
+ if(r&&id&&this.brains){const b=this.brains[team];
+  if(b&&b.bot){const o=b.ob||(b.ob=OB());o.pl++;const c=CARDS[id];if(c&&c.type==='spell')o.sp++;}}
+ return r;
+};
+// ---- Reaktionstempo (vom Gehirn gelernt)
+const pth=Brain.prototype.think;
+Brain.prototype.think=function(m,me){
+ if(this.bot&&this.react&&this._rt!==m.t){this._rt=m.t;this.cd*=this.react;}
+ return pth.call(this,m,me);
+};
+// ---- Gelernte Einstellungen beim Kampfstart anwenden
+const pf0=World.prototype.profile;
+World.prototype.profile=function(b){
+ const p=pf0.call(this,b),br=p&&p.brain;
+ if(br&&b){
+  br.bot=b;const t=BR(b).t;
+  br.st=Object.assign({},br.st);
+  br.st.def=(br.st.def||1)*t.def;
+  br.st.gate=(br.st.gate||0)+t.gate;
+  br.st.spell=(br.st.spell||1)*t.spell;
+  br.st.bridge=cl((br.st.bridge||0)+t.bridge,0,.8);
+  if(br.pf===b)br.pf=Object.assign({},b);
+  if(br.pf){br.pf.skill=cl((br.pf.skill||0)+t.sk,0,1);if(typeof br.pf.raw==='number')br.pf.raw=cl(br.pf.raw+t.sk,0,1);}
+  br.react=t.react;
+ }
+ return p;
+};
+
+// ---- Nach dem Kampf: Fehler und Stärken erkennen, Spielweise anpassen
+function note(x,kind,label){
+ const a=kind==='fe'?x.fe:x.st,i=a.indexOf(label);if(i>=0)a.splice(i,1);a.unshift(label);if(a.length>3)a.length=3;
+ const key=kind+':'+label;x.cnt[key]=(x.cnt[key]||0)+1;
+}
+function analyze(b,br,m,me){
+ if(!b||!br||br.bot!==b||!br.ob||br.done||!m.tw)return;
+ const w=m.winner;if(w===-2||w===undefined)return;
+ br.done=true;
+ const o=br.ob,x=BR(b),t=x.t,res=w<0?.5:w===me?1:0;
+ const frac=a=>a.reduce((s,k)=>s+(k.dead||k.hp<=0?1:cl(1-k.hp/k.maxhp,0,1)),0);
+ const taken=frac(m.tw[me]),dealt=frac(m.tw[1-me]),T=Math.max(30,o.T);
+ const ov=o.ov/T,lo=o.lo/T,sp=o.pl?o.sp/o.pl:0;
+ const hasSp=(m.p[me].deck||[]).some(id=>CARDS[id]&&CARDS[id].type==='spell');
+ x.n++;x.ema=x.ema*.9+res*.1;
+ const M=x.m,em=(k,v)=>{M[k]=typeof M[k]==='number'?M[k]*.8+v*.2:v;};
+ em('ov',ov);em('lo',lo);em('tk',taken);em('dl',dealt);em('sp',sp);
+ const L=lr(b),keep=x.keep;
+ for(const k in keep)if(--keep[k]<=0)delete keep[k];
+ const prot=(...ks)=>ks.forEach(k=>{keep[k]=6;});          // Stärke: diese Einstellung wird eine Weile nicht verändert
+ const adj=(k,f)=>{if(keep[k])return;t[k]=cl(f(t[k],L),LIM[k][0],LIM[k][1]);}; // Fehler: gezielt korrigieren
+ if(x.n>=3){
+  // Stärken erkennen und schützen
+  if(M.tk<.9&&res>=.5){note(x,'st','Starke Verteidigung');prot('def');}
+  if(M.dl>1.4&&res>=.5){note(x,'st','Druckvoller Angriff');prot('bridge','gate');}
+  if(M.ov<.05&&M.lo<.25){note(x,'st','Gute Elixier-Kontrolle');prot('gate');}
+  if(hasSp&&M.sp>=.07&&M.sp<=.3&&res>=.5){note(x,'st','Zauber gut eingesetzt');prot('spell');}
+  if(m.ot&&res===1)note(x,'st','Nervenstark in der Verlängerung');
+  // Fehler erkennen und korrigieren
+  if(M.ov>.1){note(x,'fe','Verschwendet Elixier');adj('gate',(v,l)=>v-.12*l);adj('react',(v,l)=>v*(1-.03*l));}
+  if(M.lo>.3&&res<1){note(x,'fe','Spielt überhastet');adj('gate',(v,l)=>v+.12*l);adj('react',(v,l)=>v*(1+.03*l));}
+  if(M.tk>1.4&&res<1){note(x,'fe','Verteidigt zu spät');adj('def',(v,l)=>v*(1-.05*l));}
+  if(M.dl<.6&&M.tk<1.1&&res<1){note(x,'fe','Greift zu wenig an');adj('bridge',(v,l)=>v+.03*l);adj('gate',(v,l)=>v-.08*l);}
+  if(hasSp&&M.sp<.04&&res<1){note(x,'fe','Zauber bleiben ungenutzt');adj('spell',(v,l)=>v*(1+.06*l));}
+  if(sp>.35&&res<.5){note(x,'fe','Verschwendet Zauber');adj('spell',(v,l)=>v*(1-.05*l));}
+  if(o.fl>=0&&o.fl<50&&res<1){note(x,'fe','Früher Gegentreffer');adj('def',(v,l)=>v*(1-.03*l));}
+  if(m.ot&&res===0){note(x,'fe','Verliert Verlängerungen');adj('react',(v,l)=>v*(1-.02*l));}
+ }
+ // Erfahrung: Können wächst langsam mit der Zeit und folgt der aktuellen Form (kann auch sinken)
+ const target=cl((x.ema-.5)*.3,-.1,.1)+Math.min(.04,x.n*.0004);
+ t.sk=cl(t.sk+(target-t.sk)*.08*L,LIM.sk[0],LIM.sk[1]);
+ // Bewährten Stil merken; bei deutlichem Formtief dahin zurückkehren
+ if(x.n-x.best.n>=8&&x.ema>x.best.s){x.best={t:Object.assign({},t),s:x.ema,n:x.n};}
+ else if(x.n-x.best.n>=10&&x.ema<x.best.s-.12){
+  for(const k in t)if(k!=='sk')t[k]=t[k]*.4+x.best.t[k]*.6;
+  note(x,'fe','Rückschlag: kehrt zum bewährten Stil zurück');
+  x.best.n=x.n;x.best.s=x.best.s*.9+x.ema*.1;
+ }
+}
+const em2=World.prototype.endMatch;
+World.prototype.endMatch=function(m){
+ const r=em2.call(this,m);
+ try{[m.A,m.B].forEach((b,i)=>analyze(b,m.brains&&m.brains[i],m,i));}catch(e){}
+ return r;
+};
+const sr3=showResult;
+showResult=function(m){
+ const opp=popp;sr3(m);
+ try{if(opp&&m&&m.brains)analyze(opp,m.brains[1],m,1);}catch(e){}
+};
+
+// ---- Anzeige im Bot-Profil: Was hat der Bot gelernt?
+const ab=ACT.bot;
+ACT.bot=function(el){
+ ab.call(this,el);
+ try{
+  const b=world.bots[+el.dataset.id];if(!b)return;
+  const x=BR(b),t=x.t,li=[];
+  if(t.def<.93)li.push('verteidigt früher');else if(t.def>1.07)li.push('verteidigt später');
+  if(t.gate<-.12)li.push('greift schneller an');else if(t.gate>.12)li.push('wartet mehr Elixier ab');
+  if(t.spell>1.1)li.push('zaubert öfter');else if(t.spell<.9)li.push('zaubert seltener');
+  if(t.bridge>.06)li.push('drückt öfter über die Brücke');
+  if(t.react<.93)li.push('reagiert schneller');else if(t.react>1.07)li.push('reagiert langsamer');
+  const sk=Math.round(t.sk*100);
+  const lst=(a,k,e)=>a.length?a.map(l=>`${e} ${l}${x.cnt[k+':'+l]>1?' ('+x.cnt[k+':'+l]+'×)':''}`).join('<br>'):'–';
+  const html=`<div class="sect" style="margin:10px 0 6px">🧠 Gehirn · ${x.n} Kämpfe gelernt</div><table><tr><td>Stärken</td><td style="text-align:right">${lst(x.st,'st','💪')}</td></tr><tr><td>Fehler</td><td style="text-align:right">${lst(x.fe,'fe','⚠️')}</td></tr><tr><td>Gelernter Stil</td><td style="text-align:right">${li.join(', ')||'noch neutral'}</td></tr><tr><td>Können durch Erfahrung</td><td style="text-align:right">${sk>0?'+':''}${sk}%</td></tr></table>`;
+  const btn=document.querySelector('#modal .mbox [data-act="close"]');
+  if(btn)btn.insertAdjacentHTML('beforebegin',html);
+ }catch(e){}
+};
+})();
+
 renderTab();requestAnimationFrame(frame);
 </script></body></html>
