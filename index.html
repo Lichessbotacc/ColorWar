@@ -1303,5 +1303,227 @@ function frame(now){
  }else{mt+=dt;if(mt>=1){mt=0;if(!$('#modal').classList.contains('hidden')&&tab!=='live'){}else if($('#modal').classList.contains('hidden'))renderTab();}}
  requestAnimationFrame(frame);
 }
+// === KRONENKAMPF-PATCH: direkt VOR die letzte Zeile "renderTab();requestAnimationFrame(frame);" einfügen ===
+(function(){
+const st=document.createElement('style');
+st.textContent=`input,select{user-select:text;-webkit-user-select:text;font:inherit}.wp{display:flex;flex-direction:column}.wname{display:flex;justify-content:space-between;align-items:center;font-weight:900;font-size:13px;padding:1px 4px}#wTop .wname{order:-1}.wname .crowns{font-size:16px}.fld{display:block;margin:8px 0 2px;font-size:12px;font-weight:800}.mbox select,.mbox input[type=text]{width:100%;padding:8px;border-radius:10px;border:2px solid #7a68e0;background:#150e40;color:#fff}.mbox input[type=range]{width:100%}.mini{padding:6px 10px;font-size:12px}`;
+document.head.appendChild(st);
+S.custom=S.custom||[];
+
+// ---- 2. Zielwahl wie Clash Royale: nächstes Ziel (Truppe ODER Turm) in Sichtweite
+Match.prototype.findTarget=function(u){
+ const en=1-u.team;let best=null,bd=1e9;const sight=Math.max(110,u.range);
+ for(const o of this.units){if(o.team!==en||o.hp<=0)continue;if(u.bOnly&&!o.building)continue;if(o.fly&&!u.hitsAir)continue;const d=this.gap(u,o);if(d<u.c.minR)continue;const dd=d-(o===u.tgt?60:0);if((u.bOnly||d<sight)&&dd<bd){bd=dd;best=o;}}
+ if(best&&!u.bOnly){for(const t of this.tw[en]){if(t.dead)continue;const g=this.gap(u,t);if(g<u.c.minR||g>=sight)continue;const dd=g-(t===u.tgt?60:0);if(dd<bd){bd=dd;best=t;}}return best;}
+ for(const t of this.tw[en]){if(t.dead)continue;const g=this.gap(u,t);if(g<u.c.minR)continue;const d=g+Math.abs(t.x-u.x)*1.1-(t===u.tgt?60:0);if(d<bd){bd=d;best=t;}}
+ return best;};
+
+// ---- 1./6. Stärkere Bots: Können wird angehoben (weniger Zufallsfehler, schnellere Reaktion)
+const wpf=World.prototype.profile;
+World.prototype.profile=function(b){const p=wpf.call(this,b);p.brain=new Brain(Object.assign({},b,{skill:Math.min(1,.45+b.skill*.65)}));return p;};
+
+// ---- 3. Eigene Bots: Stil + Regeln (Lektionen)
+const B0=Brain;
+Brain=class extends B0{constructor(b){super(b);if(b.style!=null&&STYLES[b.style])this.st=STYLES[b.style];this.rules=b.rules||[];}};
+const th=B0.prototype.think;
+B0.prototype.think=function(m,me){
+ if(this.rules&&this.rules.length&&this.eCard&&m.t-this.eT<=6){
+  for(const r of this.rules){if(r.t!=='counter'||r.enemy!==this.eCard.id)continue;const i=m.hand[me].indexOf(r.card),c=CARDS[r.card];
+   if(i>=0&&c&&c.type!=='spell'&&m.el[me]>=c.cost){const l=this.eLane;this.eCard=null;if(m.play(me,i,l?270:90,me===0?400:200))return;}}}
+ return th.call(this,m,me);};
+const pl0=Match.prototype.play;
+Match.prototype.play=function(team,hi,x,y){
+ const b=this.brains[team],R=b&&b.rules;
+ if(R&&R.length){const c=CARDS[this.hand[team][hi]];if(c){
+  const en=this.units.filter(u=>u.team!==team&&u.hp>0),home=en.some(u=>team===0?u.y>RY:u.y<RY),el=this.el[team];
+  for(const r of R){if(r.card!==c.id)continue;
+   if(r.t==='minEl'&&el<r.n)return false;
+   if(r.t==='defOnly'&&!home)return false;
+   if(r.t==='back'&&!home&&c.type==='troop')y=team===0?545:55;
+   if(r.t==='spellMin'&&c.type==='spell'&&!c.own&&en.filter(u=>Math.hypot(u.x-x,u.y-y)<=c.radius+u.rad).length<r.n)return false;}}}
+ return pl0.call(this,team,hi,x,y);};
+
+// ---- 4./5. Zuschauen: Namen + Kronen oben und unten, je Spieler
+const wp0=watchPanel;
+watchPanel=function(el,m,k){wp0(el,m,k);
+ let w=el.querySelector('.wname');if(!w){w=document.createElement('div');w.className='wname';el.appendChild(w);}
+ const p=m.p[k],h=`<span>${p.av||'👤'} ${p.name}${p.trophies?' 🏆'+(p.trophies|0):''}</span><span class="crowns">${crownsHTML(m.crowns[k])}</span>`;
+ if(w.dataset.h!==h){w.dataset.h=h;w.innerHTML=h;}};
+const h0=hud;
+hud=function(m,w){h0(m,w);document.querySelectorAll('#hud .side').forEach(s=>s.style.visibility=w?'hidden':'');};
+
+// ---- Coach-UI
+document.querySelector('#nav').insertAdjacentHTML('beforeend','<button data-act="tab" data-t="coach"><span>🎓</span>Coach</button>');
+document.querySelector('#watchBar').insertAdjacentHTML('beforeend','<button class="btn green coachb hidden" data-act="coachOpen">🎓 Lektion</button><button class="btn coachb hidden" data-act="pause">⏯</button>');
+const cm=closeModal;closeModal=function(){cm();if(wm)wm.lesson=false;};
+const uw=updWatchBtns;updWatchBtns=function(){uw();document.querySelectorAll('.coachb').forEach(b=>b.classList.toggle('hidden',!(wm&&wm.coach)));};
+setInterval(()=>{if(mode==='watch'&&wm&&wm.coach&&!wm.over&&!wm.paused&&!wm.lesson){wm.acc=(wm.acc||0)+.05*wm.speed;let n=0;while(wm.acc>=1/30&&n<40){wm.step(1/30);wm.acc-=1/30;n++;}}},50);
+
+const rt=renderTab;
+renderTab=function(){if(tab!=='coach')return rt();renderTop();
+ document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+ const L=S.custom;
+ setHTML($('#content'),`<div class="sect">🎓 Deine Bots (${L.length})</div><button class="btn green" style="width:100%;margin-bottom:10px" data-act="cnew">➕ Neuen Bot erstellen</button>`+(L.length?L.map(b=>`<div class="mrow"><div style="font-size:30px">${b.av}</div><div class="t" style="text-align:left">${b.name}<br><span class="rs">${STYLES[b.style].n} · Lv ${b.lvl} · ${b.rules.length} Lektionen</span></div><button class="btn red mini" data-act="cstart" data-id="${b.id}">▶ Training</button><button class="btn blue mini" data-act="cedit" data-id="${b.id}">✏️</button><button class="btn mini" data-act="cdel" data-id="${b.id}">🗑</button></div>`).join(''):'<div class="stat">Noch kein Bot. Erstelle einen, schau ihm im Training zu und bring ihm mit „🎓 Lektion“ bei, wie er spielen soll.</div>'),'tab');};
+
+const sel=(id,o)=>`<select id="${id}">${o.map(([k,n])=>`<option value="${k}">${n}</option>`).join('')}</select>`;
+const cprof=cb=>({name:cb.name,av:cb.av,trophies:0,deck:cb.deck.slice(),kingLvl:cb.lvl,lvl:id=>Math.min(cb.lvl,RAR[CARDS[id].rar].max),brain:new Brain(cb)});
+function ruleText(r){const n=CARDS[r.card]?CARDS[r.card].name:'';switch(r.t){case'minEl':return n+' erst ab '+r.n+' Elixier';case'defOnly':return n+' nur zur Verteidigung';case'back':return n+' hinten spielen';case'spellMin':return n+' erst bei ≥'+r.n+' Gegnern';case'counter':return 'Gegner spielt '+(CARDS[r.enemy]?CARDS[r.enemy].name:'?')+' → '+n;}return'';}
+function editorHTML(){const d=ed;
+ const sl=(lab,val,mn,mx,key,mul)=>`<label class="fld">${lab}: <b>${val}</b></label><input type="range" min="${mn}" max="${mx}" value="${val}" oninput="ed.${key}=this.value/${mul};this.previousElementSibling.lastElementChild.textContent=this.value">`;
+ return `<h2>${d.id!=null?'Bot bearbeiten':'Neuer Bot'}</h2><label class="fld">Name</label><input type="text" maxlength="16" value="${d.name}" oninput="ed.name=this.value.replace(/[<>&&quot;]/g,'')">
+ <label class="fld">Avatar</label><select onchange="ed.av=this.value">${AVATARS.map(a=>`<option ${a===d.av?'selected':''}>${a}</option>`).join('')}</select>
+ <label class="fld">Spielstil</label><select onchange="ed.style=+this.value">${STYLES.map((s,i)=>`<option value="${i}" ${i===d.style?'selected':''}>${s.n}</option>`).join('')}</select>
+ ${sl('Können',Math.round(d.skill*100),5,100,'skill',100)}${sl('Angriffslust',Math.round(d.aggr*100),0,100,'aggr',100)}${sl('Kartenlevel',d.lvl,1,13,'lvl',1)}
+ <label class="fld">Deck (${d.deck.length}/8)</label><div class="minideck">${PLAY_CARDS.map(c=>`<div data-act="cdeck" data-id="${c.id}">${cardHTML(c.id,0,d.deck.includes(c.id)?'sel':'')}</div>`).join('')}</div>
+ ${d.rules.length?`<label class="fld">Gelernte Lektionen</label>`+d.rules.map((r,i)=>`<div class="mrow" style="padding:6px"><div class="t" style="text-align:left">${ruleText(r)}</div><button class="btn red mini" data-act="rdel" data-i="${i}">✖</button></div>`).join(''):''}
+ <button class="btn green" style="width:100%;margin-top:10px" data-act="csave">Speichern</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`;}
+function reEd(){const b=document.querySelector('#modal .mbox'),s=b?b.scrollTop:0;showModal(editorHTML());document.querySelector('#modal .mbox').scrollTop=s;}
+Object.assign(ACT,{
+ cnew(){window.ed={name:'Mein Bot',av:AVATARS[0],style:4,skill:.7,aggr:.5,lvl:9,deck:START_DECK.slice(),rules:[]};showModal(editorHTML());},
+ cedit(el){window.ed=JSON.parse(JSON.stringify(S.custom.find(b=>b.id==el.dataset.id)));showModal(editorHTML());},
+ cdeck(el){const id=el.dataset.id,i=ed.deck.indexOf(id);if(i>=0)ed.deck.splice(i,1);else if(ed.deck.length<8)ed.deck.push(id);else toast('Schon 8 Karten');reEd();},
+ rdel(el){ed.rules.splice(+el.dataset.i,1);reEd();},
+ csave(){if(ed.deck.length!==8)return toast('Das Deck braucht genau 8 Karten');if(!ed.name.trim())return toast('Name fehlt');
+  if(ed.id==null){ed.id=Date.now();S.custom.push(ed);}else{const i=S.custom.findIndex(b=>b.id==ed.id);S.custom[i]=ed;}
+  save();closeModal();lastHTML.tab='';renderTab();toast('Bot gespeichert');},
+ cdel(el){S.custom=S.custom.filter(b=>b.id!=el.dataset.id);save();lastHTML.tab='';renderTab();},
+ cstart(el){const id=el.dataset.id;showModal(`<h2>Gegner wählen</h2>`+[['weak','🟢 Schwacher Bot'],['mid','🟡 Mittlerer Bot'],['strong','🔴 Starker Bot']].map(([k,n])=>`<button class="btn blue" style="width:100%;margin:4px 0" data-act="cgo" data-id="${id}" data-o="${k}">${n}</button>`).join('')+S.custom.filter(b=>b.id!=id).map(b=>`<button class="btn" style="width:100%;margin:4px 0" data-act="cgo" data-id="${id}" data-o="${b.id}">${b.av} ${b.name}</button>`).join('')+`<button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`);},
+ cgo(el){const cb=S.custom.find(b=>b.id==el.dataset.id),o=el.dataset.o;let pb;
+  if(['weak','mid','strong'].includes(o)){const t={weak:.1,mid:.5,strong:.95}[o];pb=world.profile(pick(world.bots.slice().sort((a,b)=>Math.abs(a.skill-t)-Math.abs(b.skill-t)).slice(0,5)));}
+  else pb=cprof(S.custom.find(b=>b.id==o));
+  const m=new Match(cprof(cb),pb);m.A={name:cb.name,av:cb.av,trophies:0};m.B={name:pb.name,av:pb.av,trophies:pb.trophies|0};m.coach=cb;m.id=-1;closeModal();startWatch(m);},
+ pause(){if(wm)wm.paused=!wm.paused;},
+ coachOpen(){if(!wm||!wm.coach)return;wm.lesson=true;
+  showModal(`<h2>🎓 Lektion für ${wm.coach.name}</h2><div style="font-size:12px;text-align:center">Kampf pausiert. Was soll dein Bot lernen?</div>
+  <label class="fld">Regel</label>${sel('lt',[['minEl','Karte erst ab N Elixier spielen'],['defOnly','Karte nur zur Verteidigung'],['back','Karte hinten spielen, nicht an der Brücke'],['spellMin','Zauber erst bei mindestens N Gegnern'],['counter','Wenn Gegner Karte X spielt, antworte mit Karte']])}
+  <label class="fld">Deine Karte</label>${sel('lc',wm.coach.deck.map(id=>[id,CARDS[id].name]))}
+  <label class="fld">Gegnerkarte (nur für Gegenzug)</label>${sel('le',PLAY_CARDS.map(c=>[c.id,c.name]))}
+  <label class="fld">Zahl N</label><input type="text" id="ln" inputmode="numeric" value="5">
+  <button class="btn green" style="width:100%;margin-top:10px" data-act="lsave">Lernen lassen</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Weiter zuschauen</button>`);},
+ lsave(){const r={t:$('#lt').value,card:$('#lc').value,enemy:$('#le').value,n:+$('#ln').value||0};wm.coach.rules.push(r);save();toast('Gelernt: '+ruleText(r));closeModal();}
+});
+})();
+
+// === PATCH 2: Bot-Logik (Verteidigung nach Konter-Wissen, Platzierung, Konterangriff, Endspiel) ===
+(function(){
+const prevThink=Brain.prototype.think;
+Brain.prototype.think=function(m,me){if(this.smart(m,me))return;return prevThink.call(this,m,me);};
+const sumP=l=>l.reduce((s,u)=>s+pw(u),0);
+// Wohin spielt man eine Karte gegen eine Bedrohung?
+Brain.prototype.place=function(m,me,c,cx,cy,rush,tanky){
+ const d=me===0?1:-1,lx=cx<180?90:270;
+ if(c.type==='building')return{x:180+(cx<180?-26:26),y:me===0?400:200}; // Mitte: zieht Gegner weg vom Turm
+ let y=c.range>60?cy+d*85:rush?cy+d*45:cy+d*(tanky?75:50);  // Fernkämpfer hinten, Nahkämpfer vorne
+ y=me===0?clamp(y,345,520):clamp(y,80,255);                  // immer in Reichweite des eigenen Turms
+ const x=(c.range>60||tanky)?cx+(lx-cx)*.5:cx;               // Tank-Konter näher zum Turm ziehen
+ return{x:clamp(x,20,340),y};
+};
+Brain.prototype.smart=function(m,me){
+ const op=1-me,el=m.el[me],pf=this.pf,t=m.t,lvl=c=>m.p[me].lvl(c.id);
+ const hand=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})),aff=hand.filter(o=>o.c.cost<=el+1e-6);
+ if(!aff.length)return false;
+ const en=m.units.filter(u=>u.team===op&&u.hp>0&&!u.building),fr=m.units.filter(u=>u.team===me&&u.hp>0&&!u.building);
+ const mine=u=>me===0?u.y>RY:u.y<RY,near=u=>me===0?u.y>RY-45:u.y<RY+45;
+ const myT=m.tw[me].filter(x=>!x.dead);
+ const lanes=[[],[]];for(const u of en)if(near(u))lanes[u.x<180?0:1].push(u);
+ const li=sumP(lanes[0])>=sumP(lanes[1])?0:1,L=lanes[li],pwr=sumP(L),lead=m.crowns[me]-m.crowns[op];
+ // ---------- 1. VERTEIDIGEN: passenden Konter wählen ----------
+ if(L.length&&pwr>=55){
+  const cx=L.reduce((s,u)=>s+u.x,0)/L.length,cy=L.reduce((s,u)=>s+u.y,0)/L.length;
+  const dmin=Math.min(999,...L.map(u=>Math.min(999,...myT.map(q=>Math.hypot(u.x-q.x,u.y-q.y)))));
+  const air=L.filter(u=>u.fly),anyAir=air.length>0,allAir=air.length===L.length;
+  const swarm=L.length>=3&&L.every(u=>u.c.hp<260),tanky=L.some(u=>u.c.hp>=1100),rush=L.some(u=>u.bOnly),ranged=L.some(u=>u.range>=60);
+  const danger=dmin<130;
+  // Gegner noch weit weg und nicht gefährlich schnell: Elixier sammeln statt zu früh zu spielen
+  if(!danger&&dmin>235&&el<6&&!anyAir&&!rush)return true;
+  let best=null,bs=0;
+  for(const o of aff){const c=o.c;let s,pos;
+   if(c.type==='spell'){const r=this.spellTarget(c,L,me);if(!r||r.v<c.cost*(c.cost<=2?.9:1.15))continue;s=r.v/c.cost*1.1;pos=r.pos;}
+   else{
+    let v=c.count*(c.hp/10+c.dps*1.2)*sc(lvl(c));
+    if(c.range>60)v*=1.1;if(c.splash)v*=1.1;if(c.heal)v*=.5;if(c.bOnly)v*=.1; // Turmjäger verteidigen nicht
+    if(c.type==='building'){if(c.elix||c.minR||c.id==='xbow'||(c.spawner&&!rush))v*=.05;else v*=(c.noAir&&allAir)?.03:1.25;if(c.ramp&&tanky)v*=1.5;}
+    if(allAir&&!c.hitsAir)v*=.03;else if(anyAir&&!c.hitsAir&&!c.fly)v*=.75;
+    if(swarm){if(c.splash)v*=1.5;else if(c.count===1)v*=.6;}                 // Schwarm -> Flächenschaden
+    if(tanky&&c.dps*c.count>=110)v*=1.3;if(tanky&&c.dps*c.count<45&&!c.heal)v*=.5; // Tank -> viel Schaden
+    if(ranged&&c.spd>=30&&c.range<=40)v*=1.2;                                // Fernkämpfer -> schnelle Nahkämpfer
+    s=v/pwr;if(s<.55&&!danger)continue;
+    s=Math.min(s,1.8)/(1+c.cost*.18);                                        // Elixier-Effizienz
+    pos=this.place(m,me,c,cx,cy,rush,tanky);}
+   s*=1+rnd(-1,1)*(1-pf.skill)*.25;
+   if(s>bs){bs=s;best={o,pos};}}
+  if(best)return m.play(me,best.o.i,best.pos.x,best.pos.y);
+  return false;
+ }
+ // ---------- 2. Vorsprung kurz vor Schluss: nichts riskieren ----------
+ if(t>=165&&!m.ot&&lead>0&&sumP(lanes[0])+sumP(lanes[1])<30&&el<9.3)return true;
+ // ---------- 3. Konterangriff: überlebende Truppen unterstützen ----------
+ const sv=fr.filter(u=>mine(u)&&u.c.spd>0&&!u.c.heal&&u.hp>u.maxhp*.3),sp=sumP(sv);
+ if(sp>=90&&el>=5&&(this.cpT||0)<t){
+  const ld=sv.slice().sort((a,b)=>b.hp-a.hp)[0],val=c=>c.count*(c.hp/10+c.dps*1.2)/c.cost;
+  const f=aff.filter(o=>o.c.type==='troop'&&!o.c.bOnly&&!o.c.heal&&o.c.cost<=el-1.5).sort((a,b)=>val(b.c)-val(a.c))[0];
+  if(f){this.cpT=t+4;const y=me===0?clamp(ld.y+50,335,520):clamp(ld.y-50,80,265);if(m.play(me,f.i,clamp(ld.x,20,340),y))return true;}
+ }
+ return false;
+};
+})();
+
+// === PATCH 3: Eigene Bots sind echte Spieler (Start bei 0, Matchmaking, Rangliste, Trophäen, Truhen) ===
+(function(){
+const mkCustom=k=>Object.assign(newAccount(),{custom:1,name:'Mein Bot',av:AVATARS[0],style:4,skill:.7,aggr:.5,act:.7,rules:[],taste:Math.floor(Math.random()*1e6),online:false,sessEnd:0,idle:rnd(2,20),inMatch:false,lastSeen:0,wait:0,think:rnd(1,8),search:null},k);
+// Alte Coach-Bots übernehmen (Einstellungen + Lektionen bleiben, Fortschritt startet bei 0)
+S.custom=(S.custom||[]).map(o=>{let b;
+ if(o.cards){b=repair(o,newAccount());Object.assign(b,{custom:1,online:false,inMatch:false,search:null,sessEnd:0,idle:rnd(2,20),wait:0,think:rnd(1,8)});}
+ else b=mkCustom({name:o.name,av:o.av,style:o.style,skill:o.skill,aggr:o.aggr,rules:o.rules||[]});
+ if(!Array.isArray(b.rules))b.rules=[];return b;});
+S.custom.forEach(b=>{b.id=world.bots.length;world.bots.push(b);});
+// Eigene Bots: kein Können-Bonus, Deck bleibt wie vom Coach gewählt
+const wp1=World.prototype.profile;
+World.prototype.profile=function(b){const p=wp1.call(this,b);if(b.custom)p.brain=new Brain(b);return p;};
+const bm=botManage;
+botManage=function(b){if(b.custom){const d=b.deck.slice();bm(b);b.deck=d;}else bm(b);};
+const ra=ACT.resetAll;
+ACT.resetAll=function(){const keep=S.custom;ra();S.custom=keep;
+ keep.forEach(b=>{const k={name:b.name,av:b.av,style:b.style,skill:b.skill,aggr:b.aggr,act:b.act,rules:b.rules,taste:b.taste};for(const x of Object.keys(b))delete b[x];Object.assign(b,mkCustom(k));b.id=world.bots.length;world.bots.push(b);});
+ save();lastHTML={};renderTab();};
+// ---- Coach-Tab
+const rt2=renderTab;
+renderTab=function(){if(tab!=='coach')return rt2();renderTop();
+ document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+ const L=S.custom;
+ setHTML($('#content'),`<div class="sect">🎓 Deine Bots (${L.length})</div><div class="stat" style="margin:0 0 8px">Deine Bots spielen wie alle anderen: Start bei 0 🏆, Matchmaking, Rangliste, Truhen.</div><button class="btn green" style="width:100%;margin-bottom:10px" data-act="cnew">➕ Neuen Bot erstellen</button>`+(L.length?L.map(b=>`<div class="mrow"><div style="font-size:30px">${b.av}</div><div class="t" style="text-align:left">${b.name}<br><span class="rs">🏆 ${b.trophies} · ${STYLES[b.style].n} · ${b.rules.length} Lektionen${b.inMatch?' · ⚔️':''}</span></div><button class="btn red mini" data-act="cstart" data-id="${b.id}">▶ Training</button><button class="btn blue mini" data-act="cedit" data-id="${b.id}">✏️</button><button class="btn mini" data-act="cdel" data-id="${b.id}">🗑</button></div>`).join(''):'<div class="stat">Noch kein Bot.</div>'),'tab');};
+// ---- Editor
+function ruleText(r){const n=CARDS[r.card]?CARDS[r.card].name:'';switch(r.t){case'minEl':return n+' erst ab '+r.n+' Elixier';case'defOnly':return n+' nur zur Verteidigung';case'back':return n+' hinten spielen';case'spellMin':return n+' erst bei ≥'+r.n+' Gegnern';case'counter':return 'Gegner spielt '+(CARDS[r.enemy]?CARDS[r.enemy].name:'?')+' → '+n;}return'';}
+const draft=b=>({id:b.id,name:b.name,av:b.av,style:b.style,skill:b.skill,aggr:b.aggr,act:b.act,deck:b.deck.slice(),rules:b.rules.map(r=>Object.assign({},r)),cards:b.cards});
+function editorHTML(){const d=ed;
+ const sl=(lab,val,key)=>`<label class="fld">${lab}: <b>${val}</b></label><input type="range" min="5" max="100" value="${val}" oninput="ed.${key}=this.value/100;this.previousElementSibling.lastElementChild.textContent=this.value">`;
+ return `<h2>${d.id!=null?'Bot bearbeiten':'Neuer Bot'}</h2><label class="fld">Name</label><input type="text" maxlength="16" value="${d.name}" oninput="ed.name=this.value.replace(/[<>&&quot;]/g,'')">
+ <label class="fld">Avatar</label><select onchange="ed.av=this.value">${AVATARS.map(a=>`<option ${a===d.av?'selected':''}>${a}</option>`).join('')}</select>
+ <label class="fld">Spielstil</label><select onchange="ed.style=+this.value">${STYLES.map((s,i)=>`<option value="${i}" ${i===d.style?'selected':''}>${s.n}</option>`).join('')}</select>
+ ${sl('Können',Math.round(d.skill*100),'skill')}${sl('Angriffslust',Math.round(d.aggr*100),'aggr')}${sl('Aktivität (wie oft online)',Math.round(d.act*100),'act')}
+ <div class="stat" style="margin:6px 0">Start bei 0 🏆 mit den Startkarten. Neue Karten findet der Bot selbst in Truhen, dann kannst du sie ins Deck legen.</div>
+ <label class="fld">Deck (${d.deck.length}/8)</label><div class="minideck">${PLAY_CARDS.filter(c=>d.cards[c.id].own).map(c=>`<div data-act="cdeck" data-id="${c.id}">${cardHTML(c.id,d.cards[c.id].lvl,d.deck.includes(c.id)?'sel':'')}</div>`).join('')}</div>
+ ${d.rules.length?`<label class="fld">Gelernte Lektionen</label>`+d.rules.map((r,i)=>`<div class="mrow" style="padding:6px"><div class="t" style="text-align:left">${ruleText(r)}</div><button class="btn red mini" data-act="rdel" data-i="${i}">✖</button></div>`).join(''):''}
+ <button class="btn green" style="width:100%;margin-top:10px" data-act="csave">Speichern</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`;}
+function reEd(){const b=document.querySelector('#modal .mbox'),s=b?b.scrollTop:0;showModal(editorHTML());document.querySelector('#modal .mbox').scrollTop=s;}
+Object.assign(ACT,{
+ cnew(){window.ed=Object.assign(draft(mkCustom({})),{id:null});showModal(editorHTML());},
+ cedit(el){window.ed=draft(S.custom.find(b=>b.id==el.dataset.id));showModal(editorHTML());},
+ cdeck(el){const id=el.dataset.id,i=ed.deck.indexOf(id);if(i>=0)ed.deck.splice(i,1);else if(ed.deck.length<8)ed.deck.push(id);else toast('Schon 8 Karten');reEd();},
+ rdel(el){ed.rules.splice(+el.dataset.i,1);reEd();},
+ csave(){if(ed.deck.length!==8)return toast('Das Deck braucht genau 8 Karten');if(!ed.name.trim())return toast('Name fehlt');
+  const f={name:ed.name,av:ed.av,style:ed.style,skill:ed.skill,aggr:ed.aggr,act:ed.act};
+  if(ed.id==null){const b=mkCustom(Object.assign(f,{deck:ed.deck.slice(),rules:ed.rules}));b.id=world.bots.length;b.online=true;b.sessEnd=rnd(120,400);b.idle=rnd(0,6);S.custom.push(b);world.bots.push(b);}
+  else{const b=S.custom.find(x=>x.id===ed.id);Object.assign(b,f,{deck:ed.deck.slice()});b.rules.length=0;ed.rules.forEach(r=>b.rules.push(r));}
+  save();closeModal();lastHTML.tab='';renderTab();toast('Bot gespeichert');},
+ cdel(el){const b=S.custom.find(x=>x.id==el.dataset.id);if(!b)return;if(b.inMatch)return toast('Der Bot kämpft gerade');
+  S.custom=S.custom.filter(x=>x!==b);world.bots.splice(world.bots.indexOf(b),1);world.bots.forEach((x,i)=>x.id=i);save();lastHTML.tab='';renderTab();},
+ cgo(el){const cb=S.custom.find(b=>b.id==el.dataset.id),o=el.dataset.o;let pb;
+  if(['weak','mid','strong'].includes(o)){const t={weak:.1,mid:.5,strong:.95}[o];pb=world.profile(pick(world.bots.filter(b=>!b.custom).sort((a,b)=>Math.abs(a.skill-t)-Math.abs(b.skill-t)).slice(0,5)));}
+  else pb=world.profile(S.custom.find(b=>b.id==o));
+  const m=new Match(world.profile(cb),pb);m.A={name:cb.name,av:cb.av,trophies:cb.trophies};m.B={name:pb.name,av:pb.av,trophies:pb.trophies|0};m.coach=cb;m.id=-1;closeModal();startWatch(m);}
+});
+})();
+
 renderTab();requestAnimationFrame(frame);
 </script></body></html>
