@@ -1491,7 +1491,7 @@ const rt2=renderTab;
 renderTab=function(){if(tab!=='coach')return rt2();renderTop();
  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
  const L=S.custom;
- setHTML($('#content'),`<div class="sect">🎓 Deine Bots (${L.length})</div><div class="stat" style="margin:0 0 8px">Deine Bots spielen wie alle anderen: Start bei 0 🏆, Matchmaking, Rangliste, Truhen.</div><button class="btn green" style="width:100%;margin-bottom:10px" data-act="cnew">➕ Neuen Bot erstellen</button>`+(L.length?L.map(b=>`<div class="mrow"><div style="font-size:30px">${b.av}</div><div class="t" style="text-align:left">${b.name}<br><span class="rs">🏆 ${b.trophies} · ${STYLES[b.style].n} · ${b.rules.length} Lektionen${b.inMatch?' · ⚔️':''}</span></div><button class="btn red mini" data-act="cstart" data-id="${b.id}">▶ Training</button><button class="btn blue mini" data-act="cedit" data-id="${b.id}">✏️</button><button class="btn mini" data-act="cdel" data-id="${b.id}">🗑</button></div>`).join(''):'<div class="stat">Noch kein Bot.</div>'),'tab');};
+ setHTML($('#content'),`<div class="sect">🎓 Deine Bots (${L.length})</div><div class="stat" style="margin:0 0 8px">Deine Bots spielen wie alle anderen: Start bei 0 🏆, Matchmaking, Rangliste, Truhen.</div><button class="btn green" style="width:100%;margin-bottom:10px" data-act="cnew">➕ Neuen Bot erstellen</button>`+(L.length?L.map(b=>`<div class="mrow"><div style="font-size:30px">${b.av}</div><div class="t" style="text-align:left">${b.name}<br><span class="rs">🏆 ${b.trophies} · ${STYLES[b.style].n} · ${b.rules.length} Lektionen${b.inMatch?' · ⚔️':''}</span></div><button class="btn green mini" data-act="cwatch" data-id="${b.id}">📺 Zuschauen</button><button class="btn red mini" data-act="cstart" data-id="${b.id}">▶ Training</button><button class="btn blue mini" data-act="cedit" data-id="${b.id}">✏️</button><button class="btn mini" data-act="cdel" data-id="${b.id}">🗑</button></div>`).join(''):'<div class="stat">Noch kein Bot.</div>'),'tab');};
 // ---- Editor
 function ruleText(r){const n=CARDS[r.card]?CARDS[r.card].name:'';switch(r.t){case'minEl':return n+' erst ab '+r.n+' Elixier';case'defOnly':return n+' nur zur Verteidigung';case'back':return n+' hinten spielen';case'spellMin':return n+' erst bei ≥'+r.n+' Gegnern';case'counter':return 'Gegner spielt '+(CARDS[r.enemy]?CARDS[r.enemy].name:'?')+' → '+n;}return'';}
 const draft=b=>({id:b.id,name:b.name,av:b.av,style:b.style,skill:b.skill,aggr:b.aggr,act:b.act,deck:b.deck.slice(),rules:b.rules.map(r=>Object.assign({},r)),cards:b.cards});
@@ -1523,6 +1523,99 @@ Object.assign(ACT,{
   else pb=world.profile(S.custom.find(b=>b.id==o));
   const m=new Match(world.profile(cb),pb);m.A={name:cb.name,av:cb.av,trophies:cb.trophies};m.B={name:pb.name,av:pb.av,trophies:pb.trophies|0};m.coach=cb;m.id=-1;closeModal();startWatch(m);}
 });
+})();
+
+// === PATCH 4: Lektionen einfach erklären (Text eingeben ODER Karte + Knopf tippen) ===
+(function(){
+window.les={card:null,n:6,text:''};
+const pl2=Match.prototype.play;
+Match.prototype.play=function(team,hi,x,y){const b=this.brains[team],R=b&&b.rules,id=this.hand[team][hi];
+ if(R&&R.some(r=>r.t==='never'&&r.card===id))return false;return pl2.call(this,team,hi,x,y);};
+function ruleText(r){const n=CARDS[r.card]?CARDS[r.card].name:'';switch(r.t){case'minEl':return n+' erst ab '+r.n+' Elixier';case'defOnly':return n+' nur zur Verteidigung';case'back':return n+' immer hinten spielen';case'never':return n+' nie spielen';case'spellMin':return n+' erst bei ≥'+r.n+' Gegnern';case'counter':return 'Gegner spielt '+(CARDS[r.enemy]?CARDS[r.enemy].name:'?')+' → '+n;}return'';}
+const STOP=['elixier','elixiers'];
+function findCards(txt,deck){
+ const w=txt.toLowerCase().replace(/[^a-zäöüß0-9\s-]/g,' ').split(/\s+/).filter(Boolean),by={};
+ w.forEach((t,pos)=>{if(t.length<4||STOP.includes(t))return;
+  for(const c of PLAY_CARDS){const ks=c.name.toLowerCase().split(/[\s-]+/);
+   if(ks.some(k=>k.length>=4&&(k.startsWith(t)||t.startsWith(k.slice(0,5))))){const d=deck.includes(c.id)?0:1;if(!by[pos]||d<by[pos].d)by[pos]={c,d};}}});
+ const out=[];Object.keys(by).map(Number).sort((a,b)=>a-b).forEach(p=>{if(!out.includes(by[p].c))out.push(by[p].c);});return out;}
+function parse(txt,bot){
+ const t=txt.toLowerCase(),cs=findCards(txt,bot.deck),num=(t.match(/\d+/)||[])[0];if(!cs.length)return null;
+ if(cs.length>=2&&/gegen|wenn|bei/.test(t))return{t:'counter',enemy:cs[0].id,card:cs[1].id};
+ const c=cs[0];
+ if(/\bnie\b|niemals|nicht spielen|weglassen/.test(t))return{t:'never',card:c.id};
+ if(/verteidig|angreift|nur wenn.*gegner/.test(t))return{t:'defOnly',card:c.id};
+ if(/hinten|hinter|nicht an der brücke|nicht vorne/.test(t))return{t:'back',card:c.id};
+ if(num&&c.type==='spell'&&/gegner|einheiten|truppen|ziele/.test(t))return{t:'spellMin',card:c.id,n:+num};
+ if(num&&/elixier|erst|\bab\b/.test(t))return{t:'minEl',card:c.id,n:Math.min(10,+num)};
+ return null;}
+function lessonHTML(){const b=wm.coach,c=les.card?CARDS[les.card]:null;
+ return `<h2>🎓 Lektion für ${b.name}</h2><div class="stat" style="margin:0 0 6px">Der Kampf ist pausiert.</div>
+ <label class="fld">✍️ Schreib einfach, was er tun soll</label>
+ <input type="text" placeholder="z. B. Steinhüne nur hinten spielen" value="${les.text}" oninput="les.text=this.value">
+ <div class="stat" style="margin:4px 0">Beispiele: „Feuerkugel erst bei 3 Gegnern“ · „Pfeilhagel nur zur Verteidigung“ · „Jungritter nie spielen“ · „Gegen Steinhüne spiele Eisenkoloss“ · „Musketenmaid erst ab 6 Elixier“</div>
+ <button class="btn green" style="width:100%" data-act="ltext">Lehren</button>
+ <div class="stat" style="margin:12px 0 2px">… oder tippen: 1) Karte wählen</div>
+ <div class="minideck">${b.deck.map(id=>`<div data-act="lcard" data-id="${id}">${cardHTML(id,b.cards[id].lvl,les.card===id?'sel':'')}</div>`).join('')}</div>
+ ${c?`<div class="stat" style="margin:6px 0">2) Was soll er mit „${c.name}“ tun?</div>
+ <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:6px"><button class="btn mini" data-act="lnum" data-d="-1">−</button><b style="font-size:18px">${les.n}</b><button class="btn mini" data-act="lnum" data-d="1">+</button><span style="font-size:11px">Zahl (Elixier / Gegner)</span></div>
+ <button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="defOnly">🛡 Nur zur Verteidigung</button>
+ <button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="back">⬅ Immer hinten spielen</button>
+ ${c.type==='spell'?`<button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="spellMin">🎯 Erst bei ${les.n} Gegnern</button>`:`<button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="minEl">💧 Erst ab ${les.n} Elixier</button>`}
+ <button class="btn red" style="width:100%;margin:3px 0" data-act="lrule" data-t="never">🚫 Nie spielen</button>`:''}
+ ${b.rules.length?`<div class="stat" style="margin:12px 0 2px">Das hat er gelernt:</div>`+b.rules.map((r,i)=>`<div class="mrow" style="padding:6px"><div class="t" style="text-align:left">${ruleText(r)}</div><button class="btn red mini" data-act="ldel" data-i="${i}">✖</button></div>`).join(''):''}
+ <button class="btn" style="width:100%;margin-top:10px" data-act="close">Weiter zuschauen</button>`;}
+function reLes(){const m=document.querySelector('#modal .mbox'),s=m?m.scrollTop:0;showModal(lessonHTML());document.querySelector('#modal .mbox').scrollTop=s;}
+function add(r){const R=wm.coach.rules;
+ for(let i=R.length-1;i>=0;i--)if(R[i].t===r.t&&R[i].card===r.card&&(r.t!=='counter'||R[i].enemy===r.enemy))R.splice(i,1);
+ R.push(r);save();toast('Gelernt: '+ruleText(r));les.text='';reLes();}
+Object.assign(ACT,{
+ coachOpen(){if(!wm||!wm.coach)return;wm.lesson=true;showModal(lessonHTML());},
+ lcard(el){les.card=les.card===el.dataset.id?null:el.dataset.id;reLes();},
+ lnum(el){les.n=clamp(les.n+(+el.dataset.d),1,10);reLes();},
+ lrule(el){if(les.card)add({t:el.dataset.t,card:les.card,n:les.n});},
+ ltext(){const r=parse(les.text,wm.coach);if(r)add(r);else toast('Nicht verstanden – nenne eine Karte und was er tun soll');},
+ ldel(el){wm.coach.rules.splice(+el.dataset.i,1);save();reLes();}
+});
+})();
+
+// === PATCH 5: Eigene Bots starten unwissend; sie spielen normal in der Ladder, du schaust zu und coachst ===
+(function(){
+const full=Brain.prototype.think;
+Brain.prototype.think=function(m,me){return this.pf.custom?this.naive(m,me):full.call(this,m,me);};
+// Unwissender Bot: spielt planlos. Jedes beigebrachte Wissen schaltet ein Stück echte Logik frei.
+Brain.prototype.naive=function(m,me){
+ const k=this.pf.know||{},n=Object.keys(k).length,el=m.el[me];
+ if(n>=5)return full.call(this,m,me);                 // alles gelernt: volle Bot-Logik
+ const aff=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})).filter(o=>o.c.cost<=el+1e-6);
+ if(!aff.length)return;
+ if(k.defend){this.cpT=k.push?(this.cpT===1e9?0:this.cpT):1e9;if(this.smart(m,me))return;}  // Verteidigen (+ Konterangriff)
+ if(el<(k.save?6:2.5))return;                          // ohne "Elixier sparen": sofort wieder etwas spielen
+ const en=m.units.filter(u=>u.team!==me&&u.hp>0),o=pick(aff),c=o.c;
+ if(c.type==='spell'){
+  if(k.spells){const r=this.spellTarget(c,en,me);if(!r||r.v<c.cost)return;m.play(me,o.i,r.pos.x,r.pos.y);return;}
+  m.play(me,o.i,rnd(20,340),rnd(40,560));return;}      // Zauber irgendwohin
+ let x=rnd(20,340),y=me===0?rnd(340,570):rnd(30,260);   // Truppen irgendwohin
+ if(k.place){const lane=this.lane=Math.random()<.3?1-this.lane:this.lane,back=c.range>50||c.bOnly;x=lane?270:90;y=me===0?(back?540:470):(back?60:130);}
+ m.play(me,o.i,x,y);
+};
+// Zuschauen in der normalen Ladder
+Object.assign(ACT,{
+ cwatch(el){const b=S.custom.find(x=>x.id==el.dataset.id);if(!b)return;
+  const m=world.matches.find(x=>x.A===b||x.B===b);
+  if(m){m.coach=b;startWatch(m);return;}
+  b.online=true;b.sessEnd=Math.max(b.sessEnd||0,300);b.idle=0;b.search=Math.min(b.search==null?1:b.search,1);
+  window.waitFor={b,t:Date.now()};toast('Dein Bot sucht einen Gegner …');},
+ speed(el){if(!wm)return;wm.us=+el.dataset.s;if(!wm.paused&&!wm.lesson)wm.speed=wm.us;updWatchBtns();}
+});
+const ew=endWatch;
+endWatch=function(){if(wm){wm.coach=null;wm.paused=false;wm.lesson=false;}ew();};
+setInterval(()=>{
+ if(mode==='watch'&&wm&&wm.coach&&wm.id!==-1)wm.speed=(wm.paused||wm.lesson)?0:(wm.us||1);  // Pause fuer Lektion
+ const w=window.waitFor;
+ if(w&&mode==='menu'){const m=world.matches.find(x=>x.A===w.b||x.B===w.b);
+  if(m){window.waitFor=null;m.coach=w.b;startWatch(m);}else if(Date.now()-w.t>90000){window.waitFor=null;toast('Noch kein Gegner gefunden – tippe nochmal auf Zuschauen');}}
+},100);
 })();
 
 renderTab();requestAnimationFrame(frame);
