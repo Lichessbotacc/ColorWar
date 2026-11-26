@@ -1418,5 +1418,89 @@ Brain.prototype.smart=function(m,me){
 };
 })();
 
+// === PATCH 7: Starke Bots – Meta-Decks (aus Turnier-Simulationen) + Elite-Spielweise ===
+(function(){
+const CR={wyvern:.644,cart:.629,barbs:.625,horde:.604,axe:.602,speargob:.601,pekka:.598,mage:.594,minik:.582,bigbones:.579,bombtower:.578,gang:.573,bats:.573,copter:.569,clone:.561,dprince:.557,barbhut:.553,fireball:.551,archer:.545,elixir:.544,army:.542,musk:.539,rocket:.539,furnace:.538,ram:.538,exec:.531,dart:.529,witch:.528,bowler:.526,log:.522,icegolem:.521,elite:.518,moth:.515,mortar:.515,rgiant:.513,heal:.509,squire:.508,volley:.506,zap:.506,megamoth:.504,balloon:.5,bomber:.497,rage:.495,golem:.489,megaknight:.487,titan:.485,princess:.484,poison:.483,goblins:.482,trio:.481,icegob:.48,idragon:.477,gobhut:.477,firesp:.474,bones:.473,boar:.467,tesla:.467,tornado:.464,turret:.455,inferno:.455,prince:.453,xbow:.448,tomb:.441,sparky:.439,guards:.428,lava:.425,healer:.424,icesp:.418,icewiz:.416,nwitch:.404,barrel:.395,frost:.382,ewiz:.38,lumber:.376,ninja:.351,skelknight:.351,miner:.331,graveyard:.328};
+const botDeck0=botDeck;
+function eliteDeck(b){
+ const own=PLAY_CARDS.filter(c=>b.cards[c.id].own);if(own.length<8)return botDeck0(b);
+ const sc=c=>(CR[c.id]||.5)*14+b.cards[c.id].lvl*.7;
+ const ok=a=>{const avg=a.reduce((s,c)=>s+c.cost,0)/8,sp=a.filter(c=>c.type==='spell').length,bl=a.filter(c=>c.type==='building').length;return avg<=4.3&&sp<=2&&bl<=1;};
+ let best=null,bv=-1e9;
+ for(let k=0;k<300;k++){
+  const pool=own.map(c=>({c,s:sc(c)+rnd(0,3.5)})).sort((x,y)=>y.s-x.s).slice(0,8).map(o=>o.c);
+  const a=k<40?pool:(()=>{const d=new Set();const w=own.map(c=>({c,s:sc(c)+rnd(0,5)})).sort((x,y)=>y.s-x.s);for(const o of w){if(d.size>=8)break;d.add(o.c);}
+   const arr=[...d];const i=Math.floor(Math.random()*8),pc=pick(own);if(!arr.includes(pc))arr[i]=pc;return arr;})();
+  if(a.length<8||!ok(a))continue;const v=a.reduce((s,c)=>s+sc(c),0);if(v>bv){bv=v;best=a;}}
+ return best?best.map(c=>c.id):botDeck0(b);
+}
+botDeck=function(b){return b.skill>=.6?eliteDeck(b):botDeck0(b);};
+
+})();
+
+world.bots.forEach(b=>{if(b.skill>=.6&&b.deck)b.deck=botDeck(b);});
+
+// === PATCH 8: Vorausschau-Bots (kurze Simulation der Optionen) ===
+(function(){
+Brain.prototype.isE=function(){return this.pf.elite!==undefined?this.pf.elite:this.pf.skill>=.8;};
+const SI=.5,DL=.04,SB={t0:0,used:0};
+const BRY=me=>me===0?RY+RH+24:RY-RH-24, BK=me=>me===0?545:55, LX=l=>l?270:90;
+function cloneMatch(m,brs){
+ const sv={p:m.p,brains:m.brains,onEnd:m.onEnd,ev:m.ev,A:m.A,B:m.B,emote:m.emote};
+ m.p=null;m.brains=null;m.onEnd=null;m.ev=[];m.A=null;m.B=null;m.emote=null;
+ let c;try{c=structuredClone(m);}finally{Object.assign(m,sv);}
+ Object.setPrototypeOf(c,Match.prototype);c.p=sv.p;c.onEnd=null;c.snd=false;c.watch=false;c.brains=brs;c.ev=[];c.emote=null;c.A=null;c.B=null;return c;
+}
+function evalM(m,me){
+ const op=1-me;let v=0;
+ for(const t of m.tw[me])v+=(t.dead?0:t.hp/t.maxhp)*(t.type==='k'?1.2:1);
+ for(const t of m.tw[op])v-=(t.dead?0:t.hp/t.maxhp)*(t.type==='k'?1.2:1);
+ v+=(m.crowns[me]-m.crowns[op])*1.2;
+ let a=0,b=0;for(const u of m.units){if(u.hp<=0||u.building)continue;const p=pw(u)*(u.hp/u.maxhp);if(u.team===me)a+=p;else b+=p;}
+ v+=(a-b)/900;v+=(m.el[me]-m.el[op])*.02;
+ if(m.over){v+=m.winner===me?5:m.winner===op?-5:0;}
+ return v;
+}
+Brain.prototype.cands=function(m,me){
+ const el=m.el[me],op=1-me,out=[];
+ const hand=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})).filter(o=>o.c.cost<=el+1e-6);
+ const en=m.units.filter(u=>u.team===op&&u.hp>0),foeT=m.tw[op];
+ const myHalf=u=>me===0?u.y>RY:u.y<RY;
+ const thr=en.filter(u=>myHalf(u)&&!u.building);
+ const cx=thr.length?thr.reduce((s,u)=>s+u.x,0)/thr.length:0,cy=thr.length?thr.reduce((s,u)=>s+u.y,0)/thr.length:0;
+ const weak=foeT[0].hp<=foeT[1].hp?0:1;
+ for(const o of hand){const c=o.c;
+  if(c.type==='spell'){
+   const r=this.spellTarget(c,thr.length?thr:en,me);if(r)out.push([o.i,r.pos.x,r.pos.y]);
+   if(!c.own&&c.dmg>0){const t=foeT.find(q=>!q.dead&&q.type!=='k');if(t)out.push([o.i,t.x,t.y]);}
+   continue;}
+  if(c.type==='building'){out.push([o.i,180-24,me===0?395:205],[o.i,180+24,me===0?395:205]);continue;}
+  if(thr.length){const p=this.place(m,me,c,cx,cy,thr.some(u=>u.bOnly),thr.some(u=>u.c.hp>=1100));out.push([o.i,p.x,p.y]);}
+  for(const l of[weak,1-weak]){out.push([o.i,LX(l),c.range>50?BK(me):BRY(me)]);if(c.bOnly||c.hp>=800)out.push([o.i,LX(l),BK(me)]);}
+  if(c.anywhere){const t=foeT[weak];if(!t.dead)out.push([o.i,t.x,t.y+(me===0?34:-34)]);}
+ }
+ return out;
+};
+const prev=Brain.prototype.think;
+Brain.prototype.think=function(m,me){
+ if(!this.isE())return prev.call(this,m,me);
+ const el=m.el[me];if(el<1.9)return;
+ if((this.sT||0)>m.t)return;
+ const now=performance.now();if(now-SB.t0>1000){SB.t0=now;SB.used=0;}if(SB.used>220)return prev.call(this,m,me);
+ try{this.sT=m.t+SI+rnd(0,.15);
+ const op=1-me,pf=this.pf;
+ const mkb=(t)=>{const b=new Brain(Object.assign({},pf,{elite:false}));const o=m.brains[t];b.est=o.est;b.cd=.2;b.lane=o.lane;return b;};
+ const H=5,steps=Math.round(H*20);
+ const run=(act)=>{const c=cloneMatch(m,[mkb(0),mkb(1)]);if(act&&!c.play(me,act[0],act[1],act[2]))return null;
+  for(let i=0;i<steps&&!c.over;i++)c.step(1/20);return evalM(c,me);};
+ const cs=this.cands(m,me);
+ let base=0;const R=1;for(let k=0;k<R;k++)base+=run(null);base/=R;
+ let best=null,bv=base+DL;
+ for(const a of cs){let v=0;for(let k=0;k<R;k++){const x=run(a);if(x===null){v=-1e9;break;}v+=x;}v/=R;if(v>bv){bv=v;best=a;}}
+ if(best)m.play(me,best[0],best[1],best[2]);
+ }catch(e){return prev.call(this,m,me);}finally{SB.used+=performance.now()-now;}
+};
+})();
+
 renderTab();requestAnimationFrame(frame);
 </script></body></html>
