@@ -654,14 +654,35 @@ class World{
 
 // ================= UI =================
 const $=s=>document.querySelector(s);
-const SAVE_KEY='kronenkampf_v2';
+const SAVE_KEY='kronenkampf_save'; // bleibt bei künftigen Code-Änderungen gleich
+const OLD_KEYS=['kronenkampf_v2'],BACKUP_KEY=SAVE_KEY+'_backup';
 const defSave=()=>Object.assign(newAccount(),{v:2,name:'Du',mute:false,bots:null});
-function load(){let s=defSave();try{const r=JSON.parse(localStorage.getItem(SAVE_KEY));if(r&&r.v===2){const cards=Object.assign(s.cards,r.cards);s=Object.assign(s,r,{cards});}}catch(e){}return s;}
+const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}}};
+// Fehlende Felder und neue Karten ergänzen, unbekannte Karten aussortieren
+function repair(a,base){
+ const cards=base.cards;for(const id in cards)Object.assign(cards[id],(a.cards||{})[id]);
+ const o=Object.assign(base,a,{cards});
+ o.deck=[...new Set(Array.isArray(a.deck)?a.deck:[])].filter(id=>cards[id]&&cards[id].own).slice(0,8);
+ for(const id of START_DECK)if(o.deck.length<8&&!o.deck.includes(id))o.deck.push(id);
+ o.chests=[0,1,2,3].map(i=>{const c=(a.chests||[])[i];return c&&CHESTS[c.type]?c:null;});
+ return o;
+}
+const parseSave=raw=>{try{const r=JSON.parse(raw);return r&&typeof r==='object'&&r.cards&&typeof r.trophies==='number'?r:null;}catch(e){return null;}};
+function load(){
+ for(const k of[SAVE_KEY,...OLD_KEYS]){const raw=store.get(k);if(!raw)continue;const r=parseSave(raw);
+  if(r){const s=repair(r,defSave());s.name=String(s.name||'Du').replace(/[<>&"]/g,'');return s;}
+  store.set(k+'_defekt',raw);} // Unlesbares nie einfach überschreiben
+ return defSave();
+}
 let S=load();
-function botsInit(){const bs=mkBots();if(S.bots)S.bots.slice(0,bs.length).forEach((o,i)=>{const cards=Object.assign(bs[i].cards,o.cards);Object.assign(bs[i],o,{cards});});return bs;}
+function botsInit(){const bs=mkBots();if(S.bots)S.bots.slice(0,bs.length).forEach((o,i)=>{repair(o,bs[i]);});return bs;}
 const world=new World(botsInit());
 const BKEYS=['act','skill','aggr','taste','trophies','best','gold','xp','lvl','wins','losses','draws','form','cards','deck','chests'];
-function save(){try{S.bots=world.bots.map(b=>Object.fromEntries(BKEYS.map(k=>[k,b[k]])));localStorage.setItem(SAVE_KEY,JSON.stringify(S));}catch(e){}}
+let noSave=false,saveWarned=false;
+function snapshot(){S.bots=world.bots.map(b=>Object.fromEntries(BKEYS.map(k=>[k,b[k]])));return JSON.stringify(S);}
+function save(){if(noSave)return;if(!store.set(SAVE_KEY,snapshot())&&!saveWarned){saveWarned=true;setTimeout(()=>toast('⚠️ Speichern nicht möglich'),300);}}
+function replaceSave(raw){store.set(BACKUP_KEY,snapshot());if(!store.set(SAVE_KEY,raw)){toast('⚠️ Speichern nicht möglich');return;}noSave=true;location.reload();}
+document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});setTimeout(save,0);
 setInterval(save,5000);addEventListener('pagehide',save);
 
 // Sound
@@ -875,7 +896,7 @@ function renderTab(){
   const list=world.bots.map(b=>({...b,isBot:true,bot:b}));list.push({name:S.name+' (Du)',av:'👑',trophies:S.trophies,wins:S.wins,losses:S.losses,me:true});
   list.sort((a,b)=>b.trophies-a.trophies||b.wins-a.wins);
   const liveSet=new Set();world.matches.forEach(m=>{liveSet.add(m.A.id);liveSet.add(m.B.id);});
-  setHTML(c,`<div class="sect">Rangliste · ${list.length} Spieler</div><button class="btn red" style="width:100%;margin-bottom:10px" data-act="resetAsk">🔄 Alles zurücksetzen</button>`+list.map((p,i)=>{
+  setHTML(c,`<div class="sect">Rangliste · ${list.length} Spieler</div><button class="btn red" style="width:100%;margin-bottom:10px" data-act="resetAsk">🔄 Alles zurücksetzen</button><div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn blue" style="flex:1" data-act="exportSave">💾 Exportieren</button><button class="btn blue" style="flex:1" data-act="importSave">📂 Importieren</button></div>${store.get(BACKUP_KEY)?'<button class="btn" style="width:100%;margin-bottom:10px" data-act="restoreAsk">↩️ Gesicherten Stand wiederherstellen</button>':''}`+list.map((p,i)=>{
    let st='';if(p.me)st='<span class="rs">Das bist du</span>';else{const act=p.act>.65?'sehr aktiv':p.act>.35?'aktiv':'selten online';
     const status=liveSet.has(p.id)?'<span class="live">● LIVE</span>':p.inMatch?'<span class="live">● im Kampf</span>':p.online&&p.search!=null?'🔍 sucht Gegner':p.online?'<span class="dot"></span>online':'<span class="dot off"></span>offline';
     st=`<span class="rs">${status} · ${act} · ${p.wins}S/${p.losses}N · Lv ${p.lvl}</span>`;}
@@ -906,9 +927,13 @@ function openCard(id){
 const ACT={
  tab(el){tab=el.dataset.t;lastHTML.tab='';renderTab();$('#content').scrollTop=0;},
  close(){closeModal();},
+ exportSave(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([snapshot()],{type:'application/json'}));a.download='kronenkampf-spielstand.json';document.body.appendChild(a);a.click();a.remove();toast('Spielstand exportiert');},
+ importSave(){const i=document.createElement('input');i.type='file';i.accept='.json,application/json';i.onchange=async()=>{const f=i.files[0];if(!f)return;const raw=await f.text();if(parseSave(raw))replaceSave(raw);else toast('Keine gültige Spielstand-Datei');};i.click();},
+ restoreAsk(){showModal(`<h2>Stand wiederherstellen?</h2><div style="text-align:center;font-size:14px;margin-bottom:12px">Der gesicherte Stand ersetzt den jetzigen. Der jetzige wird dabei selbst gesichert.</div><button class="btn green" style="width:100%" data-act="restore">Wiederherstellen</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`);},
+ restore(){const raw=store.get(BACKUP_KEY);if(parseSave(raw))replaceSave(raw);else toast('Keine Sicherung vorhanden');},
  cancelSearch(){stopSearch();$('#vs').classList.add('hidden');},
- resetAsk(){showModal(`<h2>Alles zurücksetzen?</h2><div style="text-align:center;font-size:14px;margin-bottom:12px">Trophäen, Level, Karten, Gold, Truhen und Statistiken von dir und allen Bots werden gelöscht. Das kann man nicht rückgängig machen.</div><button class="btn red" style="width:100%" data-act="resetAll">Ja, alles löschen</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`);},
- resetAll(){Object.assign(S,newAccount(),{bots:null});Object.assign(world,new World(mkBots()));save();closeModal();lastHTML={};renderTab();toast('Alles zurückgesetzt');},
+ resetAsk(){showModal(`<h2>Alles zurücksetzen?</h2><div style="text-align:center;font-size:14px;margin-bottom:12px">Trophäen, Level, Karten, Gold, Truhen und Statistiken von dir und allen Bots werden gelöscht. Der jetzige Stand wird vorher gesichert und lässt sich wiederherstellen.</div><button class="btn red" style="width:100%" data-act="resetAll">Ja, alles löschen</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`);},
+ resetAll(){store.set(BACKUP_KEY,snapshot());Object.assign(S,newAccount(),{bots:null});Object.assign(world,new World(mkBots()));save();closeModal();lastHTML={};renderTab();toast('Alles zurückgesetzt');},
  arenas(){showModal(`<h2>Arenen</h2>${ARENAS.map(a=>`<div class="sect">${S.best>=a.min?'✅':'🔒'} ${a.i?'Arena '+a.i+' · ':''}${a.n} <span class="chip">${a.min} 🏆</span></div><div class="minideck">${PLAY_CARDS.filter(c=>c.ar===a.i).map(c=>`<div data-act="card" data-id="${c.id}">${cardHTML(c.id,0)}</div>`).join('')}</div>`).join('')}<button class="btn" style="width:100%;margin-top:10px" data-act="close">Schließen</button>`);},
  closeBg(el,e){if(e.target===el)closeModal();},
  mute(){S.mute=!S.mute;renderTop();save();},
