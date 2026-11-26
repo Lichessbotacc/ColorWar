@@ -511,8 +511,12 @@ const STYLES=[
  {n:'Kontrolle',gate:1.6,def:.75,bridge:0,split:.15,tank:.2,spell:1.3},
  {n:'Bridge-Spam',gate:.2,def:1.15,bridge:.4,split:.3,tank:.1,spell:.8},
  {n:'Ausgewogen',gate:.9,def:.95,bridge:.08,split:.25,tank:.5,spell:1}];
+const isTankC=c=>c.type==='troop'&&c.cost>=4&&(c.role==='TANK'||['megaknight','rgiant'].includes(c.id));
+const isFastWin=c=>c.type==='troop'&&(c.bOnly&&!isTankC(c)||c.anywhere||['lumber','ninja','prince','dprince'].includes(c.id));
 class Brain{
- constructor(b){this.pf=b;this.st=STYLES[(b.taste|0)%STYLES.length];this.est=5;this.cd=rnd(2,5);this.lane=Math.random()<.5?0:1;this.cr=0;this.cro=0;}
+ constructor(b){this.pf=b;{const D=(b.deck||[]).map(i=>CARDS[i]).filter(Boolean),avg=D.reduce((q,c)=>q+c.cost,0)/Math.max(1,D.length);
+  let a='balanced';if(D.some(c=>c.id==='xbow'||c.id==='mortar'))a='siege';else if(D.some(isTankC)&&avg>=3.4)a='beatdown';else if(D.filter(isFastWin).length>=2)a='bridge';else if(avg<=3.1)a='cycle';else if(D.filter(c=>c.type==='spell').length>=2)a='control';
+  this.arch=a;this.st=STYLES[{beatdown:0,cycle:1,control:2,bridge:3,siege:2,balanced:4}[a]];}this.est=5;this.cd=rnd(2,5);this.lane=Math.random()<.5?0:1;this.cr=0;this.cro=0;}
  seen(c){this.est=Math.max(0,this.est-c.cost);}
  tick(m,me,dt){this.est=Math.min(10,this.est+(m.t>=120?2:1)/2.8*dt);this.cd-=dt;if(this.cd>0)return;this.cd=.2+(1-this.pf.skill)*.7+rnd(0,.2);this.think(m,me);}
  spellTarget(c,us,me){
@@ -540,7 +544,6 @@ class Brain{
   const lanes=[{u:[],p:0},{u:[],p:0}];
   for(const u of en)if(inMy(u)){const l=lanes[u.x<180?0:1];l.u.push(u);l.p+=pw(u);}
   const li=lanes[0].p>=lanes[1].p?0:1,L=lanes[li],lx=li?270:90;
-  if(Math.random()<(1-pf.skill)*.05&&el>=6){const o=pick(aff.filter(o=>o.c.type!=='spell'));if(o){m.play(me,o.i,rnd(30,330),me===0?rnd(340,560):rnd(40,260));return;}}
   // ---- Verteidigung
   const st=this.st,lead=m.crowns[me]-m.crowns[op],late=m.t>150;
   let thr=95*(.8+.4*pf.skill)*st.def;
@@ -566,12 +569,14 @@ class Brain{
    if(best){m.play(me,best.o.i,best.pos.x,best.pos.y);return;}
   }
   // ---- Angriff
+  if(lanes[0].p+lanes[1].p>thr*.3&&el<9.3)return;
   if(el>=5){for(const o of aff){const c=o.c;
    if(c.elix&&el>=8&&!fr.some(u=>u.c.elix)){if(m.play(me,o.i,pick([40,320]),me===0?500:100))return;}
    if((c.kind==='barrel'||c.kind==='grave')&&el>=Math.max(6,c.cost)){const t=pick(foeT.filter(t=>!t.dead));if(t&&m.play(me,o.i,t.x+(c.kind==='grave'?30:0),t.y))return;}
    if(c.kind==='rage'||c.kind==='heal'||c.kind==='clone'){const g=fr.filter(u=>!u.building&&(c.kind!=='heal'||u.hp<u.maxhp*.7)&&!inMy(u));if(g.length>=2&&m.play(me,o.i,g[0].x,g[0].y))return;}}}
   let gate=5.6+(1-pf.aggr)*2+st.gate-(dbl?1.2:0)+(this.est>=7?1:0)-(this.est<=3?1.8:0)-clamp((el-this.est-2)*.5,0,1.6)+(late?(lead>0?1.4:lead<0?-1.6:0):0);gate=clamp(gate,4,9.4);if(m.t<10)gate=Math.max(gate,7);
-  if(el<gate&&el<9.6)return;
+  const fY=u=>me===0?u.y<RY+120:u.y>RY-120;const pushP=fr.reduce((q,u)=>q+(!u.building&&fY(u)?pw(u):0),0);
+  if(el<gate&&el<9.6&&!(pushP>=110&&el>=4))return;
   const eTot=lanes[0].p+lanes[1].p;
   if(eTot>thr*.6&&el<9.2)return;
   // Zauber: Finisher oder Cluster in der gegnerischen Hälfte
@@ -581,6 +586,26 @@ class Brain{
   const front=u=>me===0?u.y<RY+120:u.y>RY-120;
   const F=[[],[]];for(const u of fr)if(front(u)&&!u.building)F[u.x<180?0:1].push(u);
   const fp=F.map(a=>a.reduce((s,u)=>s+pw(u),0)),eDef=[0,0];for(const u of en)if(!inMy(u))eDef[u.x<180?0:1]+=pw(u);
+  {const push=fp[0]+fp[1],arch=this.arch,tkH=hand.filter(o=>isTankC(o.c)),tkOn=fr.some(u=>isTankC(u.c)),
+   cl=()=>{let l=eDef[0]+foeT[0].hp*.02<=eDef[1]+foeT[1].hp*.02?0:1;return foeT[l].dead?1-l:l;},bx=l=>l?270:90;
+   if(push<60){
+    // Siege: Armbrust/Moerser in Reichweite des Turms
+    const sg=aff.find(o=>(o.c.id==='xbow'||o.c.id==='mortar')&&!fr.some(u=>u.c.id===o.c.id));
+    if(sg&&el>=sg.c.cost+.5){const l=cl();if(m.play(me,sg.i,bx(l),me===0?345:255))return;}
+    // Tank im Deck: gezielt sparen und hinten spielen
+    if(tkH.length&&!tkOn&&(arch==='beatdown'||this.st.tank>=.5)){const a=tkH.find(o=>el>=o.c.cost+(arch==='beatdown'?1:.3));
+     if(a){this.lastL=cl();if(m.play(me,a.i,bx(this.lastL),me===0?545:55))return;}
+     if(arch==='beatdown'&&el<9.4)return;}
+    // Tunnelgraeber auf den schwaecheren Turm
+    const mn=aff.find(o=>o.c.anywhere);
+    if(mn&&el>=mn.c.cost+2){const l=cl(),t=foeT[l];if(!t.dead&&m.play(me,mn.i,t.x,t.y+(me===0?34:-34)))return;}
+    // schnelle Turmjaeger an der Bruecke, wenn die Lane schwach verteidigt ist
+    const fw=aff.filter(o=>isFastWin(o.c)&&!o.c.anywhere&&o.c.cost+1.5<=el).sort((x,y)=>x.c.cost-y.c.cost)[0];
+    if(fw){const l=cl();if(eDef[l]<120||el>=9){this.lastL=l;if(m.play(me,fw.i,bx(l),fw.c.fly?(me===0?520:80):(me===0?RY+RH+24:RY-RH-24)))return;}}
+    // Spawner-Gebaeude / Verteidigungsgebaeude als stabiler Anker
+    const bd=aff.find(o=>o.c.type==='building'&&(o.c.spawner||o.c.hitsAir||o.c.proj)&&!o.c.elix&&!o.c.minR&&o.c.id!=='xbow'&&!fr.some(u=>u.building));
+    if(bd&&el>=bd.c.cost+2&&m.play(me,bd.i,180+(Math.random()<.5?-22:22),me===0?395:205))return;
+   }}
   const pl=fp[0]>=fp[1]?0:1;
   if(fp[pl]>=110){
    const lead=F[pl].slice().sort((a,b)=>b.hp-a.hp)[0];
