@@ -491,7 +491,7 @@ class Match{
     if(Math.abs(a.py-RY)<RH)a.x=clamp(a.x,bx-BW,bx+BW);else a.y=RY+(Math.sign(a.py-RY)||1)*RH;}}
  }
  step(dt){
-  if(this.over)return;this.t+=dt;const rate=(this.t>=120?2:1)/2.8;
+  if(this.over)return;this.t+=dt;const rate=(this.ot&&this.t>=300?3:this.t>=120?2:1)/2.8;
   for(const k of[0,1]){this.el[k]=Math.min(10,this.el[k]+rate*dt);const b=this.brains[k];if(b)b.tick(this,k,dt);}
   for(const u of this.units)this.updUnit(u,dt);
   for(const t of this.towers)this.updTower(t,dt);
@@ -503,7 +503,7 @@ class Match{
   if(!this.over){const[a,b]=this.crowns;
    if(this.t>=180&&!this.ot){if(a!==b)return this.finish(a>b?0:1);this.ot=true;}
    if(this.ot){if(a!==b)return this.finish(a>b?0:1);
-    if(this.t>=240){const s=k=>this.tw[k].reduce((q,t)=>q+(t.dead?0:t.hp/t.maxhp),0),x=s(0),y=s(1);this.finish(Math.abs(x-y)<.01?-1:(x>y?0:1));}}}
+    if(this.t>=360){const s=k=>this.tw[k].reduce((q,t)=>q+(t.dead?0:t.hp/t.maxhp),0),x=s(0),y=s(1);this.finish(Math.abs(x-y)<.01?-1:(x>y?0:1));}}}
  }
 }
 
@@ -522,7 +522,7 @@ class Brain{
   this.arch=a;this.st=STYLES[{beatdown:0,cycle:1,control:2,bridge:3,siege:2,balanced:4}[a]];}this.est=5;this.cd=rnd(2,5);this.lane=Math.random()<.5?0:1;this.cr=0;this.cro=0;}
  seen(c,x,y){this.est=Math.max(0,this.est-c.cost);this.opSeen=this.opSeen||{};this.opSeen[c.id]=(this.opSeen[c.id]||0)+1;
   if(c.type!=='spell'&&y!=null){this.eLane=x<180?0:1;this.eCard=c;this.eT=this.tNow||0;}}
- tick(m,me,dt){this.tNow=m.t;this.est=Math.min(10,this.est+(m.t>=120?2:1)/2.8*dt);this.cd-=dt;if(this.cd>0)return;this.cd=.12+Math.pow(1-this.pf.skill,1.3)*1.5+rnd(0,.2);this.think(m,me);}
+ tick(m,me,dt){this.tNow=m.t;this.est=Math.min(10,this.est+(m.ot&&m.t>=300?3:m.t>=120?2:1)/2.8*dt);this.cd-=dt;if(this.cd>0)return;this.cd=.12+Math.pow(1-this.pf.skill,1.3)*1.5+rnd(0,.2);this.think(m,me);}
  spellTarget(c,us,me){
   if(!us.length)return null;let best=null;
   if(c.kind&&c.kind!=='poison'&&c.kind!=='tornado'&&c.kind!=='log')return null;
@@ -840,7 +840,7 @@ function musStep(n,t,bat,sd){const key=bat?'bat':'menu',bar=Math.floor(n/8)%4,s=
   tn(MN(ch[s%3]+12),sd*.9,'square',.018,0,t,MG);if(mi>=0)tn(MN(PENT.bat[mi]),sd*1.9,'sawtooth',.03,0,t,MG);}
  else{tn(MN(ch[s%3]),sd*2.2,'triangle',.05,0,t,MG);if(s===0)tn(MN(ch[0]-12),sd*7,'sine',.1,0,t,MG);if(mi>=0)tn(MN(PENT.menu[mi]),sd*3,'sine',.045,0,t,MG);}}
 function musTick(){if(S.mute||!AC||AC.state!=='running'||!MG)return;const live=(mode==='battle'&&pm&&!pm.over)||(mode==='watch'&&wm&&!wm.over),mm=live?'bat':'menu',cur=pm&&mode==='battle'?pm:wm;
- const bpm=live?((cur&&cur.t>=120)?144:124):84,sd=60/bpm/2;if(MUS.m!==mm){MUS.m=mm;MUS.step=0;MUS.next=AC.currentTime+.1;}
+ const bpm=live?((cur&&cur.ot&&cur.t>=300)?165:(cur&&cur.t>=120)?144:124):84,sd=60/bpm/2;if(MUS.m!==mm){MUS.m=mm;MUS.step=0;MUS.next=AC.currentTime+.1;}
  if(MUS.next<AC.currentTime-.3)MUS.next=AC.currentTime+.05;while(MUS.next<AC.currentTime+.3){musStep(MUS.step++,MUS.next,live,sd);MUS.next+=sd;}}
 setInterval(musTick,90);
 document.addEventListener('pointerdown',()=>{if(!S.mute){try{audio();}catch(e){}}});
@@ -1236,13 +1236,14 @@ function hud(m,watch){
  $('#oppAv').textContent=m.p[top].av||'👤';$('#oppName').textContent=m.p[top].name+' 🏆'+(m.p[top].trophies|0);$('#oppCrowns').innerHTML=crownsHTML(m.crowns[bot]);
  $('#meAv').textContent=m.p[bot].av||'👤';$('#meName').textContent=m.p[bot].name+' 🏆'+(m.p[bot].trophies|0);$('#meCrowns').innerHTML=crownsHTML(m.crowns[top]);
  if(watch){watchPanel($('#wTop'),m,top);watchPanel($('#wBot'),m,bot);}
- const tm=$('#timer');tm.textContent=m.ot?'⚡ '+fmt(240-m.t):fmt(180-m.t);tm.classList.toggle('dbl',m.t>=120);
+ const tm=$('#timer');tm.textContent=m.ot?'⚡ '+fmt(360-m.t):fmt(180-m.t);tm.classList.toggle('dbl',m.t>=120);tm.style.color=m.ot&&m.t>=300?'#ff5a5a':'';
  if(!watch){const el=m.el[0];$('#elixFill').style.width=el/10*100+'%';$('#elixNum').textContent=Math.floor(el);
   const h=m.hand[0].join(',')+'|'+m.hand[0].map(id=>CARDS[id].cost<=el?1:0).join('')+'|'+view.sel+'|'+m.queue[0][0];
   if(h!==lastHand){lastHand=h;$('#cards').innerHTML=m.hand[0].map((id,i)=>cardHTML(id,S.cards[id].lvl,(CARDS[id].cost>el?'no ':'')+(view.sel===i?'sel':'')).replace('class="card','data-i="'+i+'" class="card')).join('');$('#nextCard').innerHTML='Nächste'+cardHTML(m.queue[0][0],0);}}
  if(!watch){const c=view.sel>=0&&CARDS[m.hand[0][view.sel]];setHTML($('#info'),c?`<span><b>${c.name} · ${c.role}</b><br>${c.desc}</span>`:'<span>Tippe eine Karte an, um zu sehen, was sie tut.</span>','info');}
  $('#lblBtn').classList.toggle('off',S.labels===false);
  const b=$('#banner');if(m.t>=120&&m.t<122&&lastBan!==1){lastBan=1;b.textContent='DOPPELTES ELIXIER!';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');}
+ if(m.ot&&m.t>=300&&m.t<302&&lastBan!==3){lastBan=3;b.textContent='DREIFACHES ELIXIER!';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');}
  if(m.ot&&m.t<182&&lastBan!==2){lastBan=2;b.textContent='VERLÄNGERUNG!';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');}
 }
 function watchPanel(el,m,k){
@@ -1501,6 +1502,199 @@ Brain.prototype.think=function(m,me){
  if(best)m.play(me,best[0],best[1],best[2]);
  }catch(e){return prev.call(this,m,me);}finally{SB.used+=performance.now()-now;}
 };
+})();
+
+// Gelernt: Elixier zählen, Kartenzyklus mitverfolgen, günstig kontern (positive Elixier-Trades),
+// Turm kleine Gegner erledigen lassen, nicht zu früh/ins Leere spielen, bei Elixier-Nachteil warten,
+// Gegner bestrafen wenn er ausgegeben hat oder seinen Konter im Zyklus hat, Endspiel (Vorsprung halten / alles riskieren).
+// Jeder Tipp ist an das Können (raw = 0..1) gekoppelt: schwache Bots kennen kaum etwas und spielen impulsiv.
+(function(){
+const near=(me,u)=>me===0?u.y>RY-45:u.y<RY+45;
+const ecost=u=>u.c.cost/(u.c.count||1);
+const P=l=>l.reduce((s,u)=>s+pw(u),0);
+const brY=me=>me===0?RY+RH+24:RY-RH-24, bkY=me=>me===0?545:55;
+const strongAns=c=>c&&!c.bOnly&&(c.type==='building'?(c.dps>=100&&!c.minR&&c.id!=='xbow'):c.type==='troop'&&(c.count*c.dps>=130||(c.splash&&c.dps>=60)));
+const weakLane=(m,me,en)=>{const op=1-me,d=[0,0];for(const u of en)if(me===0?u.y<RY:u.y>RY)d[u.x<180?0:1]+=pw(u);
+ const s=k=>{const t=m.tw[op][k];return t.dead?-500:d[k]+t.hp*.02;};return s(0)<=s(1)?0:1;};
+
+// Realistischere Stärkeverteilung: von sehr schwach (~0.28) bis voll stark (1.0); raw bleibt das Original-Können
+const prevProfile=World.prototype.profile;
+World.prototype.profile=function(b){const p=prevProfile.call(this,b);
+ p.brain=new Brain(Object.assign({},b,{skill:clamp(.2+b.skill*.8,0,1),raw:b.skill}));return p;};
+
+// Kartenzyklus des Gegners: die letzten 4 gespielten Karten liegen in der Warteschlange, nicht in seiner Hand
+const prevSeen=Brain.prototype.seen;
+Brain.prototype.seen=function(c,x,y){prevSeen.call(this,c,x,y);(this.seq=this.seq||[]).push(c.id);if(this.seq.length>40)this.seq.shift();};
+Brain.prototype.cantAnswer=function(){
+ const ids=Object.keys(this.opSeen||{});if(ids.length<7)return false;const last=(this.seq||[]).slice(-4);
+ return !ids.some(id=>!last.includes(id)&&strongAns(CARDS[id]));};
+
+Brain.prototype.pro=function(m,me){
+ const pf=this.pf,r=pf.raw!=null?pf.raw:pf.skill,op=1-me,el=m.el[me],t=m.t;
+ const hand=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})),aff=hand.filter(o=>o.c.cost<=el+1e-6);
+ if(!aff.length)return false;
+ const lvl=c=>m.p[me].lvl(c.id),lead=m.crowns[me]-m.crowns[op];
+ const en=m.units.filter(u=>u.team===op&&u.hp>0),fr=m.units.filter(u=>u.team===me&&u.hp>0);
+ const foe=m.tw[op].filter(x=>!x.dead),myT=m.tw[me].filter(x=>!x.dead);
+ const thr=en.filter(u=>!u.building&&near(me,u)),lanes=[[],[]];thr.forEach(u=>lanes[u.x<180?0:1].push(u));
+ const li=P(lanes[0])>=P(lanes[1])?0:1,L=lanes[li],pwr=P(L);
+ const lx=l=>l?270:90;
+
+ // Schwache Anfänger: gelegentlich planlos Karten werfen
+ if(r<.3&&el>=5&&Math.random()<.05*(1-r)){const o=pick(aff.filter(o=>o.c.type!=='spell'));
+  if(o)return m.play(me,o.i,rnd(30,330),me===0?rnd(340,560):rnd(40,260));}
+
+ // Tipp: Nie als Erster früh spielen – Elixier füllen, auf den Gegner reagieren
+ if(t<14&&r>=.35&&!(this.seq&&this.seq.length)&&el<(r>.6?9.3:7.5)&&!thr.length)return true;
+
+ // ================= VERTEIDIGUNG =================
+ if(pwr>=35){
+  const dmin=Math.min(999,...L.map(u=>Math.min(999,...myT.map(q=>Math.hypot(u.x-q.x,u.y-q.y)))));
+  const anyAir=L.some(u=>u.fly),allAir=L.every(u=>u.fly),rush=L.some(u=>u.bOnly);
+  const swarm=L.length>=3&&L.every(u=>u.c.hp<260),tanky=L.some(u=>u.c.hp>=1100),danger=dmin<140;
+  // Tipp: Kleine Gegner einfach den Turm erledigen lassen (spart Elixier)
+  if(r>=.35&&pwr<80&&L.length<=3&&!rush&&!anyAir&&dmin<175&&Math.random()<r)return true;
+  // Tipp: Gegner herankommen lassen, Elixier sammeln, dann kontern
+  if(r>=.4&&!danger&&dmin>230&&el<6.5&&!anyAir&&!rush)return true;
+  const ec=L.reduce((s,u)=>s+ecost(u),0),cx=L.reduce((s,u)=>s+u.x,0)/L.length,cy=L.reduce((s,u)=>s+u.y,0)/L.length;
+  let best=null,bs=-1e9;
+  for(const o of aff){const c=o.c;let s,pos;
+   if(c.type==='spell'){const q=this.spellTarget(c,L,me);if(!q)continue;
+    if(q.v<(c.cost<=2?c.cost*.9:c.cost+1))continue;s=(q.v-c.cost)+3;pos=q.pos;}
+   else{
+    if(c.bOnly)continue;
+    if(c.type==='building'&&(c.elix||c.minR||c.id==='xbow'||(c.noAir&&allAir)||(c.spawner&&!rush)))continue;
+    if(allAir&&!c.hitsAir&&!c.fly)continue;
+    let v=c.count*(c.hp/10+c.dps*1.2)*sc(lvl(c));
+    if(c.range>60)v*=1.1;if(c.splash)v*=1.1;if(c.heal)v*=.5;
+    if(swarm){if(c.splash)v*=1.5;else if(c.count===1)v*=.6;}                       // Schwarm -> Flächenschaden
+    if(tanky&&c.dps*c.count>=110)v*=1.3;if(tanky&&c.dps*c.count<45&&!c.heal)v*=.5;  // Tank -> viel Schaden
+    if(anyAir&&!c.hitsAir&&!c.fly)v*=.75;
+    const ad=v/pwr;if(ad<.45||(ad<.7&&!danger))continue;
+    s=(ec-c.cost)+Math.min(ad,1.6)*1.5;                                            // positiver Elixier-Trade zählt
+    if(c.type==='building'&&tanky)s+=1;                                            // Gebäude in die Mitte zieht Tanks
+    pos=this.place(m,me,c,cx,cy,rush,tanky);}
+   s+=rnd(-1,1)*(1-r)*1.5;
+   if(s>bs){bs=s;best={o,pos};}}
+  if(best&&(bs>-2||danger))return m.play(me,best.o.i,best.pos.x,best.pos.y);
+  return false;
+ }
+
+ const late=t>=165||m.ot;
+ // ================= ENDSPIEL =================
+ // Vorsprung halten: nichts riskieren
+ if(r>=.4&&t>=165&&!m.ot&&lead>0&&el<9.4)return true;
+ // Rückstand: alles riskieren, stärkste Truppe an die schwächere Brücke
+ if(r>=.45&&lead<0&&t>=160){
+  if(el<5)return true;
+  const tr=aff.filter(o=>o.c.type==='troop'&&!o.c.heal).sort((a,b)=>b.c.cost-a.c.cost)[0];
+  if(tr){const l=weakLane(m,me,en);return m.play(me,tr.i,lx(l),brY(me)+(me===0?-6:6));}
+ }
+ // ================= ANGRIFF =================
+ // Tipp: Bei Elixier-Nachteil nicht angreifen
+ if(r>=.5&&!late&&this.est-el>=3&&this.est>=7&&el<9.3)return true;
+ // Tipp: Konter des Gegners steckt im Zyklus -> jetzt die Gewinnkarte spielen
+ if(r>=.55&&el>=6&&this.cantAnswer()){
+  const w=aff.filter(o=>(isTankC(o.c)||isFastWin(o.c))&&el>=o.c.cost+(isTankC(o.c)?.5:1)).sort((a,b)=>b.c.cost-a.c.cost)[0];
+  if(w){const l=weakLane(m,me,en),tw=m.tw[op][l];
+   if(w.c.anywhere&&!tw.dead)return m.play(me,w.i,tw.x,tw.y+(me===0?34:-34));
+   return m.play(me,w.i,lx(l),isTankC(w.c)?bkY(me):brY(me));}}
+ // Tipp: Gegner hat gerade alles ausgegeben -> sofort gegenüber Druck machen
+ if(r>=.5&&this.est<=2.5&&el>=5&&!fr.some(u=>!u.building&&(me===0?u.y<RY+60:u.y>RY-60))){
+  const f=aff.filter(o=>o.c.type==='troop'&&!o.c.heal&&o.c.cost<=el-1).sort((a,b)=>b.c.dps*b.c.count/b.c.cost-a.c.dps*a.c.count/a.c.cost)[0];
+  if(f){const l=this.lastL!=null&&Math.random()<.6?1-this.lastL:weakLane(m,me,en);this.lastL=l;return m.play(me,f.i,lx(l),f.c.range>50?bkY(me):brY(me));}}
+ // Tipp: Zauber-Zyklus – bei vollem Elixier günstigen Zauber auf Turm (kein Elixier verschwenden)
+ if(r>=.6&&el>=9.6){const sp=aff.find(o=>o.c.type==='spell'&&!o.c.kind&&o.c.dmg>0&&o.c.cost<=3),tg=foe.filter(x=>x.type!=='k').sort((a,b)=>a.hp-b.hp)[0];
+  if(sp&&tg)return m.play(me,sp.i,tg.x,tg.y);}
+ return false;
+};
+
+const prevThink=Brain.prototype.think;
+Brain.prototype.think=function(m,me){let h=false;try{h=this.pro(m,me);}catch(e){h=false;}if(h)return;return prevThink.call(this,m,me);};
+})();
+
+// === PATCH 10: Elite-Taktik (Verteidigung, Konter, Überzahl, Verlängerung 3 Min. / Dreifach-Elixier) ===
+(function(){
+const P=l=>l.reduce((s,u)=>s+pw(u),0), dps=c=>c.dps*(c.count||1), ec=u=>u.c.cost/(u.c.count||1);
+const nearMine=(me,u)=>me===0?u.y>RY-30:u.y<RY+30, mineHalf=(me,u)=>me===0?u.y>RY:u.y<RY;
+const tx=me=>me===0?430:170, bk=me=>me===0?540:60, br=me=>me===0?RY+RH+24:RY-RH-24;
+const weak=(m,me,en)=>{const op=1-me,d=[0,0];for(const u of en)if(!mineHalf(me,u)&&!u.building)d[u.x<180?0:1]+=pw(u);
+ const s=k=>{const t=m.tw[op][k];return t.dead?-500:d[k]+t.hp*.03;};return s(0)<=s(1)?0:1;};
+Brain.prototype.pro2=function(m,me){
+ const pf=this.pf,r=pf.raw!=null?pf.raw:pf.skill;if(r<.45)return false;
+ const op=1-me,el=m.el[me],t=m.t,tri=m.ot&&t>=300,ot=m.ot,lead=m.crowns[me]-m.crowns[op];
+ const hand=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})),aff=hand.filter(o=>o.c.cost<=el+1e-6);if(!aff.length)return false;
+ const lvl=c=>m.p[me].lvl(c.id),sv=c=>c.count*(c.hp/10+c.dps*1.2)*sc(lvl(c));
+ const en=m.units.filter(u=>u.team===op&&u.hp>0),fr=m.units.filter(u=>u.team===me&&u.hp>0&&!u.building);
+ const foe=m.tw[op].filter(x=>!x.dead),myT=m.tw[me].filter(x=>!x.dead);
+ const thr=en.filter(u=>!u.building&&nearMine(me,u)),lanes=[[],[]];thr.forEach(u=>lanes[u.x<180?0:1].push(u));
+ const li=P(lanes[0])>=P(lanes[1])?0:1,L=lanes[li],pwr=P(L),lx=li?270:90;
+ // ---------- Verteidigung ----------
+ if(pwr>=40){
+  const dmin=Math.min(999,...L.map(u=>Math.min(999,...myT.map(q=>Math.hypot(u.x-q.x,u.y-q.y)))));
+  const tank=L.filter(u=>u.c.hp>=1100||u.bOnly).sort((a,b)=>b.hp-a.hp)[0],air=L.some(u=>u.fly),allAir=L.every(u=>u.fly);
+  const swarm=L.length>=3&&L.every(u=>u.c.hp<260),ranged=L.some(u=>u.range>=60),support=L.length>=2&&tank;
+  const cx=L.reduce((s,u)=>s+u.x,0)/L.length,cy=L.reduce((s,u)=>s+u.y,0)/L.length;
+  // Gegner auf MEINER Seite kommen lassen: Turm hilft, Elixier sammeln (nicht bei Fliegern/Rushern)
+  if(!tri&&dmin>215&&el<7&&!air&&!L.some(u=>u.c.charge||u.c.jump))return true;
+  let best=null,bs=-1e9;
+  for(const o of aff){const c=o.c;let s,pos;
+   if(c.type==='spell'){const q=this.spellTarget(c,L,me);if(!q||q.v<c.cost+(c.cost<=2?-.1:.8))continue;s=q.v-c.cost+2.5;pos=q.pos;}
+   else{
+    if(c.bOnly)continue;
+    if(c.type==='building'){if(c.elix||c.minR||c.id==='xbow'||(c.noAir&&allAir)||(c.spawner&&!tank))continue;}
+    if(allAir&&!c.hitsAir)continue;
+    let v=sv(c),d=dps(c);
+    // hoher Schaden gegen Tanks, billige Schwarm-/Flächenkonter gegen Schwärme, Fernkämpfer gegen Nahkämpfer
+    if(tank){if(d>=140)v*=1.8;else if(d<70&&!c.heal)v*=.35;if(c.count>=3&&c.dps*c.count>=140)v*=1.2;}
+    if(swarm){if(c.splash)v*=1.9;else if(c.count===1)v*=.5;else if(c.count>=3)v*=1.2;}
+    if(air&&!c.hitsAir)v*=.4;if(air&&c.hitsAir&&c.range>=60)v*=1.2;
+    if(ranged&&c.spd>=30&&c.range<=40)v*=1.3;
+    if(c.heal)v*=.4;
+    const ad=v/pwr;if(ad<.5&&dmin>120)continue;
+    s=(L.reduce((q,u)=>q+ec(u),0)-c.cost)+Math.min(ad,2)*1.6;
+    if(c.type==='building'&&tank)s+=1.5;
+    // Position: auf der eigenen Seite, Fernkämpfer hinten, Konter zum Turm hin gezogen
+    let y=c.type==='building'?(me===0?395:205):(c.range>60?cy+(me===0?80:-80):cy+(me===0?35:-35));
+    y=me===0?clamp(y,340,515):clamp(y,85,260);
+    pos={x:clamp(c.type==='building'?180+(li?22:-22):cx+(lx-cx)*(tank?.6:.35),20,340),y};}
+   s+=rnd(-.6,.6)*(1-r);if(s>bs){bs=s;best={o,pos};}}
+  if(best&&(bs>-1.5||dmin<130))return m.play(me,best.o.i,best.pos.x,best.pos.y);
+  return false;
+ }
+ // ---------- Verlängerung: Dreifach-Elixier = Dauerdruck, sonst Krone sichern ----------
+ if(ot){
+  const tg=foe.filter(x=>x.type!=='k').sort((a,b)=>a.hp-b.hp)[0]||foe[0];
+  if(tg){const sp=aff.find(o=>o.c.type==='spell'&&!o.c.kind&&!o.c.own&&o.c.dmg*sc(lvl(o.c))*.35>=tg.hp*.9);if(sp)return m.play(me,sp.i,tg.x,tg.y);}
+  const need=tri?2.5:5;
+  if(el>=need+ (tri?0:1)){
+   const l=weak(m,me,en),w=aff.filter(o=>o.c.type==='troop'&&!o.c.heal).sort((a,b)=>b.c.cost-a.c.cost)[0];
+   const tank=aff.find(o=>isTankC(o.c)&&el>=o.c.cost+(tri?0:1));
+   if(tank&&!fr.some(u=>isTankC(u.c)))return m.play(me,tank.i,lx2(l),bk(me));
+   // Unterstützung hinter vorhandener Truppe
+   const lead=fr.filter(u=>mineHalf(op,u)||(me===0?u.y<RY+60:u.y>RY-60)).sort((a,b)=>b.hp-a.hp)[0];
+   if(lead){const sup=aff.filter(o=>o.c.type==='troop'&&!o.c.bOnly).sort((a,b)=>dps(b.c)/b.c.cost-dps(a.c)/a.c.cost)[0];
+    if(sup)return m.play(me,sup.i,clamp(lead.x,20,340),me===0?clamp(lead.y+45,RY+30,520):clamp(lead.y-45,80,RY-30));}
+   if(w&&(tri||lead===undefined))return m.play(me,w.i,lx2(l),w.c.range>50?bk(me):br(me));
+  }
+  return tri?false:true; // normale Verlängerung: sparen, auf Fehler warten
+ }
+ // ---------- Angriff mit Überzahl/Unterstützung ----------
+ // Überlebender Tank an der Brücke: Fernkämpfer/Schadensträger dahinter schicken
+ const tk=fr.filter(u=>isTankC(u.c)&&(me===0?u.y<RY+110:u.y>RY-110)).sort((a,b)=>b.hp-a.hp)[0];
+ if(tk&&el>=5.5){const sup=aff.filter(o=>o.c.type==='troop'&&!o.c.bOnly&&!o.c.heal&&o.c.cost<=el-1).sort((a,b)=>dps(b.c)-dps(a.c))[0];
+  if(sup)return m.play(me,sup.i,clamp(tk.x,20,340),me===0?tk.y+50:tk.y-50);}
+ // Gegner überlegen: nichts riskieren
+ if(this.est>=7&&el<8.6&&!tri)return true;
+ // Spiel wenn Gegner ausgegeben hat und nichts von mir vorne ist -> Gegendruck
+ return false;
+};
+function lx2(l){return l?270:90;}
+const pt=Brain.prototype.think;
+Brain.prototype.think=function(m,me){let h=false;try{h=this.pro2(m,me);}catch(e){h=false;}if(h)return;return pt.call(this,m,me);};
+// Schnellere Reaktion im Dreifach-Elixier
+const ptick=Brain.prototype.tick;
+Brain.prototype.tick=function(m,me,dt){if(m.ot&&m.t>=300&&this.pf.skill>.5)this.cd-=dt*1.5;return ptick.call(this,m,me,dt);};
 })();
 
 renderTab();requestAnimationFrame(frame);
