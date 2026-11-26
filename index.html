@@ -587,6 +587,16 @@ class Brain{
    if(c.elix&&el>=8&&!fr.some(u=>u.c.elix)){if(m.play(me,o.i,pick([40,320]),me===0?500:100))return;}
    if((c.kind==='barrel'||c.kind==='grave')&&el>=Math.max(6,c.cost)){const t=pick(foeT.filter(t=>!t.dead));if(t&&m.play(me,o.i,t.x+(c.kind==='grave'?30:0),t.y))return;}
    if(c.kind==='rage'||c.kind==='heal'||c.kind==='clone'){const g=fr.filter(u=>!u.building&&(c.kind!=='heal'||u.hp<u.maxhp*.7)&&!inMy(u));if(g.length>=2&&m.play(me,o.i,g[0].x,g[0].y))return;}}}
+  // ---- Sparen: teure Karte im Blatt abwarten, statt vorher billigere zu verheizen
+  {const ids=new Set(hand.map(o=>o.id));this.sv=this.sv||{};for(const k in this.sv)if(!ids.has(k))delete this.sv[k];
+   const want=hand.filter(o=>{const c=o.c;if(c.type==='spell'||c.elix||c.heal||c.cost<5)return false;if(this.sv[o.id]===undefined)this.sv[o.id]=Math.random();return this.sv[o.id]<.5+.45*pf.skill+(this.arch==='beatdown'?.2:0);}).sort((a,b)=>b.c.cost-a.c.cost)[0];
+   if(want){
+    if(want.c.cost>el+1e-6)return; // noch nicht genug Elixier: weiter sparen
+    const c=want.c;let l=foeT[0].hp<=foeT[1].hp?0:1;if(foeT[l].dead)l=1-l;const x=l?270:90;let y;
+    if(c.type==='building'){if(c.id==='xbow')y=me===0?345:255;else{if(m.play(me,want.i,180+(Math.random()<.5?-22:22),me===0?395:205)){delete this.sv[want.id];return;}y=null;}}
+    else y=(c.bOnly||c.hp*c.count>=900)?(me===0?530:70):c.range>50?(me===0?520:80):(me===0?470:130);
+    if(y!=null){this.lastL=l;if(m.play(me,want.i,x,y)){delete this.sv[want.id];return;}}
+   }}
   let gate=5.6+(1-pf.aggr)*2+st.gate-(dbl?1.2:0)+(this.est>=7?1:0)-(this.est<=3?1.8:0)-clamp((el-this.est-2)*.5,0,1.6)+(late?(lead>0?1.4:lead<0?-1.6:0):0);gate+=rnd(-1.5,1.5)*(1-pf.skill);gate=clamp(gate,3.5,9.4);if(m.t<10)gate=Math.max(gate,7);
   const fY=u=>me===0?u.y<RY+120:u.y>RY-120;const pushP=fr.reduce((q,u)=>q+(!u.building&&fY(u)?pw(u):0),0);
   if(el<gate&&el<9.6&&!(pushP>=110&&el>=4))return;
@@ -1937,6 +1947,68 @@ renderTab=function(){
  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
  setHTML($('#content'),`<div class="sect">📊 Statistiken</div>`+statsHTML(),'tab');
 };
+})();
+
+// ===== CLANS =====
+(function(){
+const MAXM=20,KICK_AFTER=240000;
+S.clans=Array.isArray(S.clans)?S.clans:[];S.cn=S.cn||1;
+const CN=['Drachenwache','Turmtitanen','Kronenjäger','Elixierjunkies','Königsmacher','Pfannkuchen-Pack','Nachtwölfe','Blitzbande','Eisgarde','Goldene Gilde','Feuerfalken','Schlosswächter','Gobbo-Gang','Mauerbrecher'];
+const BD=['🛡️','⚔️','🐉','🔥','❄️','⚡','🦅','🐺','👑','💎','🌙','☠️'];
+const bk=b=>'b:'+b.name,botOf=k=>world.bots.find(b=>bk(b)===k);
+const byId=id=>S.clans.find(c=>c.id===id),clanOf=k=>S.clans.find(c=>c.mem.some(m=>m.k===k));
+const info=k=>{if(k==='me')return{name:S.name,av:'👑',tr:S.trophies,on:true,me:1};const b=botOf(k);return b?{name:b.name,av:b.av,tr:b.trophies,on:b.online}:null;};
+const total=c=>c.mem.reduce((s,m)=>s+((info(m.k)||{}).tr||0),0);
+function mk(k,name,badge,req){const c={id:S.cn++,name,badge,req,lead:k,mem:[{k,t:Date.now()}],ban:[]};S.clans.push(c);return c;}
+function drop(c,k){c.mem=c.mem.filter(m=>m.k!==k);if(!c.mem.length){S.clans.splice(S.clans.indexOf(c),1);return;}
+ if(c.lead===k)c.lead=c.mem.slice().sort((a,b)=>info(b.k).tr-info(a.k).tr)[0].k;}
+function kick(c,k){drop(c,k);if(!c.ban.includes(k))c.ban.push(k);if(k==='me')toast('🥾 Du wurdest aus „'+c.name+'“ gekickt');}
+function tick(){
+ const now=Date.now(),names=new Set(world.bots.map(bk));
+ for(const c of S.clans.slice()){c.mem=c.mem.filter(m=>m.k==='me'||names.has(m.k));
+  if(!c.mem.length){S.clans.splice(S.clans.indexOf(c),1);continue;}
+  if(!c.mem.some(m=>m.k===c.lead))c.lead=c.mem.slice().sort((a,b)=>info(b.k).tr-info(a.k).tr)[0].k;}
+ for(const b of world.bots){const k=bk(b);if(!b.online||b.inMatch||clanOf(k))continue;
+  if(Math.random()>.012+.03*b.act)continue;
+  if(b.cc==null)b.cc=.05+Math.random()*.05; // 5–10 % gründen selbst einen Clan
+  if(Math.random()<b.cc){const used=new Set(S.clans.map(c=>c.name.toLowerCase()));let n=pick(CN),i=2;while(used.has(n.toLowerCase()))n=pick(CN)+' '+(i++);
+   mk(k,n,pick(BD),Math.floor(b.trophies*.4/100)*100);}
+  else{const el=S.clans.filter(c=>c.mem.length<MAXM&&c.req<=b.trophies&&!c.ban.includes(k));if(el.length)pick(el).mem.push({k,t:now});}}
+ // Bot-Anführer werfen nach einer Weile schwache Mitglieder raus
+ for(const c of S.clans.slice()){if(c.lead==='me'||c.mem.length<4||Math.random()>.04)continue;
+  const avg=total(c)/c.mem.length;
+  const w=c.mem.filter(m=>m.k!==c.lead&&now-m.t>=KICK_AFTER&&info(m.k).tr<avg*.5).sort((a,b)=>info(a.k).tr-info(b.k).tr)[0];
+  if(w)kick(c,w.k);}
+}
+setInterval(tick,3000);setTimeout(tick,1000);
+const membersHTML=(c,canKick)=>c.mem.map(m=>({m,i:info(m.k)})).sort((a,b)=>b.i.tr-a.i.tr).map(({m,i},n)=>`<div class="row ${i.me?'me':''}" style="cursor:default"><div class="rk">${n+1}</div><div class="ra">${i.av}</div><div style="flex:1;min-width:0"><div class="rn">${m.k===c.lead?'👑 ':''}${i.name}</div><span class="rs">${i.on?'<span class="dot"></span>online':'<span class="dot off"></span>offline'}</span></div><div class="rt">🏆 ${i.tr}</div>${canKick&&m.k!==c.lead?`<button class="btn red mini" data-act="clanKick" data-c="${c.id}" data-k="${m.k}">🥾</button>`:''}</div>`).join('');
+const head=c=>`<div class="arena" style="background:linear-gradient(#5a48c8,#2a1f70)"><div style="font-size:46px">${c.badge}</div><div class="an">${c.name}</div><div class="sub">${c.mem.length}/${MAXM} Mitglieder · 🏆 ${total(c)} · Beitritt ab ${c.req} 🏆</div></div>`;
+function clanTab(){
+ const my=clanOf('me');let h='';
+ if(my)h+=head(my)+`<div class="sect">Mitglieder${my.lead==='me'?' <span class="chip">🥾 = kicken</span>':''}</div>`+membersHTML(my,my.lead==='me')+`<button class="btn red" style="width:100%;margin-top:10px" data-act="clanLeaveAsk">🚪 Clan verlassen</button>`;
+ else h+=`<button class="btn green big" style="width:100%" data-act="clanNew">➕ Clan erstellen</button>`;
+ const oth=S.clans.filter(c=>c!==my).sort((a,b)=>total(b)-total(a));
+ h+=`<div class="sect">${my?'Andere Clans':'Clans beitreten'} (${oth.length})</div>`+(oth.length?oth.map(c=>`<div class="row" data-act="clanView" data-c="${c.id}"><div class="ra">${c.badge}</div><div style="flex:1;min-width:0"><div class="rn">${c.name}</div><span class="rs">${c.mem.length>=MAXM?'voll · ':''}${c.mem.length}/${MAXM} · ab ${c.req} 🏆</span></div><div class="rt">🏆 ${total(c)}</div></div>`).join(''):'<div class="stat">Noch keine Clans – sie entstehen gleich von allein.</div>');
+ return h;
+}
+const rt2=renderTab;
+renderTab=function(){if(tab!=='clan')return rt2();renderTop();document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));setHTML($('#content'),clanTab(),'tab');};
+const nav=$('#nav'),btn=document.createElement('button');btn.dataset.act='tab';btn.dataset.t='clan';btn.innerHTML='<span>🛡️</span>Clan';nav.insertBefore(btn,nav.querySelector('[data-t="stats"]'));
+const redraw=()=>{save();lastHTML.tab='';renderTab();};
+Object.assign(ACT,{
+ clanNew(){if(clanOf('me'))return;showModal(`<h2>Clan erstellen</h2><div style="display:flex;flex-direction:column;gap:8px"><input id="clName" maxlength="16" placeholder="Clan-Name (3–16 Zeichen)" style="padding:10px;border-radius:10px;border:0;font:800 15px inherit"><input id="clReq" type="number" min="0" max="9999" value="0" placeholder="Mindest-Trophäen" style="padding:10px;border-radius:10px;border:0;font:800 15px inherit"><select id="clBadge" style="padding:10px;border-radius:10px;border:0;font:800 18px inherit">${BD.map(b=>`<option>${b}</option>`).join('')}</select><button class="btn green" data-act="clanCreate">Erstellen</button><button class="btn" data-act="clanClose">Abbrechen</button></div>`);},
+ clanCreate(){const n=$('#clName').value.replace(/[<>&"]/g,'').trim(),req=Math.max(0,Math.min(9999,Math.floor(+$('#clReq').value)||0));
+  if(n.length<3)return toast('Name zu kurz');if(S.clans.some(c=>c.name.toLowerCase()===n.toLowerCase()))return toast('Name schon vergeben');
+  mk('me',n,$('#clBadge').value,req);closeModal();redraw();toast('🛡️ Clan erstellt');},
+ clanClose(){closeModal();},
+ clanView(el){const c=byId(+el.dataset.c);if(!c)return;const can=!clanOf('me')&&c.mem.length<MAXM&&c.req<=S.trophies&&!c.ban.includes('me');
+  showModal(`<h2>${c.badge} ${c.name}</h2><div style="text-align:center;font-size:13px;margin-bottom:8px">${c.mem.length}/${MAXM} Mitglieder · 🏆 ${total(c)} · ab ${c.req} 🏆</div><div style="max-height:45vh;overflow:auto">${membersHTML(c,false)}</div>${clanOf('me')?'':can?`<button class="btn green" style="width:100%;margin-top:8px" data-act="clanJoin" data-c="${c.id}">Beitreten</button>`:`<div class="stat">${c.ban.includes('me')?'Du wurdest hier gekickt.':c.mem.length>=MAXM?'Clan ist voll.':'Du brauchst mindestens '+c.req+' 🏆.'}</div>`}<button class="btn" style="width:100%;margin-top:8px" data-act="clanClose">Schließen</button>`);},
+ clanJoin(el){const c=byId(+el.dataset.c);if(!c||clanOf('me'))return;if(c.mem.length>=MAXM)return toast('Clan ist voll');if(c.req>S.trophies||c.ban.includes('me'))return toast('Beitritt nicht möglich');
+  c.mem.push({k:'me',t:Date.now()});closeModal();redraw();toast('Willkommen in '+c.name+'!');},
+ clanKick(el){const c=byId(+el.dataset.c),k=el.dataset.k;if(!c||c.lead!=='me'||k==='me')return;const i=info(k);kick(c,k);redraw();toast('🥾 '+(i?i.name:'Spieler')+' gekickt');},
+ clanLeaveAsk(){showModal(`<h2>Clan verlassen?</h2><button class="btn red" style="width:100%" data-act="clanLeave">Verlassen</button><button class="btn" style="width:100%;margin-top:8px" data-act="clanClose">Abbrechen</button>`);},
+ clanLeave(){const c=clanOf('me');if(c)drop(c,'me');closeModal();redraw();}});
+const ra2=ACT.resetAll;ACT.resetAll=function(...a){S.clans=[];S.cn=1;ra2.apply(this,a);};
 })();
 
 renderTab();requestAnimationFrame(frame);
