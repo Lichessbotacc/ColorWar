@@ -1491,7 +1491,7 @@ const rt2=renderTab;
 renderTab=function(){if(tab!=='coach')return rt2();renderTop();
  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
  const L=S.custom;
- setHTML($('#content'),`<div class="sect">🎓 Deine Bots (${L.length})</div><div class="stat" style="margin:0 0 8px">Deine Bots spielen wie alle anderen: Start bei 0 🏆, Matchmaking, Rangliste, Truhen.</div><button class="btn green" style="width:100%;margin-bottom:10px" data-act="cnew">➕ Neuen Bot erstellen</button>`+(L.length?L.map(b=>`<div class="mrow"><div style="font-size:30px">${b.av}</div><div class="t" style="text-align:left">${b.name}<br><span class="rs">🏆 ${b.trophies} · ${STYLES[b.style].n} · ${b.rules.length} Lektionen${b.inMatch?' · ⚔️':''}</span></div><button class="btn green mini" data-act="cwatch" data-id="${b.id}">📺 Zuschauen</button><button class="btn red mini" data-act="cstart" data-id="${b.id}">▶ Training</button><button class="btn blue mini" data-act="cedit" data-id="${b.id}">✏️</button><button class="btn mini" data-act="cdel" data-id="${b.id}">🗑</button></div>`).join(''):'<div class="stat">Noch kein Bot.</div>'),'tab');};
+ setHTML($('#content'),`<div class="sect">🎓 Deine Bots (${L.length})</div><div class="stat" style="margin:0 0 8px">Deine Bots spielen wie alle anderen: Start bei 0 🏆, Matchmaking, Rangliste, Truhen.</div><button class="btn green" style="width:100%;margin-bottom:10px" data-act="cnew">➕ Neuen Bot erstellen</button>`+(L.length?L.map(b=>`<div class="mrow"><div style="font-size:30px">${b.av}</div><div class="t" style="text-align:left">${b.name}<br><span class="rs">🏆 ${b.trophies} · ${STYLES[b.style].n} · ${Object.keys(b.know||{}).length} Konzepte · ${(b.prog||[]).length} Regeln · ${b.rules.length} Lektionen${b.inMatch?' · ⚔️':''}</span></div><button class="btn green mini" data-act="cwatch" data-id="${b.id}">📺 Zuschauen</button><button class="btn red mini" data-act="cstart" data-id="${b.id}">▶ Training</button><button class="btn blue mini" data-act="cedit" data-id="${b.id}">✏️</button><button class="btn mini" data-act="cdel" data-id="${b.id}">🗑</button></div>`).join(''):'<div class="stat">Noch kein Bot.</div>'),'tab');};
 // ---- Editor
 function ruleText(r){const n=CARDS[r.card]?CARDS[r.card].name:'';switch(r.t){case'minEl':return n+' erst ab '+r.n+' Elixier';case'defOnly':return n+' nur zur Verteidigung';case'back':return n+' hinten spielen';case'spellMin':return n+' erst bei ≥'+r.n+' Gegnern';case'counter':return 'Gegner spielt '+(CARDS[r.enemy]?CARDS[r.enemy].name:'?')+' → '+n;}return'';}
 const draft=b=>({id:b.id,name:b.name,av:b.av,style:b.style,skill:b.skill,aggr:b.aggr,act:b.act,deck:b.deck.slice(),rules:b.rules.map(r=>Object.assign({},r)),cards:b.cards});
@@ -1581,7 +1581,7 @@ Object.assign(ACT,{
 
 // === PATCH 5: Eigene Bots starten unwissend; sie spielen normal in der Ladder, du schaust zu und coachst ===
 (function(){
-const full=Brain.prototype.think;
+const full=Brain.prototype.think;Brain.prototype.fullThink=full;
 Brain.prototype.think=function(m,me){return this.pf.custom?this.naive(m,me):full.call(this,m,me);};
 // Unwissender Bot: spielt planlos. Jedes beigebrachte Wissen schaltet ein Stück echte Logik frei.
 Brain.prototype.naive=function(m,me){
@@ -1616,6 +1616,296 @@ setInterval(()=>{
  if(w&&mode==='menu'){const m=world.matches.find(x=>x.A===w.b||x.B===w.b);
   if(m){window.waitFor=null;m.coach=w.b;startWatch(m);}else if(Date.now()-w.t>90000){window.waitFor=null;toast('Noch kein Gegner gefunden – tippe nochmal auf Zuschauen');}}
 },100);
+})();
+
+// === PATCH 6a: Bot-Gehirn (Wissen, Wenn-Dann-Regeln, Extras) ===
+(function(){
+const LN=l=>l?270:90;
+const isTank=c=>c.type==='troop'&&(isTankC(c)||(c.bOnly&&c.hp>=1400&&!c.fly));
+// Gegnerische Karte merken (Karte, Zeit, Spur)
+const sn0=Brain.prototype.seen;
+Brain.prototype.seen=function(c,x,y){sn0.call(this,c,x,y);if(y!=null)this.lastE={id:c.id,t:this.tNow||0,lane:x<180?0:1};};
+// Lagebild: alles, was Bedingungen wissen wollen
+Brain.prototype.ctx=function(m,me){
+ const op=1-me,en=m.units.filter(u=>u.team===op&&u.hp>0),fr=m.units.filter(u=>u.team===me&&u.hp>0);
+ const side=u=>me===0?u.y>RY:u.y<RY;
+ const mine=en.filter(u=>side(u)&&!u.building);
+ const lanes=[[],[]];mine.forEach(u=>lanes[u.x<180?0:1].push(u));
+ const lp=lanes.map(l=>l.reduce((s,u)=>s+pw(u),0)),li=lp[0]>=lp[1]?0:1,T=lanes[li];
+ const tx=T.length?T.reduce((s,u)=>s+u.x,0)/T.length:LN(li),ty=T.length?T.reduce((s,u)=>s+u.y,0)/T.length:(me===0?420:180);
+ const foeT=m.tw[op],myT=m.tw[me],eDef=[0,0];
+ en.forEach(u=>{if(!side(u)&&!u.building)eDef[u.x<180?0:1]+=pw(u);});
+ const sc2=l=>eDef[l]+foeT[l].hp*.02+(foeT[l].dead?1e5:0),weak=sc2(0)<=sc2(1)?0:1;
+ const push=fr.filter(u=>!u.building&&!side(u)&&u.hp>u.maxhp*.3);
+ const frac=a=>Math.min(1,...a.filter(t=>!t.dead).map(t=>t.hp/t.maxhp));
+ const le=this.lastE&&m.t-this.lastE.t<=8?this.lastE:null;
+ return{m,me,en,fr,mine,lanes,lp,li,T,tx,ty,mineP:lp[0]+lp[1],foeT,weak,push,pushP:push.reduce((s,u)=>s+pw(u),0),
+  lead:m.crowns[me]-m.crowns[op],el:m.el[me],est:this.est,t:m.t,dbl:m.t>=120,le,myLow:frac(myT),foeLow:frac(foeT),eDef,side};
+};
+// Eine Bedingung auswerten
+Brain.prototype.cond=function(x,c){
+ const v=+c.v,M=x.mine;
+ switch(c.k){
+  case'el_ge':return x.el>=v;case'el_le':return x.el<=v;
+  case'est_le':return x.est<=v;case'est_ge':return x.est>=v;
+  case'time_ge':return x.t>=v;case'dbl':return x.dbl;
+  case'en_cnt':return M.length>=v;case'en_none':return M.length===0;
+  case'en_fly':return M.some(u=>u.fly);
+  case'en_swarm':return M.length>=3&&M.filter(u=>u.c.hp<260).length>=3;
+  case'en_tank':return M.some(u=>u.c.hp>=1100||u.bOnly);
+  case'en_ranged':return M.some(u=>u.range>=60);
+  case'en_bld':return x.en.some(u=>u.building);
+  case'en_card':return !!x.le&&x.le.id===c.v;
+  case'en_has':return x.en.some(u=>u.c.id===c.v&&(u.building||x.side(u)));
+  case'en_left':return M.length>0&&x.li===0;case'en_right':return M.length>0&&x.li===1;
+  case'push_on':return x.pushP>=60;case'push_off':return x.pushP<60;
+  case'lead_pos':return x.lead>0;case'lead_neg':return x.lead<0;case'lead_eq':return x.lead===0;
+  case'mytw_low':return x.myLow*100<v;case'foetw_low':return x.foeLow*100<v;
+ }
+ return false;
+};
+// Wohin spielt eine Regel ihre Karte? null = geht gerade nicht
+Brain.prototype.rpos=function(m,me,x,c,pos){
+ const by=me===0?RY+RH+24:RY-RH-24,bk=me===0?540:60,sp=c.type==='spell';
+ const lane={weak:x.weak,L:0,R:1,same:x.le?x.le.lane:x.weak,other:x.le?1-x.le.lane:x.weak};
+ const spellAt=l=>{const t=x.foeT[l];return t.dead?null:{x:t.x,y:t.y};};
+ const near=l=>{const t=x.foeT[l];return t.dead?{x:LN(l),y:by}:{x:t.x,y:t.y+(me===0?34:-34)};};
+ if(c.anywhere&&(/^bridge_/.test(pos)||pos==='tower_weak')){const l=pos==='tower_weak'?(x.foeT[0].hp<=x.foeT[1].hp?0:1):lane[pos.slice(7)];return near(l);}
+ switch(pos){
+  case'counter':case'cluster':{
+   if(sp){const r=this.spellTarget(c,pos==='cluster'?x.en:x.mine,me);if(r)return r.pos;return pos==='counter'&&x.mine.length?{x:x.tx,y:x.ty}:null;}
+   if(!x.mine.length)return null;
+   return this.place(m,me,c,x.tx,x.ty,x.mine.some(u=>u.bOnly),x.mine.some(u=>u.c.hp>=1100));}
+  case'bridge_weak':case'bridge_same':case'bridge_other':case'bridge_L':case'bridge_R':{
+   const l=lane[pos.slice(7)];return sp?spellAt(l):{x:LN(l),y:by};}
+  case'back_weak':case'back_same':case'back_other':case'back_L':case'back_R':{
+   if(sp)return null;return{x:LN(lane[pos.slice(5)]),y:bk};}
+  case'mid':return sp?null:{x:180,y:me===0?400:200};
+  case'tower_weak':{const l=x.foeT[0].dead?1:x.foeT[1].dead?0:(x.foeT[0].hp<=x.foeT[1].hp?0:1);return sp?spellAt(l):{x:LN(l),y:by};}
+  case'behind_push':{
+   if(!x.push.length)return null;const ld=x.push.slice().sort((a,b)=>b.hp-a.hp)[0];
+   if(sp)return{x:ld.x,y:ld.y};
+   return{x:clamp(ld.x,20,340),y:me===0?clamp(ld.y+50,335,520):clamp(ld.y-50,80,265)};}
+ }
+ return null;
+};
+// Wenn-Dann-Programm: erste passende Regel gewinnt
+Brain.prototype.runProg=function(m,me){
+ const P=(this.pf.prog||[]).filter(r=>r.on!==false&&r.card&&CARDS[r.card]);if(!P.length)return false;
+ const x=this.ctx(m,me);this.rcd=this.rcd||{};
+ for(const r of P){
+  if(m.t-(this.rcd[r.id]===undefined?-999:this.rcd[r.id])<(r.cd||0))continue;
+  if(!(r.if||[]).every(c=>this.cond(x,c)))continue;
+  const i=m.hand[me].indexOf(r.card),c=CARDS[r.card];if(i<0||m.el[me]<c.cost-1e-6)continue;
+  const p=this.rpos(m,me,x,c,r.pos);if(!p)continue;
+  if(m.play(me,i,p.x,p.y)){this.rcd[r.id]=m.t;this.lastRule={r:r,t:m.t};this.nFired=(this.nFired||0)+1;return true;}
+ }
+ return false;
+};
+// Zusatzwissen (Konzepte außer den fünf Kern-Konzepten)
+Brain.prototype.extras=function(m,me){
+ const k=this.pf.know||{};if(!Object.keys(k).length)return false;
+ const x=this.ctx(m,me),el=x.el,hand=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})),aff=hand.filter(o=>o.c.cost<=el+1e-6),thr=x.mineP>=55;
+ if(k.lane)this.lane=x.weak;
+ if(k.lead&&m.t>=165&&!m.ot&&x.lead>0&&!thr&&el<9.3)return true;       // Vorsprung halten
+ if(k.finish&&(m.t>=150||m.ot)){
+  for(const o of aff){const c=o.c;if(c.type!=='spell'||c.kind||c.own||!(c.dmg>0))continue;
+   const dm=c.dmg*sc(m.p[me].lvl(c.id))*.35,tg=x.foeT.filter(t=>!t.dead&&t.type!=='k'&&t.hp<=dm).sort((a,b)=>a.hp-b.hp)[0];
+   if(tg&&m.play(me,o.i,tg.x,tg.y))return true;}}
+ if(!thr){
+  if(k.tank){
+   const tks=hand.filter(o=>isTank(o.c));
+   if(tks.length&&!x.fr.some(u=>isTank(u.c))){
+    const a=tks.find(o=>el>=o.c.cost+1);
+    if(a){if(m.play(me,a.i,LN(x.weak),me===0?545:55))return true;}
+    else if(el<9.5)return true;}}                                       // auf den Tank sparen
+  if(k.punish&&this.est<=3&&el>=5){
+   const val=c=>c.count*(c.hp/10+c.dps*1.2)/c.cost,f=aff.filter(o=>o.c.type==='troop'&&!o.c.heal&&!o.c.bOnly&&o.c.cost<=el-1).sort((a,b)=>val(b.c)-val(a.c))[0];
+   if(f){const l=this.lastE?1-this.lastE.lane:x.weak;if(!x.foeT[l].dead&&m.play(me,f.i,LN(l),me===0?RY+RH+24:RY-RH-24))return true;}}
+ }
+ return false;
+};
+// Unwissender Bot: Jedes Konzept schaltet ein Stück echte Logik frei
+Brain.prototype.naive=function(m,me){
+ const k=this.pf.know||{},el=m.el[me];
+ if(['defend','push','save','spells','place'].every(c=>k[c])){if(this.extras(m,me))return;return this.fullThink(m,me);}
+ const aff=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})).filter(o=>o.c.cost<=el+1e-6);
+ if(!aff.length)return;
+ if(k.defend){this.cpT=k.push?(this.cpT===1e9?0:this.cpT):1e9;if(this.smart(m,me))return;}
+ if(this.extras(m,me))return;
+ let gate=k.save?6:2.5;if(k.double&&m.t>=120)gate-=1.5;if(k.cycle)gate=Math.min(gate,3);
+ if(el<gate)return;
+ const en=m.units.filter(u=>u.team!==me&&u.hp>0);let pool=aff;
+ if(k.cycle){const tr=aff.filter(o=>o.c.type==='troop').sort((a,b)=>a.c.cost-b.c.cost);if(tr.length)pool=[tr[0]];}
+ const o=pick(pool),c=o.c;
+ if(c.type==='spell'){
+  if(k.spells){const r=this.spellTarget(c,en,me);if(!r||r.v<c.cost)return;m.play(me,o.i,r.pos.x,r.pos.y);return;}
+  m.play(me,o.i,rnd(20,340),rnd(40,560));return;}
+ let x=rnd(20,340),y=me===0?rnd(340,570):rnd(30,260);
+ if(k.place){const lane=k.lane?this.lane:(this.lane=Math.random()<.3?1-this.lane:this.lane),back=c.range>50||c.bOnly;x=lane?270:90;y=me===0?(back?540:470):(back?60:130);}
+ m.play(me,o.i,x,y);
+};
+// Eigene Bots prüfen zuerst ihr Wenn-Dann-Programm
+const t5=Brain.prototype.think;
+Brain.prototype.think=function(m,me){if(this.pf.custom&&this.runProg(m,me))return;return t5.call(this,m,me);};
+})();
+
+// === PATCH 6b: Lektions-UI deluxe ===
+(function(){
+const KN=[
+['defend','🛡 Verteidigen','Gegner auf deiner Seite mit passenden Karten kontern (Flieger → Luftabwehr, Schwarm → Fläche, Tank → viel Schaden).',1],
+['push','⚔️ Konterangriff','Überlebende Truppen nach der Verteidigung mit weiteren Karten unterstützen.',1],
+['save','💧 Elixier sparen','Nicht jede Karte sofort spielen, erst ab ca. 6 Elixier angreifen.',1],
+['spells','🔥 Zauber zielen','Zauber nur einsetzen, wenn sie genug Gegner treffen.',1],
+['place','📍 Platzieren','Truppen an der Brücke einer Spur, Fernkämpfer und Tanks ganz hinten.',1],
+['tank','🗿 Tank-Plan','Auf einen Tank sparen, ihn hinten spielen und dahinter aufbauen.',0],
+['punish','🎯 Bestrafen','Hat der Gegner gerade viel Elixier ausgegeben, sofort auf der anderen Spur angreifen.',0],
+['lane','🛤 Schwache Spur','Immer die Spur angreifen, die der Gegner schwächer verteidigt.',0],
+['cycle','🔁 Zyklus','Billige Karten schnell durchspielen, um Gewinnkarten wieder zu bekommen.',0],
+['double','⚡ Doppeltes Elixier','Ab Minute 2 deutlich aggressiver spielen.',0],
+['finish','👑 Turm-Finisher','Am Ende Zauber auf angeschlagene Türme werfen.',0],
+['lead','🏁 Vorsprung halten','Bei Führung kurz vor Schluss nur noch verteidigen.',0]];
+const COND={
+el_ge:['💧 Mein Elixier mindestens …','n',7],el_le:['💧 Mein Elixier höchstens …','n',3],
+est_le:['🕵 Gegner-Elixier (geschätzt) höchstens …','n',3],est_ge:['🕵 Gegner-Elixier (geschätzt) mindestens …','n',8],
+time_ge:['⏱ Spielzeit ab … Sekunden','n',120],dbl:['⚡ Doppeltes Elixier läuft'],
+en_cnt:['👥 Mindestens … Gegner auf meiner Seite','n',2],en_none:['🕊 Kein Gegner auf meiner Seite'],
+en_fly:['🦇 Gegner-Flieger auf meiner Seite'],en_swarm:['🐜 Gegner-Schwarm auf meiner Seite'],en_tank:['🗿 Gegner-Tank/Turmjäger auf meiner Seite'],
+en_ranged:['🏹 Gegner-Fernkämpfer auf meiner Seite'],en_bld:['🏠 Gegner hat ein Gebäude'],
+en_card:['🃏 Gegner hat gerade (≤8 s) gespielt: …','card'],en_has:['🃏 Diese Gegnerkarte ist auf meiner Seite: …','card'],
+en_left:['⬅ Bedrohung auf linker Spur'],en_right:['➡ Bedrohung auf rechter Spur'],
+push_on:['⚔️ Mein Angriff läuft'],push_off:['🚫 Kein Angriff läuft'],
+lead_pos:['👑 Ich führe nach Kronen'],lead_neg:['😬 Ich liege zurück'],lead_eq:['🤝 Kronen gleich'],
+mytw_low:['🏰 Einer meiner Türme unter … %','n',50],foetw_low:['🎯 Ein Gegnerturm unter … %','n',50]};
+const POS=[['counter','🛡 Konter: vor die Bedrohung (Zauber: auf sie)'],['cluster','💥 Zauber auf größten Gegnerhaufen'],['bridge_weak','🌉 Brücke, schwächere Gegnerspur'],['bridge_same','🌉 Brücke, gleiche Spur wie Gegners letzte Karte'],['bridge_other','🌉 Brücke, andere Spur als Gegners letzte Karte'],['bridge_L','🌉 Brücke links'],['bridge_R','🌉 Brücke rechts'],['back_weak','⬇ Hinten, schwächere Spur'],['back_L','⬇ Hinten links'],['back_R','⬇ Hinten rechts'],['mid','🏠 Mitte (Gebäude)'],['tower_weak','🎯 Auf den schwächeren Gegnerturm'],['behind_push','🤝 Hinter meine vorderste Truppe (Zauber: auf sie)']];
+const POSD=Object.fromEntries(POS.map(p=>[p[0],p[1].replace(/^\S+\s/,'')]));
+const uid=()=>'r'+Date.now().toString(36)+Math.floor(Math.random()*1e5);
+const newRule=()=>({id:null,name:'',on:true,if:[],card:'',pos:'counter',cd:4});
+window.L6={tab:'know',rule:newRule(),cc:'el_ge',cn:'7',ck:PLAY_CARDS[0].id,text:'',card:null,n:6,sitCard:null,sitPos:'auto'};
+const condText=c=>{const d=COND[c.k];if(!d)return c.k;return d[0].replace('…',d[1]==='card'?(CARDS[c.v]?CARDS[c.v].name:'?'):(c.v==null?'':c.v));};
+const ruleDesc=r=>{const c=CARDS[r.card];return 'WENN '+((r.if&&r.if.length)?r.if.map(condText).join(' UND '):'immer')+' → '+(c?c.name:'?')+' ('+(POSD[r.pos]||r.pos)+', Pause '+(r.cd||0)+' s)';};
+function oldText(r){const n=CARDS[r.card]?CARDS[r.card].name:'';switch(r.t){case'minEl':return n+' erst ab '+r.n+' Elixier';case'defOnly':return n+' nur zur Verteidigung';case'back':return n+' immer hinten spielen';case'never':return n+' nie spielen';case'spellMin':return n+' erst bei ≥'+r.n+' Gegnern';case'counter':return 'Gegner spielt '+(CARDS[r.enemy]?CARDS[r.enemy].name:'?')+' → '+n;}return'';}
+const STOPW=['turm','türme','tuerme','brücke','bruecke','hinten','links','rechts','mitte','spur','gegner','dann','wenn','zauber','angriff','flieger','tank','karte','elixier','elixiers','spiele','sobald','falls'];
+function fc6(txt,deck){
+ const w=txt.toLowerCase().replace(/[^a-zäöüß0-9\s-]/g,' ').split(/\s+/).filter(Boolean),by={};
+ w.forEach((t,pos)=>{if(t.length<4||STOPW.includes(t))return;
+  for(const c of PLAY_CARDS){const ks=c.name.toLowerCase().split(/[\s-]+/);
+   if(ks.some(k=>k.length>=4&&(k.startsWith(t)||t.startsWith(k.slice(0,5))))){const d=deck.includes(c.id)?0:1;if(!by[pos]||d<by[pos].d)by[pos]={c,d};}}});
+ const out=[];Object.keys(by).map(Number).sort((a,b)=>a-b).forEach(p=>{if(!out.includes(by[p].c))out.push(by[p].c);});return out;}
+function parseIf(txt,bot){
+ const t=txt.toLowerCase();if(!/wenn|falls|sobald|solange/.test(t))return null;
+ const m=t.match(/^(.*?)(?:\bdann\b|,)(.*)$/);if(!m)return null;
+ const cp=m[1],ap=m[2],cs=[],num=re=>{const q=cp.match(re);return q?+(q[1]||q[2]):null;};
+ const ac=fc6(ap,bot.deck);if(!ac.length)return null;
+ const est=/gegner[^,]{0,25}elixier/.test(cp);let n;
+ if((n=num(/(?:weniger als|höchstens|unter|maximal)\s*(\d+)\s*elixier/))!=null||(n=num(/elixier\s*(?:ist\s*)?(?:weniger als|höchstens|unter|maximal)\s*(\d+)/))!=null)cs.push({k:est?'est_le':'el_le',v:n});
+ else if((n=num(/(\d+)\s*elixier/))!=null||(n=num(/elixier[^\d]{0,20}(\d+)/))!=null)cs.push({k:est?'est_ge':'el_ge',v:n});
+ else if(/gegner.*(leer|ausgegeben|wenig elixier)/.test(cp))cs.push({k:'est_le',v:3});
+ const cc=fc6(cp,bot.deck);
+ if(cc.length)cs.push({k:/spielt|gespielt|setzt|legt/.test(cp)?'en_card':'en_has',v:cc[0].id});
+ else{if(/flieger|luft|drache|ballon/.test(cp))cs.push({k:'en_fly'});if(/schwarm|skelett|horde/.test(cp))cs.push({k:'en_swarm'});
+  if(/\btank|riese|golem|koloss|turmjäger/.test(cp))cs.push({k:'en_tank'});if(/fernk|bogen|schütz/.test(cp))cs.push({k:'en_ranged'});}
+ if(/gebäude/.test(cp))cs.push({k:'en_bld'});if(/doppelt/.test(cp))cs.push({k:'dbl'});
+ if(/führ/.test(cp))cs.push({k:'lead_pos'});if(/zurück|rückstand/.test(cp))cs.push({k:'lead_neg'});if(/gleichstand|unentschieden/.test(cp))cs.push({k:'lead_eq'});
+ if(/kein[^,]*angriff|ohne angriff|nicht angreif/.test(cp))cs.push({k:'push_off'});else if(/angriff läuft|angreife/.test(cp))cs.push({k:'push_on'});
+ if((n=num(/(\d+)\s*sek/))!=null)cs.push({k:'time_ge',v:n});else if((n=num(/minute\s*(\d+)|(\d+)\.?\s*min/))!=null)cs.push({k:'time_ge',v:n*60});
+ if(/links/.test(cp))cs.push({k:'en_left'});if(/rechts/.test(cp))cs.push({k:'en_right'});
+ if(/kein gegner|nichts da/.test(cp))cs.push({k:'en_none'});
+ if((n=num(/(\d+)\s*(?:gegner|einheiten|truppen)/))!=null)cs.push({k:'en_cnt',v:n});
+ const sd=/links/.test(ap)?'L':/rechts/.test(ap)?'R':null;let pos='';
+ if(/gegenspur|andere spur/.test(ap))pos='bridge_other';else if(/gleiche spur|selbe spur/.test(ap))pos='bridge_same';
+ else if(/hinter.*(truppe|angriff)|unterstütz|dahinter/.test(ap))pos='behind_push';
+ else if(/hinten|hinter/.test(ap))pos='back_'+(sd||'weak');
+ else if(/brücke|bruecke|spur|angriff|vorne/.test(ap))pos='bridge_'+(sd||'weak');
+ else if(/mitte/.test(ap))pos='mid';else if(/turm|türm/.test(ap))pos='tower_weak';else if(/gruppe|haufen/.test(ap))pos='cluster';
+ else if(/konter|entgegen|davor|verteidig|dagegen/.test(ap))pos='counter';
+ if(!pos)pos=cs.some(c=>/^en_(?!none|bld)/.test(c.k))?'counter':'bridge_weak';
+ return{id:uid(),name:'',on:true,if:cs,card:ac[0].id,pos,cd:5};}
+function parseOld(txt,bot){
+ const t=txt.toLowerCase(),cs=fc6(txt,bot.deck),num=(t.match(/\d+/)||[])[0];if(!cs.length)return null;
+ if(cs.length>=2&&/gegen|wenn|bei/.test(t))return{t:'counter',enemy:cs[0].id,card:cs[1].id};
+ const c=cs[0];
+ if(/\bnie\b|niemals|nicht spielen|weglassen/.test(t))return{t:'never',card:c.id};
+ if(/verteidig/.test(t))return{t:'defOnly',card:c.id};
+ if(/hinten|hinter/.test(t))return{t:'back',card:c.id};
+ if(num&&c.type==='spell'&&/gegner|einheiten|truppen|ziele/.test(t))return{t:'spellMin',card:c.id,n:+num};
+ if(num&&/elixier|erst|\bab\b/.test(t))return{t:'minEl',card:c.id,n:Math.min(10,+num)};
+ return null;}
+const KW=[['defend',/verteidig|abwehr|kontern/],['push',/konterangriff|gegenangriff|nachlegen/],['save',/spar|geduld|nicht sofort/],['spells',/zauber.*(ziel|gruppe|treff)|(ziel|treff).*zauber/],['place',/platzier/],['tank',/tank/],['punish',/bestraf|punish/],['lane',/schwach.*spur|spur.*wechsel|schwächere/],['cycle',/zyklus|durchspielen|billig/],['double',/doppelt/],['finish',/finish|abschließ/],['lead',/vorsprung|führung halten/]];
+const cb=()=>wm&&wm.coach;
+function reL(){const m=document.querySelector('#modal .mbox'),s=m?m.scrollTop:0;showModal(lessonHTML());const n=document.querySelector('#modal .mbox');if(n)n.scrollTop=s;}
+function curBrain(){if(!cb())return null;const i=wm.p.findIndex(p=>p.bot===wm.coach);return i<0?null:{i,br:wm.brains[i]};}
+const sel=(oc,opts,cur)=>`<select onchange="${oc}">${opts.map(([k,n])=>`<option value="${k}" ${k===cur?'selected':''}>${n}</option>`).join('')}</select>`;
+function lessonHTML(){
+ const b=wm.coach,T=L6.tab;b.know=b.know||{};b.prog=b.prog||[];
+ const tabs=[['know','📘 Wissen'],['rule','🧩 Wenn-Dann'],['text','✍️ Text'],['sit','🎯 Situation'],['cards','🃏 Karten'],['list','📋 Regeln']];
+ let body='';
+ if(T==='know')body=`<div class="stat" style="margin:0 0 6px">Die 5 Kern-Konzepte (🛡⚔️💧🔥📍) zusammen schalten seine komplette Bot-KI frei. Alle anderen sind Extras. Nochmal tippen = verlernen.</div>`+KN.map(([k,n,d,core])=>{const on=!!b.know[k];return `<div class="mrow" style="padding:8px"><div class="t" style="text-align:left"><b>${n}</b>${core?'<span class="chip">Kern</span>':''}<br><span class="rs">${d}</span></div><button class="btn ${on?'green':'blue'} mini" data-act="lknow" data-k="${k}">${on?'✔ Kann er':'Lehren'}</button></div>`;}).join('');
+ else if(T==='rule'){const R=L6.rule;
+  body=`<div class="stat" style="margin:0 0 4px">Regeln werden von oben nach unten geprüft. Die erste, bei der ALLE Bedingungen stimmen und die Karte in der Hand und bezahlbar ist, wird gespielt.</div>
+  <label class="fld">1) WENN … (alle müssen stimmen)</label>`+(R.if.length?R.if.map((c,i)=>`<div class="mrow" style="padding:5px"><div class="t" style="text-align:left">${condText(c)}</div><button class="btn red mini" data-act="cdelc" data-i="${i}">✖</button></div>`).join(''):'<div class="stat">Keine Bedingung = immer.</div>')+
+  sel('L6.cc=this.value',Object.entries(COND).map(([k,d])=>[k,d[0]]),L6.cc)+
+  `<input type="text" inputmode="numeric" value="${L6.cn}" oninput="L6.cn=this.value" placeholder="Zahl (falls nötig)"><select onchange="L6.ck=this.value">${PLAY_CARDS.map(c=>`<option value="${c.id}" ${c.id===L6.ck?'selected':''}>${c.name}</option>`).join('')}</select>
+  <button class="btn blue" style="width:100%;margin-top:4px" data-act="caddc">➕ Bedingung hinzufügen</button>
+  <label class="fld">2) DANN spiele …</label><select onchange="L6.rule.card=this.value"><option value="">– Karte wählen –</option>${b.deck.map(id=>`<option value="${id}" ${R.card===id?'selected':''}>${CARDS[id].name} (${CARDS[id].cost}💧)</option>`).join('')}</select>
+  <label class="fld">3) … und zwar hier</label>${sel('L6.rule.pos=this.value',POS,R.pos)}
+  <label class="fld">4) Pause zwischen zwei Auslösungen (Sekunden)</label><input type="text" inputmode="numeric" value="${R.cd}" oninput="L6.rule.cd=+this.value||0">
+  <button class="btn green" style="width:100%;margin-top:10px" data-act="rsave">${R.id?'💾 Regel aktualisieren':'💾 Regel speichern'}</button>${R.id?'<button class="btn" style="width:100%;margin-top:6px" data-act="rnew">Neue Regel statt bearbeiten</button>':''}`;}
+ else if(T==='text')body=`<label class="fld">✍️ Schreib, was er tun soll</label><input type="text" placeholder="z. B. Wenn Gegner Flieger hat, dann Bogen-Duo hinten" value="${L6.text}" oninput="L6.text=this.value">
+  <button class="btn green" style="width:100%;margin-top:6px" data-act="ltext">Lehren</button>
+  <div class="stat" style="margin:8px 0;text-align:left;line-height:1.5">„Wenn der Gegner Steinhüne spielt, dann Eisenkoloss hinten links“<br>„Wenn Elixier mindestens 8 und kein Angriff läuft, dann Gobbo-Bande an der Brücke“<br>„Wenn Schwarm auf meiner Seite, dann Pfeilhagel“<br>„Wenn ich zurückliege, ab Minute 2, dann Rammbock-Brüder an die Brücke“<br>„Feuerkugel erst bei 3 Gegnern“ · „Jungritter nie spielen“ · „Steinhüne nur zur Verteidigung“<br>Konzepte: „verteidige“, „spare Elixier“, „bestrafe“, „Zyklus“, „Vorsprung halten“ …</div>`;
+ else if(T==='sit'){const s=curBrain();
+  if(!s)body='<div class="stat">Keine Situation verfügbar.</div>';
+  else{const x=s.br.ctx(wm,s.i),grp={};x.mine.forEach(u=>grp[u.c.name]=(grp[u.c.name]||0)+1);
+   body=`<div class="stat" style="margin:0 0 6px;text-align:left;line-height:1.6">💧 Mein Elixier: <b>${x.el.toFixed(1)}</b> · Gegner geschätzt: <b>${x.est.toFixed(1)}</b> · Zeit ${fmt(180-wm.t)}<br>👑 ${x.lead>0?'ich führe':x.lead<0?'ich liege zurück':'Gleichstand'} · ⚔️ ${x.pushP>=60?'Angriff läuft':'kein Angriff'}<br>👥 Auf meiner Seite: ${Object.keys(grp).length?Object.entries(grp).map(([n,c])=>`<span class="tag">${c}× ${n}</span>`).join(''):'niemand'}<br>🃏 Gegner zuletzt: ${x.le?CARDS[x.le.id].name:'–'}<br>🧠 Letzte Regel: ${s.br.lastRule?ruleDesc(s.br.lastRule.r):'–'}</div>
+   <div class="stat">Wähle die Karte aus seiner Hand, die er <b>jetzt</b> spielen sollte:</div><div class="minideck">${wm.hand[s.i].map(id=>`<div data-act="sitcard" data-id="${id}">${cardHTML(id,0,L6.sitCard===id?'sel':'')}</div>`).join('')}</div>
+   <label class="fld">Position</label>${sel('L6.sitPos=this.value',[['auto','🤖 Automatisch'],...POS],L6.sitPos)}
+   <button class="btn green" style="width:100%;margin-top:8px" data-act="lsit">🎯 Aus dieser Situation lernen</button>`;}}
+ else if(T==='cards'){const c=L6.card?CARDS[L6.card]:null;
+  body=`<div class="stat">1) Karte wählen</div><div class="minideck">${b.deck.map(id=>`<div data-act="lcard" data-id="${id}">${cardHTML(id,b.cards[id].lvl,L6.card===id?'sel':'')}</div>`).join('')}</div>`+(c?`<div class="stat" style="margin:6px 0">2) Was soll er mit „${c.name}“ tun?</div>
+  <div style="display:flex;align-items:center;justify-content:center;gap:12px;margin-bottom:6px"><button class="btn mini" data-act="lnum" data-d="-1">−</button><b style="font-size:18px">${L6.n}</b><button class="btn mini" data-act="lnum" data-d="1">+</button></div>
+  <button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="defOnly">🛡 Nur zur Verteidigung</button><button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="back">⬅ Immer hinten spielen</button>
+  ${c.type==='spell'?`<button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="spellMin">🎯 Erst bei ${L6.n} Gegnern</button>`:`<button class="btn blue" style="width:100%;margin:3px 0" data-act="lrule" data-t="minEl">💧 Erst ab ${L6.n} Elixier</button>`}<button class="btn red" style="width:100%;margin:3px 0" data-act="lrule" data-t="never">🚫 Nie spielen</button>`:'');}
+ else body=(b.prog.length?b.prog.map((r,i)=>`<div class="mrow" style="padding:6px;${r.on===false?'opacity:.5':''}"><div class="t" style="text-align:left;font-size:12px"><b>${i+1}.</b> ${ruleDesc(r)}</div><div style="display:flex;flex-direction:column;gap:3px"><div style="display:flex;gap:3px"><button class="btn blue mini" data-act="rup" data-i="${i}">▲</button><button class="btn blue mini" data-act="rdown" data-i="${i}">▼</button></div><div style="display:flex;gap:3px"><button class="btn mini" data-act="rtog" data-i="${i}">${r.on===false?'▶':'⏸'}</button><button class="btn blue mini" data-act="redit" data-i="${i}">✏️</button><button class="btn red mini" data-act="rdelp" data-i="${i}">✖</button></div></div></div>`).join(''):'<div class="stat">Noch keine Wenn-Dann-Regeln.</div>')+
+  (b.rules.length?'<div class="stat" style="margin:10px 0 2px">Karten-Regeln:</div>'+b.rules.map((r,i)=>`<div class="mrow" style="padding:6px"><div class="t" style="text-align:left">${oldText(r)}</div><button class="btn red mini" data-act="ldel" data-i="${i}">✖</button></div>`).join(''):'');
+ return `<h2>🎓 ${b.name}</h2><div class="stat" style="margin:0 0 6px">Kampf pausiert · ${Object.keys(b.know).length}/${KN.length} Konzepte · ${b.prog.length} Regeln</div>
+ <div style="display:flex;flex-wrap:wrap;gap:4px;justify-content:center;margin-bottom:8px">${tabs.map(([k,n])=>`<button class="btn ${T===k?'green':'blue'} mini" data-act="ltab" data-t="${k}">${n}</button>`).join('')}</div>${body}<button class="btn" style="width:100%;margin-top:10px" data-act="close">Weiter zuschauen</button>`;}
+function addProg(r){const b=cb();b.prog=b.prog||[];b.prog.push(r);save();toast('Gelernt: '+ruleDesc(r));L6.tab='list';reL();}
+function teach(k){const b=cb();b.know=b.know||{};if(b.know[k]){delete b.know[k];toast('Verlernt');}else{b.know[k]=true;const e=KN.find(q=>q[0]===k);toast('Gelernt: '+e[1]);}save();reL();}
+const mv=(a,i,d)=>{const j=i+d;if(j<0||j>=a.length)return;[a[i],a[j]]=[a[j],a[i]];};
+Object.assign(ACT,{
+ coachOpen(){if(!cb())return;wm.lesson=true;showModal(lessonHTML());},
+ ltab(el){L6.tab=el.dataset.t;reL();},
+ lknow(el){teach(el.dataset.k);},
+ caddc(){const k=L6.cc,d=COND[k];let v;if(d[1]==='n'){v=parseFloat(L6.cn);if(isNaN(v))return toast('Bitte eine Zahl eingeben');}else if(d[1]==='card')v=L6.ck;L6.rule.if.push(d[1]?{k,v}:{k});reL();},
+ cdelc(el){L6.rule.if.splice(+el.dataset.i,1);reL();},
+ rnew(){L6.rule=newRule();reL();},
+ rsave(){const R=L6.rule;if(!R.card)return toast('Wähle eine Karte');const b=cb();b.prog=b.prog||[];const r=JSON.parse(JSON.stringify(R));
+  if(r.id){const i=b.prog.findIndex(x=>x.id===r.id);if(i>=0)b.prog[i]=r;else b.prog.push(r);}else{r.id=uid();b.prog.push(r);}
+  L6.rule=newRule();save();toast('Regel gespeichert');L6.tab='list';reL();},
+ redit(el){const r=cb().prog[+el.dataset.i];L6.rule=JSON.parse(JSON.stringify(r));L6.tab='rule';reL();},
+ rtog(el){const r=cb().prog[+el.dataset.i];r.on=r.on===false;save();reL();},
+ rup(el){mv(cb().prog,+el.dataset.i,-1);save();reL();},rdown(el){mv(cb().prog,+el.dataset.i,1);save();reL();},
+ rdelp(el){cb().prog.splice(+el.dataset.i,1);save();reL();},
+ ldel(el){cb().rules.splice(+el.dataset.i,1);save();reL();},
+ lcard(el){L6.card=L6.card===el.dataset.id?null:el.dataset.id;reL();},
+ lnum(el){L6.n=clamp(L6.n+(+el.dataset.d),1,10);reL();},
+ lrule(el){if(!L6.card)return;const R=cb().rules,r={t:el.dataset.t,card:L6.card,n:L6.n};
+  for(let i=R.length-1;i>=0;i--)if(R[i].t===r.t&&R[i].card===r.card)R.splice(i,1);R.push(r);save();toast('Gelernt: '+oldText(r));reL();},
+ sitcard(el){L6.sitCard=L6.sitCard===el.dataset.id?null:el.dataset.id;reL();},
+ lsit(){const s=curBrain();if(!s||!L6.sitCard)return toast('Wähle erst eine Karte');
+  const x=s.br.ctx(wm,s.i),id=L6.sitCard,cost=CARDS[id].cost,cs=[];let pos;
+  if(x.mine.length){const top=x.mine.slice().sort((a,b)=>pw(b)-pw(a))[0];cs.push({k:'en_has',v:top.c.id},{k:'el_ge',v:cost});pos='counter';}
+  else{cs.push({k:'el_ge',v:Math.max(cost,Math.min(Math.floor(x.el),cost+3))},{k:'en_none'},x.pushP>=60?{k:'push_on'}:{k:'push_off'});pos='bridge_weak';}
+  if(x.lead>0)cs.push({k:'lead_pos'});else if(x.lead<0)cs.push({k:'lead_neg'});
+  if(L6.sitPos!=='auto')pos=L6.sitPos;L6.sitCard=null;addProg({id:uid(),name:'',on:true,if:cs,card:id,pos,cd:5});},
+ ltext(){const b=cb(),txt=L6.text.trim();if(!txt)return;b.know=b.know||{};
+  const r=parseIf(txt,b);if(r){L6.text='';return addProg(r);}
+  const o=parseOld(txt,b);if(o){const R=b.rules;for(let i=R.length-1;i>=0;i--)if(R[i].t===o.t&&R[i].card===o.card&&(o.t!=='counter'||R[i].enemy===o.enemy))R.splice(i,1);R.push(o);save();L6.text='';toast('Gelernt: '+oldText(o));L6.tab='list';return reL();}
+  const ks=KW.filter(([k,re])=>re.test(txt.toLowerCase())&&!b.know[k]);
+  if(ks.length){ks.forEach(([k])=>b.know[k]=true);save();L6.text='';toast('Gelernt: '+ks.map(([k])=>KN.find(q=>q[0]===k)[1]).join(', '));L6.tab='know';return reL();}
+  toast('Nicht verstanden – nenne Karte + Bedingung („Wenn …, dann …“)');}
+});
 })();
 
 renderTab();requestAnimationFrame(frame);
