@@ -2294,18 +2294,17 @@ function buildDeck(b,key){
  return best&&pen(P,best)<9?best:null;
 }
 const fits=(b,ids)=>{const P=PERS[persOf(b)];return pen(P,ids)<5;};
-globalThis.persOK=function(b,ids){try{return fits(b,ids);}catch(e){return true;}};
+const bd18=botDeck;
+// Decks kommen wie am Anfang aus dem alten Verfahren (Meta/Geschmack + Deck-Tests); der Spielstil wird zum Deck gewählt, nicht umgekehrt
+const classify=b=>{const c=KEYS.filter(k=>k!=='chaos'&&pen(PERS[k],b.deck)<5);const pool=c.length?c:['allround'];return pool[(typeof b.id==='number'?b.id:Math.floor(hh('p'+b.taste)*97))%pool.length];};
 function ensure(b){
- persOf(b);const own=ownOf(b).length;
  const good=Array.isArray(b.deck)&&b.deck.length===8&&new Set(b.deck).size===8&&b.deck.every(id=>b.cards[id]&&b.cards[id].own);
- if(b.dv!==2||!good||(own>=(b.po||0)+2&&!fits(b,b.deck))){
-  const d=buildDeck(b);if(d)b.deck=d;b.dv=2;b.po=own;
- }
+ if(b.dv!==3){b.dv=3;const old=b.deck;b.deck=[];let d=null;try{d=bd18(b);}catch(e){}b.deck=d&&d.length===8?d:old;b.pers=null;}
+ else if(!good){const d=bd18(b);if(d&&d.length===8)b.deck=d;b.pers=null;}
+ if(!PERS[b.pers]||(b.pers!=='chaos'&&pen(PERS[b.pers],b.deck)>=6))b.pers=classify(b);
 }
 const bm0=botManage;
 botManage=function(b){bm0(b);try{ensure(b);}catch(e){}};
-const bd18=botDeck;
-botDeck=function(b){try{const d=buildDeck(b);if(d)return d;}catch(e){}return bd18(b);};
 try{world.bots.forEach(ensure);}catch(e){}
 globalThis.X2={PERS,buildDeck,fits,persOf,pen,ensure,oldDeck:bd18};
 
