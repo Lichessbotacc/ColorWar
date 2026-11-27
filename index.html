@@ -86,7 +86,7 @@ b,.st{text-shadow:0 2px 0 #0008}
 #timer{font-weight:900;font-size:20px;padding:2px 12px;background:#0008;border-radius:12px;min-width:84px;text-align:center}
 #timer.dbl{color:#e58bff;box-shadow:0 0 12px #c33cff}
 #stage{flex:1;position:relative;min-height:0;display:flex;align-items:center;justify-content:center;background:#0b0826;overflow:hidden}
-#cv{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);border-radius:10px;touch-action:none;box-shadow:0 0 30px #000}
+#cv{position:absolute;left:50%;top:0;transform:translateX(-50%);border-radius:10px;touch-action:none;box-shadow:0 0 30px #000}
 #banner{position:absolute;top:35%;left:0;right:0;text-align:center;font-size:30px;font-weight:900;pointer-events:none;opacity:0;text-shadow:0 3px 0 #000,0 0 18px #c33cff}
 #banner.on{animation:ban 2.2s}@keyframes ban{0%{opacity:0;transform:scale(.4)}12%{opacity:1;transform:scale(1.1)}80%{opacity:1}100%{opacity:0;transform:scale(1)}}
 #bar{flex:none;padding:6px 8px calc(8px + env(safe-area-inset-bottom));background:linear-gradient(#1a1250,#0d0830);border-top:2px solid #000a}
@@ -124,6 +124,8 @@ b,.st{text-shadow:0 2px 0 #0008}
 .slotrow{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:8px 0}
 .slotrow .card{--cw:min(64px,16vw);justify-self:center}
 .tag{display:inline-block;background:#0005;border-radius:8px;padding:2px 8px;font-size:11px;font-weight:800;margin:2px}
+#battle{position:absolute}#hud{position:absolute;top:0;left:0;right:0;z-index:5;background:linear-gradient(#2c2080cc,#1a125000);border-bottom:0}#wTop:not(.hidden){margin-top:50px}#info{display:none}#elixWrap{height:16px;margin:0 2px 4px}#elixNum{line-height:13px;font-size:12px}#bar{padding:4px 8px calc(4px + env(safe-area-inset-bottom))}#cards .card{--cw:min(60px,15.5vw)}#nextCard .card{--cw:min(38px,10vw)}
+#bar{position:absolute;left:0;right:0;bottom:0;z-index:5;background:linear-gradient(#0d083000,#0d0830b0 60%);border-top:0;pointer-events:none}#bar #cards,#bar #nextCard{pointer-events:auto}#elixWrap{opacity:.9}
 </style></head><body>
 <div id="app">
  <div id="menu" class="screen">
@@ -283,18 +285,19 @@ const arenaFor=t=>{let r=ARENAS[0];for(const a of ARENAS)if(t>=a.min)r=a;return 
 
 // ---- Fortschritt: gilt identisch für dich und alle Bots
 const START_DECK=PLAY_CARDS.filter(c=>c.starter).map(c=>c.id);
-const NEED={c:[2,4,10,20,40,70,100,150,200,300,400,500],r:[2,4,8,15,25,40,60,80,100,130],e:[1,2,4,8,12,18,25],l:[1,2,3,5]};
-const GOLD=[5,20,50,100,200,350,550,800,1100,1500,2000,2500],GMULT={c:1,r:2.5,e:8,l:20};
+// Upgrade-Kosten exakt wie Clash Royale 2017 (Level je Seltenheit: Gewöhnlich 1-13, Selten 1-11, Episch 1-8, Legendär 1-5)
+const NEED={c:[2,4,10,20,50,100,200,400,800,1000,2000,5000],r:[2,4,10,20,50,100,200,400,800,1000],e:[2,4,10,20,50,100,200],l:[2,4,10,20]};
+const GOLDC=[5,20,50,150,400,1000,2000,4000,8000,20000,50000,100000],GOLDR={c:GOLDC,r:GOLDC.slice(2),e:GOLDC.slice(5),l:GOLDC.slice(8)};
 const XPT=[20,50,100,180,300,450,650,900,1200,1600,2100,2700];
-const CHESTS={wood:{n:'Holztruhe',i:'📦',t:20,k:2,m:1,g:[20,40]},silver:{n:'Silbertruhe',i:'🧰',t:45,k:3,m:1.5,g:[40,80]},gold:{n:'Goldtruhe',i:'🎁',t:120,k:4,m:2.5,g:[100,180]},magic:{n:'Zaubertruhe',i:'💎',t:240,k:5,m:3,g:[150,260]}};
+const CHESTS={wood:{n:'Holztruhe',i:'📦',t:20,k:2,m:1,g:[20,40]},silver:{n:'Silbertruhe',i:'🧰',t:45,k:3,m:1.5,g:[40,80]},gold:{n:'Goldtruhe',i:'🎁',t:120,k:4,m:2.5,g:[100,180]},magic:{n:'Zaubertruhe',i:'💎',t:240,k:5,m:3,g:[150,260]},free:{n:'Gratis-Truhe',i:'🎀',g:[20,40]},crown:{n:'Kronentruhe',i:'👑',g:[90,160]},giant:{n:'Riesentruhe',i:'🗃️',t:360,g:[200,340]},super:{n:'Super-Zaubertruhe',i:'🔮',t:480,g:[500,800]}};
 function newAccount(){const cards={};PLAY_CARDS.forEach(c=>cards[c.id]={lvl:1,copies:0,own:!!c.starter});return{trophies:0,best:0,gold:0,xp:0,lvl:1,wins:0,losses:0,draws:0,form:[],cards,deck:START_DECK.slice(),chests:[null,null,null,null]};}
-const need=(id,l)=>NEED[CARDS[id].rar][l-1],goldNeed=(id,l)=>Math.round(GOLD[l-1]*GMULT[CARDS[id].rar]);
+const need=(id,l)=>NEED[CARDS[id].rar][l-1],goldNeed=(id,l)=>GOLDR[CARDS[id].rar][l-1];
 function canUp(a,id){const d=a.cards[id];return d.own&&d.lvl<RAR[CARDS[id].rar].max&&d.copies>=need(id,d.lvl)&&a.gold>=goldNeed(id,d.lvl);}
 function addXp(a,x){a.xp+=x;let up=0;while(a.lvl<13&&a.xp>=XPT[a.lvl-1]){a.xp-=XPT[a.lvl-1];a.lvl++;up++;}return up;}
 function upgrade(a,id){if(!canUp(a,id))return false;const d=a.cards[id];a.gold-=goldNeed(id,d.lvl);d.copies-=need(id,d.lvl);d.lvl++;addXp(a,d.lvl*({c:3,r:5,e:10,l:20})[CARDS[id].rar]);return true;}
 function matchReward(a,res,crowns){ // res: 1 Sieg, 0 Remis, -1 Niederlage
  const gold=res>0?25+10*crowns:res<0?5+3*crowns:10,xp=res>0?4+crowns:1;let chest=null;
- if(res>0){const f=a.chests.findIndex(c=>!c);if(f>=0){const r=Math.random();chest={type:r<.06?'magic':r<.2?'gold':r<.45?'silver':'wood'};a.chests[f]=chest;}}
+ if(res>0){const f=a.chests.findIndex(c=>!c);if(f>=0){const r=Math.random();chest={type:r<.01?'super':r<.07?'magic':r<.12?'giant':r<.24?'gold':r<.47?'silver':'wood'};a.chests[f]=chest;}}
  a.gold+=gold;const up=addXp(a,xp);a.best=Math.max(a.best||0,a.trophies);return{gold,xp,chest,up};
 }
 function openChest(a,type){
@@ -1050,7 +1053,7 @@ function renderTab(){
   const th=arenaFor(S.trophies),nx=ARENAS.find(x=>x.min>S.trophies),on=world.bots.filter(b=>b.online).length;
   setHTML(c,`<div class="arena" data-act="arenas" style="cursor:pointer;background:linear-gradient(${th.g1},${th.g2})"><div class="sub">${th.i?'Arena '+th.i:'Start'}</div><div class="an">${th.n}</div><div class="tr">🏆 ${S.trophies}</div><div class="sub">${nx?'Nächste Arena ab '+nx.min+' 🏆':'Höchste Arena erreicht'}<br>Antippen: alle Arenen und Karten</div></div>
   <button class="btn green big" style="width:100%" data-act="battle">⚔️ KAMPF</button>
-  <div class="chests">${S.chests.map(chestHTML).join('')}</div>
+  <div class="chests">${S.chests.map(chestHTML).join('')}</div>${globalThis.specialChests?specialChests():''}
   <div class="sect">Dein Deck</div><div class="minideck">${S.deck.map(id=>cardHTML(id,S.cards[id].lvl)).join('')}</div>
   <div class="stat">🟢 ${on} Spieler online · 📺 ${world.matches.length} Live-Kämpfe<br>Siege ${S.wins} · Niederlagen ${S.losses} · Unentschieden ${S.draws}</div>`,'tab');
  }else if(tab==='cards'){
@@ -1266,7 +1269,7 @@ function evSound(m){for(const e of m.ev){if(e==='tower')SND.tower();else if(e.le
 
 // ---- Kampf (Spieler)
 function playerProfile(){return{name:S.name,av:'👑',trophies:S.trophies,deck:S.deck.slice(),kingLvl:S.lvl,lvl:id=>S.cards[id].lvl,brain:null};}
-function showScreen(s){$('#menu').classList.toggle('hidden',s!=='menu');$('#battle').classList.toggle('hidden',s!=='battle');}
+function showScreen(s){try{const de=document.documentElement;if(s==='battle'&&!document.fullscreenElement&&(de.requestFullscreen||de.webkitRequestFullscreen)){const r=(de.requestFullscreen||de.webkitRequestFullscreen).call(de);if(r&&r.catch)r.catch(()=>{});}else if(s!=='battle'&&document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen();}catch(e){}$('#menu').classList.toggle('hidden',s!=='menu');$('#battle').classList.toggle('hidden',s!=='battle');}
 let searching=null;
 function startBattle(){
  if(searching)return;const v=$('#vs'),t0=performance.now(),dur=rnd(5000,10000);v.classList.remove('hidden');
@@ -1960,8 +1963,8 @@ const bk=b=>'b:'+b.name,botOf=k=>world.bots.find(b=>bk(b)===k);
 const byId=id=>S.clans.find(c=>c.id===id),clanOf=k=>S.clans.find(c=>c.mem.some(m=>m.k===k));
 const info=k=>{if(k==='me')return{name:S.name,av:'👑',tr:S.trophies,on:true,me:1};const b=botOf(k);return b?{name:b.name,av:b.av,tr:b.trophies,on:b.online}:null;};
 const total=c=>c.mem.reduce((s,m)=>s+((info(m.k)||{}).tr||0),0);
-function mk(k,name,badge,req){const c={id:S.cn++,name,badge,req,lead:k,mem:[{k,t:Date.now()}],ban:[]};S.clans.push(c);return c;}
-function drop(c,k){c.mem=c.mem.filter(m=>m.k!==k);if(!c.mem.length){S.clans.splice(S.clans.indexOf(c),1);return;}
+function mk(k,name,badge,req){const c={id:S.cn++,name,badge,req,lead:k,mem:[{k,t:Date.now()}],ban:[],cr:[]};S.clans.push(c);return c;}
+function drop(c,k){c.mem=c.mem.filter(m=>m.k!==k);c.cr=(c.cr||[]).filter(r=>r.k!==k);if(!c.mem.length){S.clans.splice(S.clans.indexOf(c),1);return;}
  if(c.lead===k)c.lead=c.mem.slice().sort((a,b)=>info(b.k).tr-info(a.k).tr)[0].k;}
 function kick(c,k){drop(c,k);if(!c.ban.includes(k))c.ban.push(k);if(k==='me')toast('🥾 Du wurdest aus „'+c.name+'“ gekickt');}
 function tick(){
@@ -1980,13 +1983,41 @@ function tick(){
   const avg=total(c)/c.mem.length;
   const w=c.mem.filter(m=>m.k!==c.lead&&now-m.t>=KICK_AFTER&&info(m.k).tr<avg*.5).sort((a,b)=>info(a.k).tr-info(b.k).tr)[0];
   if(w)kick(c,w.k);}
+ try{botCards(now);}catch(e){}
 }
 setInterval(tick,3000);setTimeout(tick,1000);
 const membersHTML=(c,canKick)=>c.mem.map(m=>({m,i:info(m.k)})).sort((a,b)=>b.i.tr-a.i.tr).map(({m,i},n)=>`<div class="row ${i.me?'me':''}" style="cursor:default"><div class="rk">${n+1}</div><div class="ra">${i.av}</div><div style="flex:1;min-width:0"><div class="rn">${m.k===c.lead?'👑 ':''}${i.name}</div><span class="rs">${i.on?'<span class="dot"></span>online':'<span class="dot off"></span>offline'}</span></div><div class="rt">🏆 ${i.tr}</div>${canKick&&m.k!==c.lead?`<button class="btn red mini" data-act="clanKick" data-c="${c.id}" data-k="${m.k}">🥾</button>`:''}</div>`).join('');
 const head=c=>`<div class="arena" style="background:linear-gradient(#5a48c8,#2a1f70)"><div style="font-size:46px">${c.badge}</div><div class="an">${c.name}</div><div class="sub">${c.mem.length}/${MAXM} Mitglieder · 🏆 ${total(c)} · Beitritt ab ${c.req} 🏆</div></div>`;
+// --- Karten anfordern & spenden ---
+const RC={c:{cap:30,per:10,g:2,xp:1},r:{cap:9,per:3,g:10,xp:2},e:{cap:2,per:1,g:60,xp:4}},CD=120000,EXP=1200000;
+const acc=k=>k==='me'?S:botOf(k);
+function donate(r,dk){const rc=RC[CARDS[r.id].rar],a=acc(dk),t=acc(r.k);if(!rc||!a||!t||!a.cards[r.id]||!a.cards[r.id].own||!t.cards[r.id])return 0;
+ const n=Math.min(rc.per,r.cap-r.got);if(n<=0||r.don[dk])return 0;r.got+=n;r.don[dk]=n;if(r.got>=r.cap)r.fin=Date.now();
+ a.gold+=n*rc.g;addXp(a,n*rc.xp);t.cards[r.id].copies+=n;
+ if(r.k==='me'&&dk!=='me'){const i=info(dk);toast('🃏 '+(i?i.name:'Clanmitglied')+' spendete '+n+'× '+CARDS[r.id].name);}return n;}
+function botCards(now){let ch=false;
+ for(const c of S.clans){c.cr=(c.cr||[]).filter(r=>now-r.t<EXP&&!(r.fin&&now-r.fin>60000));
+  for(const m of c.mem){const b=botOf(m.k);if(!b||!b.online||b.inMatch)continue;
+   if(!c.cr.some(r=>r.k===m.k)&&now>(b.reqAt||0)&&Math.random()<.06){
+    const cs=PLAY_CARDS.filter(x=>x.rar!=='l'&&b.cards[x.id]&&b.cards[x.id].own&&b.cards[x.id].lvl<RAR[x.rar].max);
+    cs.sort((x,y)=>((b.deck.includes(y.id)?1:0)-(b.deck.includes(x.id)?1:0))||((need(y.id,b.cards[y.id].lvl)-b.cards[y.id].copies)-(need(x.id,b.cards[x.id].lvl)-b.cards[x.id].copies)));
+    const pk=cs.filter(x=>need(x.id,b.cards[x.id].lvl)>b.cards[x.id].copies)[0];
+    b.reqAt=now+CD*(2+Math.random()*4);
+    if(pk){c.cr.push({k:m.k,id:pk.id,cap:RC[pk.rar].cap,got:0,don:{},t:now});ch=true;}}}
+  for(const r of c.cr){if(r.got>=r.cap)continue;
+   for(const m of c.mem){if(m.k===r.k||r.don[m.k]||r.got>=r.cap)continue;const b=botOf(m.k);if(!b||!b.online||Math.random()>.07)continue;
+    if(donate(r,m.k))ch=true;}}}
+ if(ch){save();if(tab==='clan'&&$('#modal').classList.contains('hidden'))renderTab();}}
+function cardsHTML(c){const now=Date.now(),mine=(c.cr||[]).some(r=>r.k==='me');
+ let h='<div class="sect">🃏 Kartenanfragen</div>';
+ if(!mine)h+=now<(S.reqAt||0)?`<div class="stat">Nächste Anfrage in ${Math.ceil((S.reqAt-now)/1000)} s</div>`:'<button class="btn blue" style="width:100%" data-act="clanReqAsk">🃏 Karten anfordern</button>';
+ h+=(c.cr||[]).slice().sort((a,b)=>(a.got>=a.cap)-(b.got>=b.cap)||b.t-a.t).map(r=>{const cd=CARDS[r.id],i=info(r.k)||{name:'?',av:'👤'},full=r.got>=r.cap,have=S.cards[r.id]&&S.cards[r.id].own;
+  const can=r.k!=='me'&&!full&&!r.don.me&&have;
+  return`<div class="row" style="cursor:default"><div style="flex:none;width:44px;height:44px"><img src="${pic(r.id)}" alt="" style="width:44px;height:44px;object-fit:contain"></div><div style="flex:1;min-width:0"><div class="rn">${cd.name}</div><span class="rs">${i.av} ${r.k==='me'?'Du':i.name} · ${r.got}/${r.cap}</span></div>${can?`<button class="btn green mini" data-act="clanDon" data-k="${r.k}">Spenden</button>`:full?'<span class="rs">✅ voll</span>':r.don.me?'<span class="rs">gespendet</span>':''}</div>`;}).join('')||'<div class="stat">Keine Anfragen – fordere Karten an!</div>';
+ return h;}
 function clanTab(){
  const my=clanOf('me');let h='';
- if(my)h+=head(my)+`<div class="sect">Mitglieder${my.lead==='me'?' <span class="chip">🥾 = kicken</span>':''}</div>`+membersHTML(my,my.lead==='me')+`<button class="btn red" style="width:100%;margin-top:10px" data-act="clanLeaveAsk">🚪 Clan verlassen</button>`;
+ if(my)h+=head(my)+cardsHTML(my)+`<div class="sect">Mitglieder${my.lead==='me'?' <span class="chip">🥾 = kicken</span>':''}</div>`+membersHTML(my,my.lead==='me')+`<button class="btn red" style="width:100%;margin-top:10px" data-act="clanLeaveAsk">🚪 Clan verlassen</button>`;
  else h+=`<button class="btn green big" style="width:100%" data-act="clanNew">➕ Clan erstellen</button>`;
  const oth=S.clans.filter(c=>c!==my).sort((a,b)=>total(b)-total(a));
  h+=`<div class="sect">${my?'Andere Clans':'Clans beitreten'} (${oth.length})</div>`+(oth.length?oth.map(c=>`<div class="row" data-act="clanView" data-c="${c.id}"><div class="ra">${c.badge}</div><div style="flex:1;min-width:0"><div class="rn">${c.name}</div><span class="rs">${c.mem.length>=MAXM?'voll · ':''}${c.mem.length}/${MAXM} · ab ${c.req} 🏆</span></div><div class="rt">🏆 ${total(c)}</div></div>`).join(''):'<div class="stat">Noch keine Clans – sie entstehen gleich von allein.</div>');
@@ -2007,6 +2038,16 @@ Object.assign(ACT,{
  clanJoin(el){const c=byId(+el.dataset.c);if(!c||clanOf('me'))return;if(c.mem.length>=MAXM)return toast('Clan ist voll');if(c.req>S.trophies||c.ban.includes('me'))return toast('Beitritt nicht möglich');
   c.mem.push({k:'me',t:Date.now()});closeModal();redraw();toast('Willkommen in '+c.name+'!');},
  clanKick(el){const c=byId(+el.dataset.c),k=el.dataset.k;if(!c||c.lead!=='me'||k==='me')return;const i=info(k);kick(c,k);redraw();toast('🥾 '+(i?i.name:'Spieler')+' gekickt');},
+ clanReqAsk(){const c=clanOf('me');if(!c)return;if((c.cr||[]).some(r=>r.k==='me'))return toast('Du hast schon eine Anfrage');if(Date.now()<(S.reqAt||0))return toast('Noch nicht bereit');
+  const ids=PLAY_CARDS.filter(x=>x.rar!=='l'&&S.cards[x.id].own&&S.cards[x.id].lvl<RAR[x.rar].max);
+  if(!ids.length)return toast('Keine Karte anforderbar');
+  ids.sort((x,y)=>((S.deck.includes(y.id)?1:0)-(S.deck.includes(x.id)?1:0)));
+  showModal(`<h2>Karte anfordern</h2><div style="max-height:55vh;overflow:auto"><div class="grid">${ids.map(x=>{const d=S.cards[x.id];return`<div data-act="clanReq" data-id="${x.id}">${cardHTML(x.id,d.lvl)}<div class="rs" style="text-align:center">${d.copies}/${need(x.id,d.lvl)}</div></div>`;}).join('')}</div></div><button class="btn" style="width:100%;margin-top:8px" data-act="clanClose">Abbrechen</button>`);},
+ clanReq(el){const c=clanOf('me'),id=el.dataset.id,cd=CARDS[id];if(!c||!cd||cd.rar==='l'||!S.cards[id]||!S.cards[id].own)return;
+  c.cr=c.cr||[];if(c.cr.some(r=>r.k==='me')||Date.now()<(S.reqAt||0))return;
+  c.cr.push({k:'me',id,cap:RC[cd.rar].cap,got:0,don:{},t:Date.now()});S.reqAt=Date.now()+CD;closeModal();redraw();toast('🃏 Anfrage gesendet');},
+ clanDon(el){const c=clanOf('me');if(!c)return;const r=(c.cr||[]).find(x=>x.k===el.dataset.k);if(!r)return;const rc=RC[CARDS[r.id].rar],n=donate(r,'me');
+  if(n){redraw();toast('Gespendet: '+n+'× '+CARDS[r.id].name+' (+'+n*rc.g+' 🪙, +'+n*rc.xp+' XP)');}else toast('Spenden nicht möglich');},
  clanLeaveAsk(){showModal(`<h2>Clan verlassen?</h2><button class="btn red" style="width:100%" data-act="clanLeave">Verlassen</button><button class="btn" style="width:100%;margin-top:8px" data-act="clanClose">Abbrechen</button>`);},
  clanLeave(){const c=clanOf('me');if(c)drop(c,'me');closeModal();redraw();}});
 const ra2=ACT.resetAll;ACT.resetAll=function(...a){S.clans=[];S.cn=1;ra2.apply(this,a);};
@@ -2449,6 +2490,394 @@ Brain.prototype.persAct=function(m,me){
  return pa19.call(this,m,me);
 };
 globalThis.__lonelyTank=lonelyTank;
+})();
+
+// === PATCH 20: Truhen (CR 2017), Bot-Stimmung, Tank-Vorlage, neue Spieler, Schüler-Bot + Lernstunde ===
+(function(){
+BKEYS.push('stu','cyc');
+const rn=(a,b)=>a+Math.random()*(b-a);
+const redraw=()=>{save();lastHTML.tab='';renderTab();};
+
+// ---------- 1. Truhen wie Clash Royale 2017 ----------
+// Plan: [Seltenheit, min, max, Wahrscheinlichkeit] – jede Zeile ist eine andere Karte
+const PLAN={
+ free:[['c',4,9,1],['c',3,6,1],['r',1,2,.3]],
+ wood:[['c',5,10,1],['c',3,7,1],['r',1,2,.3]],
+ silver:[['c',8,14,1],['c',6,10,1],['c',4,8,1],['r',2,3,1],['e',1,1,.08]],
+ gold:[['c',15,25,1],['c',12,20,1],['c',10,16,1],['r',4,7,1],['r',3,5,1],['e',1,1,.5],['l',1,1,.04]],
+ crown:[['c',10,16,1],['c',8,12,1],['r',3,6,1],['r',2,4,.7],['e',1,1,.25],['l',1,1,.015]],
+ giant:[['c',30,50,1],['c',28,45,1],['c',25,40,1],['c',22,35,1],['c',20,30,1],['r',8,14,1],['r',6,10,1],['r',5,9,1],['e',1,2,.7]],
+ super:[['c',50,80,1],['c',45,70,1],['c',40,60,1],['r',20,30,1],['r',16,26,1],['r',14,22,1],['e',4,7,1],['e',3,5,1],['e',2,4,1],['l',1,1,.6]],
+ magic:[['r',6,12,1],['r',5,9,1],['r',4,8,1],['c',15,25,1],['c',12,20,1],['e',1,2,.8],['e',1,1,.35],['l',1,1,.12]]
+};
+openChest=function(a,type){
+ const C=CHESTS[type]||CHESTS.wood,ar=arenaFor(a.best||0).i,pool=PLAY_CARDS.filter(c=>c.ar<=ar),out={},sc2=1+ar*.07,sg=1+ar*.1;
+ for(const [rar,lo,hi,p] of (PLAN[type]||PLAN.wood)){
+  if(Math.random()>p)continue;
+  const cand=pool.filter(c=>c.rar===rar&&!out[c.id]);if(!cand.length)continue;
+  const w=cand.map(c=>a.cards[c.id].own?1:2);let r=Math.random()*w.reduce((x,y)=>x+y,0),k=0;
+  while(k<cand.length-1&&r>w[k]){r-=w[k];k++;}
+  out[cand[k].id]=Math.max(1,Math.round((lo+Math.random()*(hi-lo))*((rar==='c'||rar==='r')?sc2:1)));
+ }
+ const gold=Math.round((C.g[0]+Math.random()*(C.g[1]-C.g[0]))*sg);a.gold+=gold;
+ const cards=Object.entries(out).map(([id,n])=>{const d=a.cards[id],isNew=!d.own;d.own=true;d.copies+=isNew?n-1:n;return{id,n,isNew};});
+ return{gold,cards};
+};
+const D4=4*3600e3;
+const fre=()=>S.free||(S.free={at:0});
+const crw=()=>{const c=S.crown||(S.crown={n:0,day:'',got:false});const d=new Date().toDateString();if(c.day!==d){c.day=d;c.n=0;c.got=false;}return c;};
+globalThis.fdur=s=>{s=Math.max(0,Math.ceil(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return h?h+'h '+m+'min':m?m+'min '+(x?x+'s':''):x+'s';};
+globalThis.specialChests=function(){
+ const now=Date.now(),f=fre(),c=crw();
+ const fh=now>=f.at?`<div class="chest ready" data-act="freeChest"><div class="ci">🎀</div><div>Gratis-Truhe</div><div><b>ÖFFNEN!</b></div></div>`
+  :`<div class="chest"><div class="ci">🎀</div><div>Gratis-Truhe</div><div>${fdur((f.at-now)/1000)}</div></div>`;
+ const ch=c.got?`<div class="chest"><div class="ci">👑</div><div>Kronentruhe</div><div>morgen wieder</div></div>`
+  :c.n>=10?`<div class="chest ready" data-act="crownChest"><div class="ci">👑</div><div>Kronentruhe</div><div><b>ÖFFNEN!</b></div></div>`
+  :`<div class="chest"><div class="ci">👑</div><div>Kronentruhe</div><div>${c.n}/10 ♛</div></div>`;
+ return`<div class="chests" style="grid-template-columns:1fr 1fr">${fh}${ch}</div>`;
+};
+function loot(type,r){const C=CHESTS[type];showModal(`<h2>${C.i} ${C.n}</h2><div style="text-align:center;font-size:22px;font-weight:900;margin:8px">🪙 +${r.gold}</div><div class="slotrow">${r.cards.map(k=>`<div style="text-align:center">${cardHTML(k.id,0)}<div style="font-weight:900">×${k.n}${k.isNew?'<br><span style="color:#ffd75e">NEU!</span>':''}</div></div>`).join('')}</div><button class="btn green" style="width:100%" data-act="close">Super!</button>`);sfx(660,.2,'triangle',.06,500);}
+
+// ---------- 2. Bot-Stimmung (Führung / Rückstand / schwache Türme) je nach Spielstil ----------
+const AH={turtle:1.5,schwer:1.1,beat:1.1,control:1.3,siege:1.3,punish:1.2,allround:1,air:1,swarm:.9,zange:.8,billig:.8,spam:.5,rush:.55,chaos:1};
+const BH={turtle:.7,schwer:.9,beat:.9,control:.85,siege:.8,punish:1.05,allround:1,air:1,swarm:1.1,zange:1.2,billig:1.15,spam:1.35,rush:1.5,chaos:1};
+const TF={beat:1,schwer:.9,allround:.7,punish:.6,zange:.5,air:.4,swarm:.3,chaos:.3};
+const frac=t=>t.dead?0:t.hp/t.maxhp;
+Brain.prototype.finisher=function(m,me){
+ const el=m.el[me],op=1-me;if(m.t<20)return false;
+ for(const id of m.hand[me]){const c=CARDS[id];if(!c||c.type!=='spell'||c.kind||c.own||!(c.dmg>0)||c.cost>el+1e-6)continue;
+  const dm=c.dmg*sc(m.p[me].lvl(id))*.35;
+  const tg=m.tw[op].filter(t=>!t.dead&&t.hp<=dm*1.02).sort((a,b)=>(b.type==='k')-(a.type==='k'))[0];
+  if(tg&&Math.random()<.3+.5*Math.min(1,(BH[this.persKey]||1)*.7)){const i=m.hand[me].indexOf(id);if(m.play(me,i,tg.x,tg.y))return true;}}
+ return false;
+};
+// ---------- 3. Tank vor die Unterstützung (nur bestimmte Spielstile) ----------
+Brain.prototype.tankFront=function(m,me){
+ const k=TF[this.persKey]||0;if(!k||m.t<20||(this._tfT||0)>m.t||Math.random()>k*.6)return false;
+ const el=m.el[me],hand=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})).filter(o=>isTankC(o.c)&&o.c.cost+.5<=el);
+ if(!hand.length)return false;
+ if(this.threat18&&this.threat18(m,me)>=60)return false;
+ const mineHalf=u=>me===0?u.y>RY+RH+30:u.y<RY-RH-30;
+ const fr=m.units.filter(u=>u.team===me&&u.hp>0&&!u.building&&u.c.type==='troop');
+ if(fr.some(u=>isTankC(u.c)))return false;
+ const sup=fr.filter(u=>mineHalf(u)&&u.spd>0&&pw(u)>=18);
+ if(sup.reduce((s,u)=>s+pw(u),0)<55)return false;
+ const lead=sup.sort((a,b)=>me===0?a.y-b.y:b.y-a.y)[0];
+ const x=clamp(lead.x,20,340),y=me===0?Math.max(RY+RH+12,lead.y-34):Math.min(RY-RH-12,lead.y+34);
+ const o=hand.sort((a,b)=>b.c.cost-a.c.cost)[0];
+ if(m.play(me,o.i,x,y)){this._tfT=m.t+10;return true;}
+ return false;
+};
+const t20=Brain.prototype.think;
+Brain.prototype.think=function(m,me){
+ if(this.pf&&this.pf.noMood)return t20.call(this,m,me);
+ if(!this.st0){const r=t20.call(this,m,me);if(this.st)this.st0=Object.assign({},this.st);this._pn0=this.persN||'';return r;}
+ try{
+  const A=AH[this.persKey]||1,B=BH[this.persKey]||1,op=1-me,lead=m.crowns[me]-m.crowns[op],my=m.tw[me],fo=m.tw[op];
+  const sum=a=>a.reduce((s,t)=>s+frac(t),0),edge=sum(my)-sum(fo),late=m.ot?1:.5+.5*clamp(m.t/180,0,1);
+  const s=Object.assign({},this.st0);s.gate=s.gate||0;s.def=s.def||1;s.bridge=s.bridge||0;let tag='';
+  const ahead=lead>0||(lead===0&&edge>.6&&m.t>60),behind=lead<0||(lead===0&&edge<-.6&&m.t>60);
+  if(ahead){const k=(lead>0?1:.6)*late*A;s.gate+=1.1*k;s.def*=1+.2*k;s.bridge=Math.max(0,s.bridge*(1-.45*k));tag='führt: defensiv';}
+  else if(behind){const k=(lead<0?1:.6)*late*B;s.gate-=1.3*k;s.def=Math.max(.55,s.def*(1-.16*k));s.bridge=clamp(s.bridge+.2*k,0,.8);tag='liegt zurück: aggressiv';}
+  const fl=fo.filter(t=>!t.dead&&frac(t)<.4),ml=my.filter(t=>!t.dead&&frac(t)<.4);
+  if(fl.length){const k=B*(1-Math.min(...fl.map(frac)));s.gate-=.9*k;s.bridge=clamp(s.bridge+.12*k,0,.8);tag+=(tag?' · ':'')+'Gegnerturm schwach';}
+  if(ml.length){const k=A*(1-Math.min(...ml.map(frac)));s.def*=1+.2*k;s.gate+=.6*k;tag+=(tag?' · ':'')+'eigener Turm schwach';}
+  this.st=s;this.mood=tag;this.persN=(this._pn0||'')+(tag?' · '+tag:'');
+ }catch(e){}
+ try{if(this.finisher(m,me))return;}catch(e){}
+ try{if(this.tankFront(m,me))return;}catch(e){}
+ return t20.call(this,m,me);
+};
+
+// ---------- 4. Neue Spieler kommen nach und nach (10 Min bis 1 Std) ----------
+function arrive(){
+ const now=Date.now();if(!S.nextBot||S.nextBot<=0)S.nextBot=now+rn(6e5,36e5);
+ let n=0;while(S.nextBot<=now&&n<30){if(world.bots.length<BOT_MAX){ACT.botAdd();n++;}S.nextBot+=rn(6e5,36e5);}
+ if(S.nextBot<=now)S.nextBot=now+rn(6e5,36e5);
+}
+setInterval(arrive,5000);setTimeout(arrive,800);
+
+// ---------- 5. Schüler-Bot ----------
+const stuBot=()=>world.bots.find(b=>b.stu);
+const WT=[1.4,1.6,1.6,.9,.9,.4,.25,.7,.4],WS=WT.reduce((a,b)=>a+b,0);
+const dist2=(a,b)=>{let s=0;for(let i=0;i<WT.length;i++){const d=(a[i]||0)-(b[i]||0);s+=WT[i]*d*d;}return Math.sqrt(s/WS);};
+const mirV=v=>{const w=v.slice();w[1]=v[2];w[2]=v[1];w[3]=v[4];w[4]=v[3];return w;};
+function sitInfo(m,me){
+ const op=1-me,el=m.el[me],pY=y=>me===0?y:H-y,near=u=>me===0?u.y>RY-45:u.y<RY+45;
+ const en=m.units.filter(u=>u.team===op&&u.hp>0&&!u.building),fr=m.units.filter(u=>u.team===me&&u.hp>0&&!u.building);
+ let tL=0,tR=0,pL=0,pR=0,air=0,big=null,bp=0,nn=0,cx=0,cy=0,cp=0;
+ for(const u of en){if(!near(u))continue;const p=pw(u);nn++;if(u.x<180)tL+=p;else tR+=p;if(u.fly)air+=p;if(p>bp){bp=p;big=u;}cx+=u.x*p;cy+=u.y*p;cp+=p;}
+ for(const u of fr){if(me===0?u.y<RY+110:u.y>RY-110){const p=pw(u);if(u.x<180)pL+=p;else pR+=p;}}
+ const q=v=>Math.min(1,v/300);
+ return{v:[el/10,q(tL),q(tR),q(pL),q(pR),(m.crowns[me]-m.crowns[op])/3,Math.min(1,m.t/180),q(air),Math.min(1,nn/6)],e:big?big.c.id:'',el,c:cp>0?{x:cx/cp,y:pY(cy/cp)}:null};
+}
+// Lernen: jede Karte, die ich im Kampf oder in der Lernstunde spiele
+const mp20=Match.prototype.play;
+Match.prototype.play=function(team,hi,x,y){
+ let pre=null,id=null;
+ try{if(team===0&&this.snd&&!this.A&&!this.over&&S.stu&&(this.lesson||S.stu.mode==='watch')){id=this.hand[0][hi];pre=sitInfo(this,0);}}catch(e){pre=null;}
+ const ok=mp20.call(this,team,hi,x,y);
+ if(ok&&pre&&id){try{
+  let rel=null;if(pre.c&&Math.hypot(x-pre.c.x,y-pre.c.y)<170)rel=[Math.round(x-pre.c.x),Math.round(y-pre.c.y)];
+  const mem=S.stu.mem;mem.push({c:id,v:pre.v.map(n=>+n.toFixed(2)),e:pre.e,x:Math.round(x),y:Math.round(y),el:+pre.el.toFixed(1),r:rel,l:this.lesson?1:0});
+  S.stu.n=(S.stu.n|0)+1;if(mem.length>2500)mem.splice(Math.floor(Math.random()*mem.length*.5),1);
+ }catch(e){}}
+ return ok;
+};
+// Spielen: ähnlichste Erinnerung suchen und nachmachen
+function stuAct(br,m,me){
+ const st=S.stu;if(!st||!st.mem.length||m.t<3||(br._sT||0)>m.t)return false;
+ const el=m.el[me],hand=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})).filter(o=>o.c.cost<=el+1e-6);
+ if(!hand.length)return false;
+ br._cc=br._cc||{};const cur=sitInfo(m,me);let best=null;
+ for(const r of st.mem){const o=hand.find(h=>h.id===r.c);if(!o||(br._cc[o.id]||0)>m.t)continue;
+  let d=dist2(cur.v,r.v),mir=false;const dm=dist2(mirV(cur.v),r.v);if(dm<d){d=dm;mir=true;}
+  if(r.e&&cur.e){d+=r.e===cur.e?-.1:.18;}else if(r.e!==cur.e)d+=.12;
+  if(r.l)d*=.88;
+  if(!best||d<best.d)best={d,r,o,mir};}
+ if(!best||best.d>.3)return false;
+ const rl=best.r;let X=rl.x,Y=rl.y;if(best.mir)X=360-X;
+ if(rl.r&&cur.c){X=cur.c.x+(best.mir?-rl.r[0]:rl.r[0]);Y=cur.c.y+rl.r[1];}
+ let x=clamp(X+rnd(-3,3),8,W-8),y=clamp((me===0?Y:H-Y)+rnd(-3,3),8,H-8);const c=best.o.c;
+ if(!m.validAt(me,c,x,y)){y=me===0?Math.max(y,RY+RH+10):Math.min(y,RY-RH-10);if(!m.validAt(me,c,x,y))return false;}
+ if(m.play(me,best.o.i,x,y)){br._sT=m.t+.9;br._cc[best.o.id]=m.t+3;return true;}
+ return false;
+}
+const pf20=World.prototype.profile;
+World.prototype.profile=function(b){
+ const p=pf20.call(this,b);
+ if(b&&b.stu&&p&&p.brain){const br=p.brain;br.stu=true;
+  br.think=function(m,me){let ok=false;try{ok=stuAct(this,m,me);}catch(e){ok=false;}if(ok)return;
+   const mem=S.stu?S.stu.mem.length:0;if(mem<25||m.el[me]>=9.6)return Brain.prototype.think.call(this,m,me);};}
+ return p;
+};
+const wu20=World.prototype.update;
+World.prototype.update=function(dt){
+ const b=stuBot();
+ if(b&&S.stu&&!b.inMatch){
+  if(S.stu.mode==='watch'){b.online=false;b.search=null;}
+  else if(!b.online&&Math.random()<.02*dt){b.online=true;b.sessEnd=rnd(300,900);b.idle=rnd(1,5);b.wait=0;}
+ }
+ return wu20.call(this,dt);
+};
+const po20=World.prototype.pickOpponent;
+World.prototype.pickOpponent=function(tr){
+ const b=stuBot();let tmp=false;if(b&&S.stu&&S.stu.mode==='watch'&&!b.inMatch){b.inMatch=true;tmp=true;}
+ const r=po20.call(this,tr);if(tmp)b.inMatch=false;return r;
+};
+
+// ---------- Lernstunde ----------
+const SCN=[
+ {n:'Felsgolem-Push',atk:['golem'],hand:['minik','musk','fireball','tesla'],ex:['archer','zap','goblins','bomber']},
+ {n:'Luftpiraten',atk:['balloon'],hand:['musk','archer','tesla','fireball'],ex:['squire','goblins','zap','volley']},
+ {n:'Knochenheer (Schwarm)',atk:['army'],hand:['bomber','volley','zap','titan'],ex:['archer','squire','musk','fireball']},
+ {n:'Eberreiter + Gobbos',atk:['boar','goblins'],hand:['squire','bomber','turret','fireball'],ex:['archer','musk','zap','minik']},
+ {n:'Raufbold-Rush',atk:['barbs'],hand:['axe','volley','fireball','squire'],ex:['musk','archer','tesla','zap']},
+ {n:'Drache + Flatterschwarm',atk:['wyvern','horde'],hand:['musk','archer','volley','tesla'],ex:['squire','zap','fireball','minik']},
+ {n:'Eisenkoloss',atk:['pekka'],hand:['goblins','skelknight','inferno','zap'],ex:['archer','musk','speargob','squire']},
+ {n:'Tunnelgräber + Nachtflatterer',atk:['miner','bats'],hand:['squire','archer','volley','zap'],ex:['tesla','musk','minik','fireball']},
+ {n:'Wuchtritter + Heilerin',atk:['megaknight','healer'],hand:['minik','pekka','goblins','tesla'],ex:['musk','fireball','zap','archer']},
+ {n:'Donnerkarre',atk:['sparky'],hand:['ram','goblins','zap','tesla'],ex:['archer','squire','fireball','musk']},
+ {n:'Riesenarmbrust',atk:['xbow'],hand:['fireball','squire','zap','minik'],ex:['archer','musk','tesla','goblins']},
+ {n:'Fernkämpfer-Duo',atk:['princess','dart'],hand:['boar','squire','fireball','zap'],ex:['goblins','archer','minik','musk']}
+].map(s=>Object.assign(s,{waves:5,deck:s.hand.concat(s.ex)}));
+function teacher(scn){
+ const T={w:0,next:5,l:0,end:0};
+ return{seen(){},tick(m,k,dt){
+  m.el[k]=10;const alive=m.units.some(u=>u.team===k&&u.hp>0);
+  if(T.w<scn.waves&&m.t>=T.next&&(!alive||m.t>=T.next+22)){
+   T.w++;const l=T.w===1?(Math.random()<.5?0:1):1-T.l;T.l=l;
+   for(const id of scn.atk){const c=CARDS[id],x=(l?270:90)+rnd(-8,8),y=c.type==='building'?248:(c.fly||c.bOnly||c.cost>=6?64:236);m.spawn(1,c,x,y,9);}
+   T.next=m.t+6;
+  }
+  if(T.w>=scn.waves&&!alive&&m.t>T.next){if(!T.end)T.end=m.t;if(m.t-T.end>2)m.finish(-1);}
+  if(m.t>=170)m.finish(-1);
+ }};
+}
+function startLesson(scn){
+ closeModal();
+ const pl={name:S.name,av:'👑',trophies:0,deck:scn.deck.slice(),kingLvl:9,lvl:()=>9,brain:null};
+ const te={name:'Lehrer-Simulation',av:'🎓',trophies:0,deck:scn.deck.slice(),kingLvl:9,lvl:()=>9,brain:teacher(scn)};
+ pm=new Match(pl,te);pm.snd=true;pm.lesson=Object.assign({},scn,{n0:S.stu?S.stu.n:0});pm.onEnd=()=>{pm.endAt=performance.now();};
+ pm.hand[0]=scn.hand.slice();pm.queue[0]=scn.deck.filter(i=>!scn.hand.includes(i)).sort(()=>Math.random()-.5);
+ popp=null;mode='battle';started=true;pacc=0;lastHand='';lastBan=0;view.sel=-1;view.hover=null;view.flip=false;view.theme=ARENAS[0];
+ $('#wTop').classList.add('hidden');$('#wBot').classList.add('hidden');
+ showScreen('battle');$('#bar').classList.remove('hidden');$('#watchBar').classList.add('hidden');$('#emoBtn').classList.remove('hidden');fit();
+ $('#emoPick').innerHTML=['😀','😎','😂','😭','😡','👍'].map(e=>`<span data-act="emo" data-e="${e}">${e}</span>`).join('');$('#emoPick').classList.add('hidden');
+ const b=$('#banner');b.textContent='LERNSTUNDE';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');
+}
+const sr20=showResult;
+showResult=function(m){
+ if(m.lesson){
+  const learned=(S.stu?S.stu.n:0)-(m.lesson.n0||0);if(S.stu)S.stu.lessons=(S.stu.lessons|0)+1;save();
+  leaveBattle();
+  showModal(`<h2>🎓 Lernstunde beendet</h2><div style="text-align:center;font-size:14px;margin:8px 0">${m.lesson.n}<br>Dein Schüler hat sich <b>${learned}</b> deiner Züge gemerkt.</div><button class="btn green" style="width:100%" data-act="close">Weiter</button>`);
+  return;
+ }
+ try{const c=crw();if(!c.got)c.n=Math.min(10,c.n+(m.crowns[0]|0));}catch(e){}
+ return sr20(m);
+};
+
+// ---------- Schüler-Tab ----------
+function learnedHTML(st){
+ const use={},ctr={};
+ for(const r of st.mem){use[r.c]=(use[r.c]||0)+1;if(r.e){const k=r.e+'>'+r.c;ctr[k]=(ctr[k]||0)+1;}}
+ const t=Object.entries(use).sort((a,b)=>b[1]-a[1]).slice(0,8),c=Object.entries(ctr).sort((a,b)=>b[1]-a[1]).slice(0,8),mx=t.length?t[0][1]:1;
+ return`<div class="sect">Seine Lieblingskarten (von dir gelernt)</div><div class="sbox">${t.length?t.map(([id,n])=>`<div class="sb"><span class="l">${CARDS[id].name}</span><span class="t"><i style="width:${Math.max(3,n/mx*100)}%;background:linear-gradient(90deg,#fd7,#e90)"></i></span><span class="v">${n}</span></div>`).join(''):'<div class="stat">Noch nichts gelernt.</div>'}</div>
+ <div class="sect">Seine Konter</div><div class="sbox">${c.length?c.map(([k,n])=>{const[e,a]=k.split('>');return`<div style="font-size:12px;font-weight:800;margin:3px 0">Gegen ${CARDS[e].name} → ${CARDS[a].name} <span class="chip">${n}×</span></div>`;}).join(''):'<div class="stat">Noch keine Konter gelernt – mach eine Lernstunde.</div>'}</div>`;
+}
+function stuTab(){
+ const st=S.stu,b=stuBot();
+ if(!st||!b)return`<div class="sect">🎓 Dein Schüler</div><div class="stat" style="font-size:13px;margin-bottom:10px">Erstelle einen eigenen Bot. Er kann selbst kämpfen oder dir zuschauen und exakt von deinen Spielzügen lernen. Er startet mit deinen Karten und deinem Deck.</div><input id="stuName" type="text" maxlength="16" placeholder="Name des Schülers" style="width:100%;padding:10px;border-radius:10px;border:0;font:800 15px inherit;margin-bottom:10px"><button class="btn green big" style="width:100%" data-act="stuCreate">🎓 Schüler erstellen</button>`;
+ return`<div class="arena" style="background:linear-gradient(#5a48c8,#2a1f70)"><div style="font-size:46px">🎓</div><div class="an">${b.name}</div><div class="sub">🏆 ${b.trophies} · ${b.wins}S/${b.losses}N · ${st.mem.length} Erinnerungen · ${st.lessons|0} Lernstunden</div></div>
+ <div class="sect">Modus</div><div style="display:flex;gap:8px"><button class="btn ${st.mode==='watch'?'green':'blue'}" style="flex:1" data-act="stuMode" data-m="watch">👀 Schaut zu &amp; lernt</button><button class="btn ${st.mode==='play'?'green':'blue'}" style="flex:1" data-act="stuMode" data-m="play">🎮 Spielt selbst</button></div>
+ <div class="stat">${st.mode==='watch'?'Er merkt sich jede Karte, die du spielst: Situation, Ort und Elixier. Er kämpft solange nicht.':'Er kämpft in der Rangliste und spielt so, wie du es ihm gezeigt hast.'}</div>
+ <button class="btn" style="width:100%;margin-top:10px" data-act="stuLessons">📚 Lernstunde starten</button>
+ <button class="btn blue" style="width:100%;margin-top:8px" data-act="stuSync">📋 Mein Deck übernehmen</button>
+ <div class="sect">Sein Deck</div><div class="minideck">${b.deck.map(id=>cardHTML(id,b.cards[id].lvl)).join('')}</div>
+ ${learnedHTML(st)}
+ <button class="btn red" style="width:100%;margin-top:10px" data-act="stuForgetAsk">🧽 Gedächtnis löschen</button>
+ <button class="btn red" style="width:100%;margin-top:8px" data-act="stuDelAsk">🗑️ Schüler entfernen</button>`;
+}
+const rt20=renderTab;
+renderTab=function(){
+ if(tab!=='stu')return rt20();
+ renderTop();document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+ setHTML($('#content'),stuTab(),'tab');
+};
+const nav=$('#nav'),nb=document.createElement('button');nb.dataset.act='tab';nb.dataset.t='stu';nb.innerHTML='<span>🎓</span>Schüler';
+nav.insertBefore(nb,nav.querySelector('[data-t="clan"]')||null);
+
+Object.assign(ACT,{
+ freeChest(){const f=fre();if(Date.now()<f.at)return toast('Noch nicht bereit');f.at=Date.now()+D4;const r=openChest(S,'free');save();renderTab();loot('free',r);},
+ crownChest(){const c=crw();if(c.got||c.n<10)return;c.got=true;const r=openChest(S,'crown');save();renderTab();loot('crown',r);},
+ stuCreate(){
+  if(S.stu)return;const inp=$('#stuName'),n=inp?inp.value.replace(/[<>&"]/g,'').trim().slice(0,16):'';
+  if(n.length<2)return toast('Name zu kurz');
+  if(world.bots.some(b=>b.name.toLowerCase()===n.toLowerCase())||n.toLowerCase()===String(S.name).toLowerCase())return toast('Name schon vergeben');
+  if(world.bots.length>=BOT_MAX)return toast('Zu viele Bots');
+  const b=mkBot(world.bots.length,n,true);b.stu=1;b.av='🎓';b.cards=JSON.parse(JSON.stringify(S.cards));b.deck=S.deck.slice();b.lvl=S.lvl;
+  b.skill=.7;b.aggr=.5;b.act=.85;b.pers='allround';b.dv=4;b.cx={n:{},w:{},lk:{},m:0,tr:[],out:[],trN:0,tw:0,base:.5,cd:1e9};b.online=false;b.search=null;
+  world.bots.push(b);S.botN=world.bots.length;S.stu={name:n,mode:'watch',mem:[],lessons:0,n:0};redraw();toast('🎓 '+n+' ist dein Schüler');
+ },
+ stuMode(el){if(!S.stu)return;S.stu.mode=el.dataset.m;const b=stuBot();if(b&&S.stu.mode==='watch'&&!b.inMatch){b.online=false;b.search=null;}redraw();},
+ stuLessons(){
+  if(!S.stu)return toast('Erstelle zuerst deinen Schüler');
+  showModal(`<h2>📚 Lernstunde</h2><div class="stat" style="font-size:12px;margin:0 0 8px">Die Simulation greift dich nur mit 1–2 Karten an. Du bekommst eine feste Starthand und zeigst deinem Schüler, wie man verteidigt. Er merkt sich alles.</div>${SCN.map((s,i)=>`<div class="row" data-act="stuLesson" data-i="${i}"><div class="ra">🎯</div><div style="flex:1;min-width:0"><div class="rn">${s.n}</div><span class="rs">Gegner: ${s.atk.map(id=>CARDS[id].name).join(' + ')}<br>Hand: ${s.hand.map(id=>CARDS[id].name).join(', ')}</span></div></div>`).join('')}<button class="btn" style="width:100%;margin-top:8px" data-act="close">Schließen</button>`);
+ },
+ stuLesson(el){const s=SCN[+el.dataset.i];if(s&&S.stu)startLesson(s);},
+ stuSync(){
+  const b=stuBot();if(!b)return;const mine=S.deck.filter(id=>b.cards[id].own),rest=b.deck.filter(id=>!mine.includes(id));
+  const d=mine.concat(rest).slice(0,8);for(const c of PLAY_CARDS)if(d.length<8&&b.cards[c.id].own&&!d.includes(c.id))d.push(c.id);
+  b.deck=d;redraw();toast('Deck übernommen (nur Karten, die er besitzt)');
+ },
+ stuForgetAsk(){showModal(`<h2>Gedächtnis löschen?</h2><div style="text-align:center;font-size:14px;margin-bottom:12px">Alles, was dein Schüler von dir gelernt hat, wird gelöscht.</div><button class="btn red" style="width:100%" data-act="stuForget">Ja, vergessen</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`);},
+ stuForget(){if(S.stu){S.stu.mem=[];S.stu.n=0;S.stu.lessons=0;}closeModal();redraw();},
+ stuDelAsk(){showModal(`<h2>Schüler entfernen?</h2><div style="text-align:center;font-size:14px;margin-bottom:12px">Der Bot und sein ganzes Gedächtnis werden gelöscht.</div><button class="btn red" style="width:100%" data-act="stuDel">Ja, entfernen</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`);},
+ stuDel(){const b=stuBot();if(b&&b.inMatch){closeModal();return toast('Er kämpft gerade');}
+  if(b){world.bots.splice(world.bots.indexOf(b),1);world.bots.forEach((x,k)=>x.id=k);S.botN=world.bots.length;}
+  S.stu=null;closeModal();redraw();},
+ botDel(){
+  if(world.bots.length<=BOT_MIN)return toast('Mindestens '+BOT_MIN+' Bots');
+  let i=world.bots.length-1;while(i>=0&&(world.bots[i].inMatch||world.bots[i].stu))i--;if(i<0)return toast('Keine Bots zum Entfernen');
+  const b=world.bots.splice(i,1)[0];world.bots.forEach((x,k)=>x.id=k);S.botN=world.bots.length;redraw();toast('🤖 '+b.name+' entfernt');
+ }
+});
+})();
+
+// === PATCH 21: Truhen wie Clash Royale 2017 (Zyklus, Zeiten, Seltenheit, Design, Gratis-/Kronentruhe) ===
+(function(){
+BKEYS.push('cp');
+const COL={wood:'#c98a4b',silver:'#c3cddb',gold:'#ffd75e',giant:'#ff9a3c',magic:'#b48cff',super:'#ff5fb0',free:'#5fe08a',crown:'#ffd75e'};
+const TIME={wood:300,silver:10800,gold:28800,giant:43200,magic:43200,super:86400}; // 5 Min, 3h, 8h, 12h, 12h, 24h
+const FREQ={wood:'Sehr häufig',silver:'Häufig',gold:'Selten',giant:'Selten',magic:'Sehr selten',super:'Extrem selten',free:'Alle 4 Std.',crown:'1× täglich'};
+const RN={c:'Gewöhnlich',r:'Selten',e:'Episch',l:'Legendär'};
+// Truhen-Zyklus (wie 2017: feste Reihenfolge, Super-Zaubertruhe nur als seltener Zufallstreffer)
+const CYCLE=['silver','wood','wood','silver','wood','silver','gold','wood','wood','silver','wood','wood','silver','wood','gold','wood','silver','wood','wood','silver','wood','gold','wood','silver','wood','wood','silver','wood','giant','wood','silver','wood','gold','wood','silver','wood','wood','silver','wood','magic'];
+const PLAN={
+ free:[['c',4,9,1],['c',3,6,1],['r',1,2,.3]],
+ wood:[['c',5,10,1],['c',3,7,1],['r',1,2,.3]],
+ silver:[['c',8,14,1],['c',6,10,1],['c',4,8,1],['r',2,3,1],['e',1,1,.08]],
+ gold:[['c',15,25,1],['c',12,20,1],['c',10,16,1],['r',4,7,1],['r',3,5,1],['e',1,1,.5],['l',1,1,.04]],
+ crown:[['c',10,16,1],['c',8,12,1],['r',3,6,1],['r',2,4,.7],['e',1,1,.25],['l',1,1,.015]],
+ giant:[['c',30,50,1],['c',28,45,1],['c',25,40,1],['c',22,35,1],['c',20,30,1],['r',8,14,1],['r',6,10,1],['r',5,9,1],['e',1,2,.7]],
+ super:[['c',50,80,1],['c',45,70,1],['c',40,60,1],['r',20,30,1],['r',16,26,1],['r',14,22,1],['e',4,7,1],['e',3,5,1],['e',2,4,1],['l',1,1,.6]],
+ magic:[['r',6,12,1],['r',5,9,1],['r',4,8,1],['c',15,25,1],['c',12,20,1],['e',1,2,.8],['e',1,1,.35],['l',1,1,.12]]
+};
+const PAL={wood:['#9a6a3a','#b8844a','#5e3c1c','#8a8f99'],silver:['#8d99ad','#c3cddb','#4f5a6d','#eef3fa'],gold:['#d9a21b','#ffd75e','#8a5d00','#fff2a8'],giant:['#c46a2b','#ee9348','#6c3512','#ffd75e'],magic:['#7b48d6','#a77bff','#3a1f7a','#6ff0ff'],super:['#d4358a','#ff7bc0','#7a1750','#ffd75e'],free:['#2fa85a','#5fe08a','#17613a','#ffffff'],crown:['#6a4fd0','#9b83ff','#33267f','#ffd75e']};
+function chestSVG(t,w){
+ const[b,l,d,m]=PAL[t]||PAL.wood;let em='';
+ if(t==='crown')em='<path d="M22 27 L24.5 15 L29 22 L32 13 L35 22 L39.5 15 L42 27Z" fill="#ffd75e" stroke="#8a5d00" stroke-width="1.6" stroke-linejoin="round"/>';
+ else if(t==='free')em='<path d="M32 12 L34.6 19 L42 19.4 L36.2 24 L38.2 31 L32 27 L25.8 31 L27.8 24 L22 19.4 L29.4 19Z" fill="#fff" stroke="#17613a" stroke-width="1.6" stroke-linejoin="round"/>';
+ else if(t==='magic'||t==='super')em=`<path d="M32 11 L40 20 L32 31 L24 20Z" fill="${m}" stroke="${d}" stroke-width="1.6" stroke-linejoin="round"/>`;
+ else if(t==='giant')em=`<circle cx="32" cy="20" r="7" fill="${m}" stroke="${d}" stroke-width="1.6"/>`;
+ return`<svg viewBox="0 0 64 56" width="${w||46}" height="${Math.round((w||46)*.875)}" aria-hidden="true"><ellipse cx="32" cy="53" rx="26" ry="3" fill="#0006"/><rect x="6" y="28" width="52" height="24" rx="4" fill="${b}" stroke="${d}" stroke-width="2.5"/><path d="M6 30V24Q6 8 32 8Q58 8 58 24V30Z" fill="${l}" stroke="${d}" stroke-width="2.5" stroke-linejoin="round"/><rect x="5" y="27" width="54" height="5" rx="2" fill="${d}"/><rect x="13" y="13" width="6" height="14" fill="${m}" stroke="${d}"/><rect x="45" y="13" width="6" height="14" fill="${m}" stroke="${d}"/><rect x="13" y="32" width="6" height="19" fill="${m}" stroke="${d}"/><rect x="45" y="32" width="6" height="19" fill="${m}" stroke="${d}"/>${em}<rect x="26.5" y="29" width="11" height="12" rx="2.5" fill="${m}" stroke="${d}" stroke-width="1.8"/><circle cx="32" cy="34" r="1.8" fill="${d}"/><rect x="31.2" y="34" width="1.6" height="4" fill="${d}"/><path d="M10 22Q12 13 24 11" fill="none" stroke="#fff" stroke-opacity=".45" stroke-width="2.5" stroke-linecap="round"/></svg>`;
+}
+for(const k in TIME)CHESTS[k].t=TIME[k];
+for(const k in COL){CHESTS[k].i=chestSVG(k,26);CHESTS[k].col=COL[k];}
+const css=document.createElement('style');
+css.textContent=`.chest{border-color:var(--cc,#7a68e0)!important;gap:1px;position:relative}.chest.empty{border-color:#7a68e0!important}.chest svg{display:block;filter:drop-shadow(0 3px 2px #0008)}.chest .nm{font-size:10px;line-height:1.1}.chest.ready{box-shadow:0 0 14px var(--cc)}.chest.ready svg{animation:cbob .7s infinite alternate}@keyframes cbob{to{transform:translateY(-3px) scale(1.07)}}.chest .bar{width:80%;height:5px;border-radius:3px;background:#0007;overflow:hidden}.chest .bar i{display:block;height:100%;background:var(--cc)}.cyc{display:flex;align-items:center;gap:4px;justify-content:center;margin-top:8px;font-size:11px;font-weight:800;opacity:.9}.cyc svg{filter:drop-shadow(0 1px 1px #0008)}.cinfo td{padding:3px 6px;font-size:13px}`;
+document.head.appendChild(css);
+const D4=4*3600e3;
+const fre=()=>S.free||(S.free={at:0});
+const crw=()=>{const c=S.crown||(S.crown={n:0,day:'',got:false});const d=new Date().toDateString();if(c.day!==d){c.day=d;c.n=0;c.got=false;}return c;};
+const tile=(t,name,sub,cls,attr,bar)=>`<div class="chest ${cls}" style="--cc:${COL[t]}" ${attr}>${chestSVG(t,46)}<div class="nm">${name}</div>${bar!=null?`<div class="bar"><i style="width:${bar}%"></i></div>`:''}<div class="cs">${sub}</div></div>`;
+chestHTML=function(ch,i){
+ if(!ch)return'<div class="chest empty">leer</div>';
+ const now=Date.now(),C=CHESTS[ch.type];let st,cls='',bar=null;
+ if(ch.ready||(ch.at&&now>=ch.at)){ch.ready=true;st='<b>ÖFFNEN!</b>';cls='ready';}
+ else if(ch.at){st=fdur((ch.at-now)/1000);bar=Math.round(100*(1-(ch.at-now)/(C.t*1000)));}
+ else st='Start · '+fdur(C.t);
+ return tile(ch.type,C.n,st,cls,`data-act="chest" data-i="${i}"`,bar);
+};
+globalThis.specialChests=function(){
+ const now=Date.now(),f=fre(),c=crw();
+ const fh=now>=f.at?tile('free','Gratis-Truhe','<b>ÖFFNEN!</b>','ready','data-act="freeChest"')
+  :tile('free','Gratis-Truhe',fdur((f.at-now)/1000),'','data-act="freeChest"',Math.round(100*(1-(f.at-now)/D4)));
+ const ch=c.got?tile('crown','Kronentruhe','morgen wieder','','')
+  :c.n>=10?tile('crown','Kronentruhe','<b>ÖFFNEN!</b>','ready','data-act="crownChest"')
+  :tile('crown','Kronentruhe',c.n+'/10 ♛','','',c.n*10);
+ const nx=[0,1,2,3,4,5,6,7].map(k=>chestSVG(CYCLE[((S.cp|0)+k)%CYCLE.length],22)).join('');
+ return`<div class="chests" style="grid-template-columns:1fr 1fr">${fh}${ch}</div><div class="cyc">Nächste Truhen: ${nx}</div>`;
+};
+matchReward=function(a,res,crowns){
+ const gold=res>0?25+10*crowns:res<0?5+3*crowns:10,xp=res>0?4+crowns:1;let chest=null;
+ if(res>0){const type=Math.random()<.004?'super':CYCLE[(a.cp|0)%CYCLE.length];a.cp=(a.cp|0)+1;
+  const f=a.chests.findIndex(c=>!c);if(f>=0){chest={type};a.chests[f]=chest;}}
+ a.gold+=gold;const up=addXp(a,xp);a.best=Math.max(a.best||0,a.trophies);return{gold,xp,chest,up};
+};
+openChest=function(a,type){
+ const C=CHESTS[type]||CHESTS.wood,ar=arenaFor(a.best||0).i,pool=PLAY_CARDS.filter(c=>c.ar<=ar),out={},sc2=1+ar*.07,sg=1+ar*.1;
+ for(const[rar,lo,hi,p]of(PLAN[type]||PLAN.wood)){
+  if(Math.random()>p)continue;
+  const cand=pool.filter(c=>c.rar===rar&&!out[c.id]);if(!cand.length)continue;
+  const w=cand.map(c=>a.cards[c.id].own?1:2);let r=Math.random()*w.reduce((x,y)=>x+y,0),k=0;
+  while(k<cand.length-1&&r>w[k]){r-=w[k];k++;}
+  out[cand[k].id]=Math.max(1,Math.round((lo+Math.random()*(hi-lo))*((rar==='c'||rar==='r')?sc2:1)));
+ }
+ const gold=Math.round((C.g[0]+Math.random()*(C.g[1]-C.g[0]))*sg);a.gold+=gold;
+ const cards=Object.entries(out).map(([id,n])=>{const d=a.cards[id],isNew=!d.own;d.own=true;d.copies+=isNew?n-1:n;return{id,n,isNew};});
+ return{gold,cards};
+};
+function loot(type,r){const C=CHESTS[type];
+ showModal(`<h2 style="color:${COL[type]}">${C.n}</h2><div style="text-align:center">${chestSVG(type,86)}</div><div style="text-align:center;font-size:22px;font-weight:900;margin:8px">🪙 +${r.gold}</div><div class="slotrow">${r.cards.map(k=>`<div style="text-align:center">${cardHTML(k.id,0)}<div style="font-weight:900">×${k.n}${k.isNew?'<br><span style="color:#ffd75e">NEU!</span>':''}</div></div>`).join('')}</div><button class="btn green" style="width:100%" data-act="close">Super!</button>`);sfx(660,.2,'triangle',.06,500);}
+function skipCost(ch){const C=CHESTS[ch.type],rem=ch.at?Math.max(0,(ch.at-Date.now())/1000):C.t;return Math.max(1,Math.ceil(rem/120));}
+function openSlot(i){const ch=S.chests[i];if(!ch)return;S.chests[i]=null;const r=openChest(S,ch.type);save();closeModal();renderTab();loot(ch.type,r);}
+function infoModal(i){
+ const ch=S.chests[i],C=CHESTS[ch.type],run=ch.at&&Date.now()<ch.at,busy=S.chests.some(c=>c&&c.at&&Date.now()<c.at);
+ const rows=PLAN[ch.type],gu={},chn=[];let avg=0;
+ for(const[r,lo,hi,p]of rows){avg+=p*(lo+hi)/2;if(p>=1)gu[r]=(gu[r]||0)+1;else chn.push(`${RN[r]}: ${Math.round(p*100)} %`);}
+ const g=Object.keys(gu).map(r=>`${RN[r]} ×${gu[r]}`).join(', ');
+ const btn=run?'':busy?'<div class="stat" style="margin:8px 0">Es wird schon eine Truhe freigeschaltet.</div>':`<button class="btn blue" style="width:100%;margin-top:8px" data-act="chestStart" data-i="${i}">Freischalten · ${fdur(C.t)}</button>`;
+ showModal(`<h2 style="color:${COL[ch.type]}">${C.n}</h2><div style="text-align:center">${chestSVG(ch.type,80)}</div><table class="cinfo" style="width:100%"><tr><td>Häufigkeit</td><td>${FREQ[ch.type]}</td></tr><tr><td>Dauer</td><td>${fdur(C.t)}</td></tr><tr><td>Gold</td><td>🪙 ${C.g[0]}–${C.g[1]}</td></tr><tr><td>Karten (Ø)</td><td>~${Math.round(avg)}</td></tr><tr><td>Garantiert</td><td>${g}</td></tr>${chn.length?`<tr><td>Chance</td><td>${chn.join('<br>')}</td></tr>`:''}</table>${run?`<div class="stat" style="margin:8px 0">Noch ${fdur((ch.at-Date.now())/1000)}</div>`:''}${btn}<button class="btn red" style="width:100%;margin-top:8px" data-act="chestSkip" data-i="${i}">⚡ Sofort öffnen · ${skipCost(ch)} 🪙</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Schließen</button>`);
+}
+Object.assign(ACT,{
+ chest(el){const i=+el.dataset.i,ch=S.chests[i];if(!ch)return;if(ch.ready||(ch.at&&Date.now()>=ch.at))return openSlot(i);infoModal(i);},
+ chestStart(el){const i=+el.dataset.i,ch=S.chests[i];if(!ch||ch.at)return;if(S.chests.some(c=>c&&c.at&&Date.now()<c.at))return toast('Es wird schon eine Truhe geöffnet');ch.at=Date.now()+CHESTS[ch.type].t*1000;save();closeModal();renderTab();},
+ chestSkip(el){const i=+el.dataset.i,ch=S.chests[i];if(!ch)return;const c=skipCost(ch);if(S.gold<c)return toast('Nicht genug Gold');S.gold-=c;openSlot(i);},
+ freeChest(){const f=fre();if(Date.now()<f.at)return toast('Noch nicht bereit');f.at=Date.now()+D4;const r=openChest(S,'free');save();renderTab();loot('free',r);},
+ crownChest(){const c=crw();if(c.got||c.n<10)return;c.got=true;const r=openChest(S,'crown');save();renderTab();loot('crown',r);}
+});
 })();
 
 renderTab();requestAnimationFrame(frame);
