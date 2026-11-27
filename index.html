@@ -1438,8 +1438,8 @@ globalThis.CRW=CR;
 const botDeck0=botDeck;
 function eliteDeck(b){
  const own=PLAY_CARDS.filter(c=>b.cards[c.id].own);if(own.length<8)return botDeck0(b);
- const sc=c=>(CR[c.id]||.5)*14+b.cards[c.id].lvl*.7;
- const ok=a=>{const cs=a,avg=cs.reduce((s,c)=>s+c.cost,0)/8,sp=cs.filter(c=>c.type==='spell').length,bl=cs.filter(c=>c.type==='building').length;return sp<=3&&bl<=2;};
+ const tk=((b.taste|0)+(b.id|0)*3)%2===0,sc=c=>(CR[c.id]||.5)*14+b.cards[c.id].lvl*.7+(isTankC(c)?(tk?4:-6):0);
+ const ok=a=>{const cs=a,avg=cs.reduce((s,c)=>s+c.cost,0)/8,sp=cs.filter(c=>c.type==='spell').length,bl=cs.filter(c=>c.type==='building').length;return sp<=3&&bl<=2&&(tk?cs.some(isTankC):!cs.some(isTankC));};
  let best=null,bv=-1e9;
  for(let k=0;k<300;k++){
   const pool=own.map(c=>({c,s:sc(c)+rnd(0,3.5)})).sort((x,y)=>y.s-x.s).slice(0,8).map(o=>o.c);
@@ -2299,7 +2299,7 @@ const bd18=botDeck;
 const classify=b=>{const c=KEYS.filter(k=>k!=='chaos'&&pen(PERS[k],b.deck)<5);const pool=c.length?c:['allround'];return pool[(typeof b.id==='number'?b.id:Math.floor(hh('p'+b.taste)*97))%pool.length];};
 function ensure(b){
  const good=Array.isArray(b.deck)&&b.deck.length===8&&new Set(b.deck).size===8&&b.deck.every(id=>b.cards[id]&&b.cards[id].own);
- if(b.dv!==3){b.dv=3;const old=b.deck;b.deck=[];let d=null;try{d=bd18(b);}catch(e){}b.deck=d&&d.length===8?d:old;b.pers=null;}
+ if(b.dv!==4){b.dv=4;const old=b.deck;b.deck=[];let d=null;try{d=bd18(b);}catch(e){}b.deck=d&&d.length===8?d:old;b.pers=null;}
  else if(!good){const d=bd18(b);if(d&&d.length===8)b.deck=d;b.pers=null;}
  if(!PERS[b.pers]||(b.pers!=='chaos'&&pen(PERS[b.pers],b.deck)>=6))b.pers=classify(b);
 }
