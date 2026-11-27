@@ -2591,15 +2591,18 @@ Brain.prototype.think=function(m,me){
 
 // ---------- 4. Neue Spieler kommen nach und nach (10 Min bis 1 Std) ----------
 function arrive(){
- const now=Date.now();if(!S.nextBot||S.nextBot<=0)S.nextBot=now+rn(6e5,36e5);
- let n=0;while(S.nextBot<=now&&n<30){if(world.bots.length<BOT_MAX){ACT.botAdd();n++;}S.nextBot+=rn(6e5,36e5);}
- if(S.nextBot<=now)S.nextBot=now+rn(6e5,36e5);
+ const now=Date.now();if(!S.nextBot||S.nextBot<=0||S.nextBot>now+6e5)S.nextBot=now+rn(6e4,6e5);
+ let n=0;while(S.nextBot<=now&&n<30){
+  if(world.bots.length>=BOT_MAX){let w=null;for(const b of world.bots)if(!b.stu&&!b.inMatch&&!b.online&&(!w||b.trophies<w.trophies))w=b;
+   if(w){world.bots.splice(world.bots.indexOf(w),1);world.bots.forEach((x,k)=>x.id=k);S.botN=world.bots.length;}}
+  if(world.bots.length<BOT_MAX){ACT.botAdd();n++;}S.nextBot+=rn(6e4,6e5);}
+ if(S.nextBot<=now)S.nextBot=now+rn(6e4,6e5);
 }
 setInterval(arrive,5000);setTimeout(arrive,800);
 
 // ---------- 5. Schüler-Bot ----------
 const stuBot=()=>world.bots.find(b=>b.stu);
-const WT=[1.4,1.6,1.6,.9,.9,.4,.25,.7,.4],WS=WT.reduce((a,b)=>a+b,0);
+const WT=[1.4,1.6,1.6,.9,.9,.4,.25,.7,.4,1.2],WS=WT.reduce((a,b)=>a+b,0);
 const dist2=(a,b)=>{let s=0;for(let i=0;i<WT.length;i++){const d=(a[i]||0)-(b[i]||0);s+=WT[i]*d*d;}return Math.sqrt(s/WS);};
 const mirV=v=>{const w=v.slice();w[1]=v[2];w[2]=v[1];w[3]=v[4];w[4]=v[3];return w;};
 function sitInfo(m,me){
@@ -2608,8 +2611,8 @@ function sitInfo(m,me){
  let tL=0,tR=0,pL=0,pR=0,air=0,big=null,bp=0,nn=0,cx=0,cy=0,cp=0;
  for(const u of en){if(!near(u))continue;const p=pw(u);nn++;if(u.x<180)tL+=p;else tR+=p;if(u.fly)air+=p;if(p>bp){bp=p;big=u;}cx+=u.x*p;cy+=u.y*p;cp+=p;}
  for(const u of fr){if(me===0?u.y<RY+110:u.y>RY-110){const p=pw(u);if(u.x<180)pL+=p;else pR+=p;}}
- const q=v=>Math.min(1,v/300);
- return{v:[el/10,q(tL),q(tR),q(pL),q(pR),(m.crowns[me]-m.crowns[op])/3,Math.min(1,m.t/180),q(air),Math.min(1,nn/6)],e:big?big.c.id:'',el,c:cp>0?{x:cx/cp,y:pY(cy/cp)}:null};
+ const q=v=>Math.min(1,v/300);let dfn=0;try{for(const u of m.units)if(u.team===op&&u.hp>0&&!near(u))dfn+=pw(u)||0;}catch(e){}
+ return{v:[el/10,q(tL),q(tR),q(pL),q(pR),(m.crowns[me]-m.crowns[op])/3,Math.min(1,m.t/180),q(air),Math.min(1,nn/6),q(dfn)],e:big?big.c.id:'',el,c:cp>0?{x:cx/cp,y:pY(cy/cp)}:null};
 }
 // Lernen: jede Karte, die ich im Kampf oder in der Lernstunde spiele
 const mp20=Match.prototype.play;
@@ -2620,7 +2623,7 @@ Match.prototype.play=function(team,hi,x,y){
  if(ok&&pre&&id){try{
   let rel=null;if(pre.c&&Math.hypot(x-pre.c.x,y-pre.c.y)<170)rel=[Math.round(x-pre.c.x),Math.round(y-pre.c.y)];
   const mem=S.stu.mem;mem.push({c:id,v:pre.v.map(n=>+n.toFixed(2)),e:pre.e,x:Math.round(x),y:Math.round(y),el:+pre.el.toFixed(1),r:rel,l:this.lesson?1:0});
-  S.stu.n=(S.stu.n|0)+1;if(mem.length>2500)mem.splice(Math.floor(Math.random()*mem.length*.5),1);
+  S.stu.n=(S.stu.n|0)+1;if(mem.length>2500){const i=mem.findIndex((r,k)=>!r.l&&k<mem.length*.6);mem.splice(i>=0?i:0,1);}
  }catch(e){}}
  return ok;
 };
@@ -2633,9 +2636,9 @@ function stuAct(br,m,me){
  for(const r of st.mem){const o=hand.find(h=>h.id===r.c);if(!o||(br._cc[o.id]||0)>m.t)continue;
   let d=dist2(cur.v,r.v),mir=false;const dm=dist2(mirV(cur.v),r.v);if(dm<d){d=dm;mir=true;}
   if(r.e&&cur.e){d+=r.e===cur.e?-.1:.18;}else if(r.e!==cur.e)d+=.12;
-  if(r.l)d*=.88;
+  if(r.l)d*=.72;
   if(!best||d<best.d)best={d,r,o,mir};}
- if(!best||best.d>.3)return false;
+ if(!best||best.d>(best.r.l?.36:.3))return false;
  const rl=best.r;let X=rl.x,Y=rl.y;if(best.mir)X=360-X;
  if(rl.r&&cur.c){X=cur.c.x+(best.mir?-rl.r[0]:rl.r[0]);Y=cur.c.y+rl.r[1];}
  let x=clamp(X+rnd(-3,3),8,W-8),y=clamp((me===0?Y:H-Y)+rnd(-3,3),8,H-8);const c=best.o.c;
@@ -2653,6 +2656,7 @@ World.prototype.profile=function(b){
 };
 const wu20=World.prototype.update;
 World.prototype.update=function(dt){
+ if(!S.stu){const o=this.bots.find(x=>x.stu&&!x.inMatch);if(o){delete o.stu;}}
  const b=stuBot();
  if(b&&S.stu&&!b.inMatch){
   if(S.stu.mode==='watch'){b.online=false;b.search=null;}
@@ -2680,18 +2684,27 @@ const SCN=[
  {n:'Donnerkarre',atk:['sparky'],hand:['ram','goblins','zap','tesla'],ex:['archer','squire','fireball','musk']},
  {n:'Riesenarmbrust',atk:['xbow'],hand:['fireball','squire','zap','minik'],ex:['archer','musk','tesla','goblins']},
  {n:'Fernkämpfer-Duo',atk:['princess','dart'],hand:['boar','squire','fireball','zap'],ex:['goblins','archer','minik','musk']}
-].map(s=>Object.assign(s,{waves:5,deck:s.hand.concat(s.ex)}));
+,
+ {n:'⚔️ Angriff: Golem + Hexe',mode:'a',atk:['musk','archer'],hand:['golem','mage','zap','fireball'],ex:['squire','goblins','tesla','minik']},
+ {n:'⚔️ Angriff: Eberreiter über die Brücke',mode:'a',atk:['tesla','squire'],hand:['boar','goblins','fireball','zap'],ex:['musk','archer','minik','volley']},
+ {n:'⚔️ Angriff: Ballon hinter Tank',mode:'a',atk:['musk','volley'],hand:['balloon','minik','zap','fireball'],ex:['archer','squire','goblins','tesla']},
+ {n:'⚔️ Angriff: Gegen Schwarm-Verteidigung',mode:'a',atk:['goblins','bomber'],hand:['fireball','zap','titan','archer'],ex:['squire','musk','tesla','minik']}
+].map(s=>Object.assign(s,{waves:1,deck:s.hand.concat(s.ex)}));
 function teacher(scn){
- const T={w:0,next:5,l:0,end:0};
+ const T={w:0,next:3,l:0,end:0,a:0};
  return{seen(){},tick(m,k,dt){
   m.el[k]=10;const alive=m.units.some(u=>u.team===k&&u.hp>0);
+  if(scn.mode==='a'){
+   if(!T.a&&m.t>=2){T.a=1;scn.atk.forEach((id,i)=>{const c=CARDS[id];m.spawn(1,c,c.type==='building'?180:120+i*120,c.type==='building'?210:150,9);});}
+   if(T.a&&(m.crowns[0]>=1||m.t>=70)){if(!T.end)T.end=m.t;if(m.t-T.end>2)m.finish(-1);}
+   return;}
   if(T.w<scn.waves&&m.t>=T.next&&(!alive||m.t>=T.next+22)){
    T.w++;const l=T.w===1?(Math.random()<.5?0:1):1-T.l;T.l=l;
    for(const id of scn.atk){const c=CARDS[id],x=(l?270:90)+rnd(-8,8),y=c.type==='building'?248:(c.fly||c.bOnly||c.cost>=6?64:236);m.spawn(1,c,x,y,9);}
    T.next=m.t+6;
   }
   if(T.w>=scn.waves&&!alive&&m.t>T.next){if(!T.end)T.end=m.t;if(m.t-T.end>2)m.finish(-1);}
-  if(m.t>=170)m.finish(-1);
+  if(m.t>=80)m.finish(-1);
  }};
 }
 function startLesson(scn){
@@ -2755,15 +2768,16 @@ Object.assign(ACT,{
   if(S.stu)return;const inp=$('#stuName'),n=inp?inp.value.replace(/[<>&"]/g,'').trim().slice(0,16):'';
   if(n.length<2)return toast('Name zu kurz');
   if(world.bots.some(b=>b.name.toLowerCase()===n.toLowerCase())||n.toLowerCase()===String(S.name).toLowerCase())return toast('Name schon vergeben');
-  if(world.bots.length>=BOT_MAX)return toast('Zu viele Bots');
-  const b=mkBot(world.bots.length,n,true);b.stu=1;b.av='🎓';b.cards=JSON.parse(JSON.stringify(S.cards));b.deck=S.deck.slice();b.lvl=S.lvl;
+  world.bots.forEach(x=>{if(x.stu)delete x.stu;});
+  if(world.bots.length>=BOT_MAX){let w=null;for(const x of world.bots)if(!x.inMatch&&!x.online&&(!w||x.trophies<w.trophies))w=x;if(w)world.bots.splice(world.bots.indexOf(w),1);}
+  const b=mkBot(world.bots.length,n,true);b.stu=1;b.av='🎓';
   b.skill=.7;b.aggr=.5;b.act=.85;b.pers='allround';b.dv=4;b.cx={n:{},w:{},lk:{},m:0,tr:[],out:[],trN:0,tw:0,base:.5,cd:1e9};b.online=false;b.search=null;
-  world.bots.push(b);S.botN=world.bots.length;S.stu={name:n,mode:'watch',mem:[],lessons:0,n:0};redraw();toast('🎓 '+n+' ist dein Schüler');
+  world.bots.push(b);world.bots.forEach((x,k)=>x.id=k);S.botN=world.bots.length;S.stu={name:n,mode:'watch',mem:[],lessons:0,n:0};redraw();toast('🎓 '+n+' ist dein Schüler');
  },
  stuMode(el){if(!S.stu)return;S.stu.mode=el.dataset.m;const b=stuBot();if(b&&S.stu.mode==='watch'&&!b.inMatch){b.online=false;b.search=null;}redraw();},
  stuLessons(){
   if(!S.stu)return toast('Erstelle zuerst deinen Schüler');
-  showModal(`<h2>📚 Lernstunde</h2><div class="stat" style="font-size:12px;margin:0 0 8px">Die Simulation greift dich nur mit 1–2 Karten an. Du bekommst eine feste Starthand und zeigst deinem Schüler, wie man verteidigt. Er merkt sich alles.</div>${SCN.map((s,i)=>`<div class="row" data-act="stuLesson" data-i="${i}"><div class="ra">🎯</div><div style="flex:1;min-width:0"><div class="rn">${s.n}</div><span class="rs">Gegner: ${s.atk.map(id=>CARDS[id].name).join(' + ')}<br>Hand: ${s.hand.map(id=>CARDS[id].name).join(', ')}</span></div></div>`).join('')}<button class="btn" style="width:100%;margin-top:8px" data-act="close">Schließen</button>`);
+  showModal(`<h2>📚 Lernstunde</h2><div class="stat" style="font-size:12px;margin:0 0 8px">Kurze Stunde: ein Push zum Verteidigen (🎯) oder eine Verteidigung zum Angreifen (⚔️). Du bekommst eine feste Starthand, Lernstunden zählen für den Schüler stärker als normale Kämpfe.</div>${SCN.map((s,i)=>`<div class="row" data-act="stuLesson" data-i="${i}"><div class="ra">${s.mode==='a'?'⚔️':'🎯'}</div><div style="flex:1;min-width:0"><div class="rn">${s.n}</div><span class="rs">${s.mode==='a'?'Verteidigt mit':'Gegner'}: ${s.atk.map(id=>CARDS[id].name).join(' + ')}<br>Hand: ${s.hand.map(id=>CARDS[id].name).join(', ')}</span></div></div>`).join('')}<button class="btn" style="width:100%;margin-top:8px" data-act="close">Schließen</button>`);
  },
  stuLesson(el){const s=SCN[+el.dataset.i];if(s&&S.stu)startLesson(s);},
  stuSync(){
