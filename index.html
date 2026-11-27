@@ -659,7 +659,7 @@ function mkDeck(){
  const tanks=['titan','boar','axe','guard'],air=['archer','moth','wyvern','mage','healer'],sp=['fireball','frost','volley','bolt'];
  for(;;){const d=new Set();d.add(pick(tanks));d.add(pick(air));d.add(pick(sp));if(Math.random()<.5)d.add(pick(sp));while(d.size<8)d.add(pick(CARD_LIST).id);
   const a=[...d],avg=a.reduce((s,i)=>s+CARDS[i].cost,0)/8,n=a.filter(i=>CARDS[i].type==='spell').length;
-  if(avg>=2.9&&avg<=4.3&&n<=2&&a.some(i=>CARDS[i].hitsAir))return a;}
+  if(n<=2&&a.some(i=>CARDS[i].hitsAir))return a;}
 }
 const NAME_A=['Blitz','Feuer','Eis','Schatten','Donner','Turbo','Mega','Pixel','Nebel','Sturm','Gold','Silber','Wolken','Zucker','Keks','Chaos','Mond','Sonnen','Wald','Berg'];
 const NAME_B=['Fuchs','Ritter','Drache','Hexe','Bär','Falke','Golem','Zwerg','Wolf','König','Prinz','Pirat','Ninja','Kobold','Elch','Otter','Panda','Troll','Geist','Jäger'];
@@ -684,7 +684,7 @@ function botDeck(b){
  const score=c=>b.cards[c.id].lvl*1.2+like(c)*3+({c:0,r:.3,e:.6,l:1})[c.rar]+(b.deck.includes(c.id)?.4:0);
  const list=own.sort((x,y)=>score(y)-score(x)),d=[],add=f=>{const c=list.find(c=>!d.includes(c.id)&&f(c));if(c)d.push(c.id);};
  add(c=>c.type==='troop'&&(c.bOnly||c.hp>=800));add(c=>c.type==='troop'&&c.hitsAir&&c.rng>=3);add(c=>c.type==='troop'&&c.hitsAir);add(c=>c.type==='spell'&&c.dmg>0);add(c=>c.type==='troop'&&c.cost<=3);
- for(const c of list){if(d.length>=8)break;if(d.includes(c.id))continue;if(c.type==='spell'&&d.filter(i=>CARDS[i].type==='spell').length>=2)continue;if(c.type==='building'&&d.some(i=>CARDS[i].type==='building'))continue;if(c.cost>=6&&d.filter(i=>CARDS[i].cost>=6).length>=2)continue;d.push(c.id);}
+ for(const c of list){if(d.length>=8)break;if(d.includes(c.id))continue;if(c.type==='spell'&&d.filter(i=>CARDS[i].type==='spell').length>=2)continue;if(c.type==='building'&&d.some(i=>CARDS[i].type==='building'))continue;d.push(c.id);}
  for(const c of list){if(d.length>=8)break;if(!d.includes(c.id))d.push(c.id);}
  return d;
 }
@@ -1438,7 +1438,7 @@ const botDeck0=botDeck;
 function eliteDeck(b){
  const own=PLAY_CARDS.filter(c=>b.cards[c.id].own);if(own.length<8)return botDeck0(b);
  const sc=c=>(CR[c.id]||.5)*14+b.cards[c.id].lvl*.7;
- const ok=a=>{const cs=a,avg=cs.reduce((s,c)=>s+c.cost,0)/8,sp=cs.filter(c=>c.type==='spell').length,bl=cs.filter(c=>c.type==='building').length;return avg<=4.3&&sp<=2&&bl<=1;};
+ const ok=a=>{const cs=a,avg=cs.reduce((s,c)=>s+c.cost,0)/8,sp=cs.filter(c=>c.type==='spell').length,bl=cs.filter(c=>c.type==='building').length;return sp<=3&&bl<=2;};
  let best=null,bv=-1e9;
  for(let k=0;k<300;k++){
   const pool=own.map(c=>({c,s:sc(c)+rnd(0,3.5)})).sort((x,y)=>y.s-x.s).slice(0,8).map(o=>o.c);
@@ -1770,10 +1770,9 @@ function CX(b){
  return x;
 }
 const good=b=>Array.isArray(b.deck)&&b.deck.length===8&&new Set(b.deck).size===8&&b.deck.every(id=>b.cards[id]&&b.cards[id].own);
-function valid(ids){
+function valid(ids,b){
  const cs=ids.map(id=>CARDS[id]);
- return cs.filter(c=>c.type==='spell').length<=2&&cs.filter(c=>c.type==='building').length<=1&&cs.filter(c=>c.cost>=6).length<=2
-  &&cs.reduce((s,c)=>s+c.cost,0)/8<=4.4&&cs.some(c=>c.hitsAir||c.fly);
+ return cs.filter(c=>c.type==='spell').length<=4&&cs.filter(c=>c.type==='building').length<=3&&cs.some(c=>c.hitsAir||c.fly)&&(!b||!globalThis.persOK||globalThis.persOK(b,ids));
 }
 // Das Deck bleibt, wie es ist. Nur ein unvollständiges Deck wird neu aufgebaut.
 botDeck=function(b){return good(b)?b.deck.slice():prevDeck(b);};
@@ -1796,7 +1795,7 @@ function startTest(b){
   // eher ungeliebte Karten ersetzen, am liebsten durch den gleichen Typ
   const alt=draw(deck.filter(id=>!tr.includes(id)),id=>Math.exp(-1.5*(x.lk[id]||0))*(1.2-aff(b,id))*(CARDS[id].type===CARDS[neu].type?3:1));
   const next=deck.map(id=>id===alt?neu:id);
-  if(!valid(next)&&valid(deck))continue;
+  if(!valid(next,b)&&valid(deck,b))continue;
   deck[deck.indexOf(alt)]=neu;tr.push(neu);out.push(alt);
  }
  if(tr.length){b.deck=deck;x.tr=tr;x.out=out;x.trN=0;x.tw=0;}
@@ -1810,7 +1809,7 @@ function endTest(b){
   if(score>0)keep.push(i);else deck=deck.map(id=>id===neu?alt:id);
  });
  const before=b.deck.map(id=>x.tr.includes(id)?x.out[x.tr.indexOf(id)]:id);
- if(!valid(deck)&&valid(before)){deck=before;keep.length=0;} // Mischung passt nicht -> altes Deck
+ if(!valid(deck,b)&&valid(before,b)){deck=before;keep.length=0;} // Mischung passt nicht -> altes Deck
  x.tr.forEach((neu,i)=>{
   const ok=keep.includes(i),alt=x.out[i];
   x.lk[neu]=ok?Math.min(1,(x.lk[neu]||0)+.8):-.8;
@@ -2224,6 +2223,218 @@ Brain.prototype.think=function(m,me){
   return pt.call(this,m,me);}
  finally{this._thinking=false;}
 };
+})();
+
+// === PATCH 18: Spielstile + Decks ohne Elixier-Limit (sehr teuer bis sehr billig) + Sparen auf JEDE teure Karte ===
+(function(){
+BKEYS.push('pers','dv','po');
+const hh=s=>{let h=0;for(const ch of String(s))h=(h*31+ch.charCodeAt(0))%9973;return h/9973;};
+const nAir=c=>c.hitsAir||c.fly;
+const isBig=c=>c.type==='troop'&&c.cost>=5;
+const cnt=(ids,f)=>ids.reduce((q,id)=>q+(f(CARDS[id])?1:0),0);
+const avgOf=ids=>ids.reduce((q,id)=>q+CARDS[id].cost,0)/Math.max(1,ids.length);
+const fastW=c=>isFastWin(c)&&!c.anywhere;
+const supC=c=>c.type==='troop'&&c.cost<=5&&!c.bOnly&&!c.anywhere&&!(c.hp>=1000&&(c.count||1)===1)&&(c.range>40||c.splash||c.heal||c.hitsAir||(c.count||1)>=3);
+// ---- Persönlichkeiten: Deck-Wunsch (avg = Elixier-Spanne, w = Kartenvorliebe) + Spielstil
+const PERS={
+ schwer:{n:'Schwergewicht',avg:[4.7,7],w:c=>c.cost>=6?5:c.cost>=5?3.6:c.cost===4?1.2:c.cost<=2?.15:.5,need:d=>(cnt(d,c=>c.cost>=5&&c.type!=='spell')>=3?0:5)+(cnt(d,supC)>=2?0:4),arch:'beatdown',st:{gate:2.8,def:.9,bridge:0,split:.1,tank:1,spell:.8}},
+ billig:{n:'Billig-Zyklus',avg:[1.8,3],w:c=>(fastW(c)&&c.cost<=4?5:0)+(c.cost<=2?5:c.cost===3?2.2:c.cost===4?.3:.015),need:d=>cnt(d,c=>fastW(c)&&c.cost<=4)>=1&&cnt(d,c=>c.type==='troop'&&c.cost<=2)>=2?0:5,arch:'cycle',st:{gate:-.9,def:1.15,bridge:.15,split:.5,tank:0,spell:.9}},
+ spam:{n:'Brücken-Spammer',avg:[2.2,3.5],w:c=>fastW(c)?4:c.type==='troop'&&c.cost<=3?2.4:c.type==='spell'?.8:c.cost>=5?.15:.7,need:d=>cnt(d,c=>c.type==='troop'&&c.cost<=4&&!c.heal)>=5?0:4,arch:'bridge',st:{gate:-.5,def:1.1,bridge:.6,split:.4,tank:0,spell:.7},beh:{spam:{keep:.8,maxCost:4}}},
+ rush:{n:'Rusher',avg:[2.4,3.7],w:c=>fastW(c)?3:c.type==='troop'&&c.cost<=4?2:c.type==='spell'?1:.4,need:d=>cnt(d,c=>c.type==='troop'&&c.cost<=4)>=5?0:4,arch:'bridge',st:{gate:-1.5,def:.9,bridge:.5,split:.3,tank:.2,spell:1},beh:{spam:{keep:.5,maxCost:5,until:100}}},
+ zange:{n:'Zangen-Angreifer',avg:[2.8,3.9],w:c=>c.type==='troop'&&!c.heal?(c.cost<=4?2.2:1):c.type==='spell'?1:.5,need:d=>cnt(d,c=>c.type==='troop'&&c.cost<=4)>=4?0:4,arch:'bridge',st:{gate:.6,def:1,bridge:.2,split:.9,tank:.1,spell:1},beh:{spam:{keep:2,maxCost:4,alt:true}}},
+ turtle:{n:'Verteidiger',avg:[3.3,4.7],minB:1,maxB:3,w:c=>c.type==='building'?3.2:c.range>=40||c.hp*(c.count||1)>=1200?2:c.type==='spell'?1.4:1,need:d=>cnt(d,c=>c.type==='building')>=1?0:4,arch:'control',st:{gate:3.5,def:1.4,bridge:0,split:.1,tank:.3,spell:1.2},beh:{turtle:1}},
+ siege:{n:'Belagerer',avg:[3,4.4],w:c=>(c.id==='xbow'||c.id==='mortar')?10:c.type==='building'?1.8:c.range>=40?1.6:1,need:d=>cnt(d,c=>c.id==='xbow'||c.id==='mortar')>=1?0:7,arch:'siege',st:{gate:1.8,def:1.2,bridge:0,split:.1,tank:.2,spell:1},maxB:3},
+ control:{n:'Zauber-Kontrolle',avg:[3.1,4.5],minS:3,maxS:4,w:c=>c.type==='spell'?3.2:1,need:d=>0,arch:'control',st:{gate:1.6,def:.8,bridge:0,split:.15,tank:.2,spell:1.7}},
+ swarm:{n:'Schwarm',avg:[2.5,3.9],w:c=>(c.count>=3?3.6:1)*(c.splash?1.5:1),need:d=>cnt(d,c=>c.count>=3&&c.type==='troop')>=3?0:5,arch:'bridge',st:{gate:.4,def:1,bridge:.3,split:.4,tank:0,spell:1.1}},
+ air:{n:'Luftwaffe',avg:[3,4.6],w:c=>c.fly?4:c.hitsAir?1.8:.8,need:d=>cnt(d,c=>c.fly)>=3?0:5,arch:'balanced',st:{gate:1,def:1,bridge:.05,split:.3,tank:.3,spell:1}},
+ beat:{n:'Tank-Beatdown',avg:[4,5.4],w:c=>isTankC(c)?4:c.range>=40?2:c.type==='spell'?1.1:1,need:d=>(cnt(d,c=>isTankC(c))>=1?0:5)+(cnt(d,supC)>=3?0:4),arch:'beatdown',st:{gate:2.2,def:1,bridge:0,split:.1,tank:1,spell:1}},
+ punish:{n:'Konter-Jäger',avg:[3,4.3],w:c=>c.type==='troop'&&c.cost<=3?2:isBig(c)?1.6:1,need:d=>0,arch:'balanced',st:{gate:1.2,def:1.1,bridge:0,split:.4,tank:.4,spell:1},beh:{punish:1}},
+ allround:{n:'Allrounder',avg:[3,3.9],w:c=>1,need:d=>0,arch:'balanced',st:{gate:.9,def:.95,bridge:.08,split:.25,tank:.5,spell:1}},
+ chaos:{n:'Chaot',avg:[0,10],maxS:3,w:c=>1,need:d=>0,arch:'balanced',st:null,noAir:true}
+};
+const KEYS=Object.keys(PERS);
+const ownOf=b=>PLAY_CARDS.filter(c=>b.cards[c.id].own);
+const persOf=b=>{if(!PERS[b.pers])b.pers=KEYS[(typeof b.id==='number'?b.id+Math.floor(hh('q'+b.taste)*3):Math.floor(hh('p'+b.taste)*KEYS.length))%KEYS.length];return b.pers;};
+function pen(P,d){
+ const cs=d.map(i=>CARDS[i]),a=avgOf(d),sp=cs.filter(c=>c.type==='spell').length,bl=cs.filter(c=>c.type==='building').length;
+ let p=0;if(a<P.avg[0])p+=(P.avg[0]-a)*14;if(a>P.avg[1])p+=(a-P.avg[1])*14;
+ const mS=P.maxS||2,mB=P.maxB||1;if(sp>mS)p+=(sp-mS)*5;if(bl>mB)p+=(bl-mB)*5;
+ if(P.minS&&sp<P.minS)p+=(P.minS-sp)*3;if(P.minB&&bl<P.minB)p+=(P.minB-bl)*3;
+ if(!P.noAir&&!cs.some(nAir))p+=6;
+ return p+P.need(d);
+}
+function buildDeck(b,key){
+ const P=PERS[key||persOf(b)],own=ownOf(b);if(own.length<8)return null;
+ const lk=c=>.6+.8*hh(c.id+b.taste);
+ let best=null,bp=1e9;
+ for(let k=0;k<260&&bp>=2;k++){
+  const pool=own.map(c=>({c,w:Math.max(.02,P.w(c))*lk(c)*(1+b.cards[c.id].lvl*.04)*(.5+Math.random())})),d=[];
+  while(d.length<8){const tot=pool.reduce((s,o)=>s+o.w,0);let r=Math.random()*tot,i=0;while(i<pool.length-1&&r>pool[i].w){r-=pool[i].w;i++;}d.push(pool[i].c.id);pool.splice(i,1);}
+  const v=pen(P,d);if(v<bp){bp=v;best=d;}
+ }
+ // lokale Verbesserung: einzelne Karten tauschen, solange es besser passt
+ for(let it=0;it<160&&bp>=2&&best;it++){
+  const i=Math.floor(Math.random()*8),n=pick(own).id;if(best.includes(n))continue;
+  const d=best.slice();d[i]=n;const v=pen(P,d);if(v<bp){bp=v;best=d;}
+ }
+ return bp<9?best:null;
+}
+const fits=(b,ids)=>{const P=PERS[persOf(b)];return pen(P,ids)<5;};
+globalThis.persOK=function(b,ids){try{return fits(b,ids);}catch(e){return true;}};
+function ensure(b){
+ persOf(b);const own=ownOf(b).length;
+ const good=Array.isArray(b.deck)&&b.deck.length===8&&new Set(b.deck).size===8&&b.deck.every(id=>b.cards[id]&&b.cards[id].own);
+ if(b.dv!==2||!good||(own>=(b.po||0)+2&&!fits(b,b.deck))){
+  const d=buildDeck(b);if(d)b.deck=d;b.dv=2;b.po=own;
+ }
+}
+const bm0=botManage;
+botManage=function(b){bm0(b);try{ensure(b);}catch(e){}};
+const bd18=botDeck;
+botDeck=function(b){try{const d=buildDeck(b);if(d)return d;}catch(e){}return bd18(b);};
+try{world.bots.forEach(ensure);}catch(e){}
+globalThis.X2={PERS,buildDeck,fits,persOf,pen,ensure};
+
+// ---- Sparen: JEDE teure Karte (nicht nur 5+, auch relativ zum Deck: in Billig-Decks ist eine 4 teuer)
+const isExp=(c,avg)=>c.type!=='spell'&&!c.heal&&!c.elix&&!c.anywhere&&!c.kind&&(c.cost>=5||(c.cost>=4&&c.cost>=avg+1.2)||(c.cost>=3&&c.cost>=avg+1.8));
+globalThis.isExpC=isExp;
+const P0=l=>l.reduce((s,u)=>s+pw(u),0);
+const mine=(me,u)=>me===0?u.y>RY-30:u.y<RY+30;
+Brain.prototype.deckAvg=function(){if(this._da==null){const D=(this.pf.deck||[]).map(i=>CARDS[i]).filter(Boolean);this._da=D.length?D.reduce((q,c)=>q+c.cost,0)/D.length:3.5;}return this._da;};
+Brain.prototype.bigCard=function(m,me){
+ const avg=this.deckAvg();let b=null;
+ for(let i=0;i<4;i++){const id=m.hand[me][i],c=CARDS[id];if(!c||!isExp(c,avg))continue;if(!b||c.cost>b.c.cost)b={id,i,c};}
+ return b;
+};
+Brain.prototype.threat18=function(m,me){
+ const en=m.units.filter(u=>u.team===1-me&&u.hp>0&&!u.building&&mine(me,u));if(!en.length)return 0;
+ const ln=[[],[]];en.forEach(u=>ln[u.x<180?0:1].push(u));let p=Math.max(P0(ln[0]),P0(ln[1]));
+ for(const u of en)for(const q of m.tw[me])if(!q.dead&&Math.hypot(u.x-q.x,u.y-q.y)<150){p=Math.max(p,20)+15;break;}
+ return p;
+};
+Brain.prototype.save=function(m,me){
+ const sv=m.sv||(m.sv=[null,null]);sv[me]=null;
+ const pf=this.pf,r=pf.skill;if(r<.12)return 0;
+ if(m.ot&&m.t>=300)return 0;
+ const op=1-me,el=m.el[me],big=this.bigCard(m,me);if(!big)return 0;
+ if(this.threat18(m,me)>=40)return 0;                       // echte Bedrohung: normale Verteidigung
+ const c=big.c,fr=m.units.filter(u=>u.team===me&&u.hp>0&&!u.building);
+ const push=P0(fr.filter(u=>me===0?u.y<RY+90:u.y>RY-90));
+ const sup=this.supInHand?this.supInHand(m,me):null;
+ const need=Math.min(9.8,c.cost+(globalThis.isTankU&&globalThis.isTankU(c)&&sup?Math.max(1.2,Math.min(sup.c.cost,3.2)):(c.cost>=6?1.7:1.2))+(push>=140?1:0))-(m.t>=120?.5:0);
+ if(el>=need){
+  const foe=m.tw[op],d=[0,0];for(const u of m.units)if(u.team===op&&u.hp>0&&!u.building&&(me===0?u.y<RY:u.y>RY))d[u.x<180?0:1]+=pw(u);
+  let l=d[0]+foe[0].hp*.03<=d[1]+foe[1].hp*.03?0:1;if(foe[l].dead)l=1-l;
+  let q;
+  if(c.type==='building'){q=(c.id==='xbow'||c.id==='mortar')?{x:l?270:90,y:me===0?345:255}:{x:180+(Math.random()<.5?-22:22),y:me===0?395:205};}
+  else q=this.off(m,me,c,l);
+  this.lastL=l;
+  return m.play(me,big.i,q.x,q.y)?2:0;
+ }
+ if(el>=9.4)return 0;
+ sv[me]=c.name;return 1;
+};
+
+// ---- Verhalten je Persönlichkeit
+function initPers(br){
+ if(br._pi)return;br._pi=true;const b=br.pf,key=persOf(b),P=PERS[key];br.persKey=key;br.persN=P.n;br.beh=P.beh||{};
+ if(P.st)br.st=Object.assign({},P.st);else{const r=k=>hh(k+b.taste);br.st={gate:-1+r('g')*4.5,def:.7+r('d')*.7,bridge:r('b')*.5,split:r('s'),tank:r('t'),spell:.7+r('p')*.9};br.beh=r('x')<.3?{spam:{keep:1,maxCost:5}}:r('x')<.5?{turtle:1}:{};}
+ br.arch=P.arch;
+}
+function frontPush(m,me){return m.units.reduce((q,u)=>q+(u.team===me&&u.hp>0&&!u.building&&(me===0?u.y<RY+120:u.y>RY-120)?pw(u):0),0);}
+Brain.prototype.persAct=function(m,me){
+ const B=this.beh,el=m.el[me];if(!B||m.t<2)return false;
+ if(m.ot&&m.t>=300)return false;
+ const behind=m.t>=140&&m.crowns[me]<m.crowns[1-me];
+ const th=this.threat18(m,me);
+ if(B.spam&&th<40){
+  const o=B.spam;if(o.until&&m.t>=o.until)return false;
+  const hand=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})).filter(h=>h.c.type==='troop'&&!h.c.heal&&!h.c.anywhere&&h.c.cost<=o.maxCost&&h.c.cost<=el-(m.t>15?o.keep:0)+1e-6);
+  if(!hand.length)return false;
+  if(o.alt&&el<4.5)return false;
+  const h=hand.sort((a,b)=>a.c.cost-b.c.cost+(Math.random()-.5)*1.5)[0];
+  let l;if(o.alt)l=this.sl==null?(Math.random()<.5?0:1):1-this.sl;else{const foe=m.tw[1-me];l=foe[0].hp<=foe[1].hp?0:1;if(Math.random()<.35)l=1-l;if(foe[l].dead)l=1-l;}
+  this.sl=l;this.lastL=l;
+  return m.play(me,h.i,l?270:90,me===0?RY+RH+22:RY-RH-22);
+ }
+ if(B.turtle&&th<40&&el<9.2&&!behind&&frontPush(m,me)<60){
+  const bd=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})).find(h=>h.c.type==='building'&&!h.c.elix&&!h.c.minR&&h.c.id!=='xbow'&&h.c.id!=='mortar'&&el>=h.c.cost+1&&!m.units.some(u=>u.team===me&&u.building&&u.hp>0&&u.c.id===h.id));
+  if(bd&&m.play(me,bd.i,180+(Math.random()<.5?-22:22),me===0?395:205))return true;
+  return true;                                                  // nur verteidigen, Elixier ansammeln
+ }
+ if(B.punish&&th<40&&el<9.2&&!behind&&frontPush(m,me)<60&&el-this.est<1.5)return true; // nur angreifen, wenn ich Elixier-Vorsprung habe
+ return false;
+};
+const t18=Brain.prototype.think;
+Brain.prototype.think=function(m,me){
+ if(this.pf.v2===false)return t18.call(this,m,me);
+ initPers(this);this._thinking=true;
+ try{
+  let r=0;try{r=this.save(m,me);}catch(e){r=0;}
+  if(r)return;
+  try{if(this.persAct(m,me))return;}catch(e){}
+  return t18.call(this,m,me);
+ }finally{this._thinking=false;}
+};
+// Anzeige beim Zuschauen: Spielstil + "spart auf …"
+const wp18=watchPanel;
+watchPanel=function(el,m,k){
+ wp18(el,m,k);
+ try{const br=m.brains&&m.brains[k],sp=el.querySelector('.welix span'),s=m.sv&&m.sv[k];
+  if(sp)sp.textContent='💧 '+Math.floor(m.el[k])+(s?' · spart auf '+s:'');
+  const w=el.querySelector('.wname');if(w&&br&&br.persN){let t=w.querySelector('.ps');if(!t){t=document.createElement('div');t.className='ps';t.style.cssText='font-size:10px;opacity:.85;font-weight:700';w.appendChild(t);}if(t.textContent!==br.persN)t.textContent=br.persN;}}catch(e){}
+};
+// Bot-Profil: Spielstil anzeigen
+const ab18=ACT.bot;
+ACT.bot=function(el){
+ ab18.call(this,el);
+ try{const b=world.bots[+el.dataset.id],P=PERS[persOf(b)],t=document.querySelector('#modal table');
+  if(t&&P)t.insertAdjacentHTML('afterbegin',`<tr><td>Spielstil</td><td><b>${P.n}</b> · Ø ${(avgOf(b.deck)).toFixed(1)} 💧</td></tr>`);}catch(e){}
+};
+})();
+
+// === PATCH 19: Tanks brauchen Unterstützung – Support folgt dem Tank, Tank wird erst mit Support-Elixier gespielt ===
+(function(){
+const tankU=c=>c.type==='troop'&&!c.heal&&(c.hp>=1000&&(c.count||1)===1&&!c.fly||c.role==='TANK');
+globalThis.isTankU=tankU;
+const isSup=c=>c.type==='troop'&&!tankU(c)&&!c.bOnly&&!c.anywhere&&c.cost<=5&&(c.range>40||c.splash||c.heal||c.hitsAir||(c.count||1)>=3||c.dps*(c.count||1)>=60);
+const supScore=c=>(c.range>40?2.2:0)+(c.splash?1.4:0)+(c.heal?1.2:0)+(c.hitsAir?.8:0)+((c.count||1)>=3?.8:0)+Math.min(2,c.dps*(c.count||1)/Math.max(1,c.cost)/25);
+Brain.prototype.supInHand=function(m,me){
+ if(this.pf.noSup)return null;
+ let b=null;m.hand[me].forEach((id,i)=>{const c=CARDS[id];if(c&&isSup(c)&&(!b||supScore(c)>supScore(b.c)))b={id,i,c};});return b;
+};
+// Tanks auf dem Feld ohne Begleiter in der Nähe
+function lonelyTank(m,me){
+ const us=m.units.filter(u=>u.team===me&&u.hp>0&&!u.building);
+ let best=null;
+ for(const t of us){if(!tankU(t.c))continue;
+  const half=me===0?t.y<RY+60:t.y>RY-60;   // schon in Bewegung Richtung Gegner
+  const sup=us.some(u=>u!==t&&!tankU(u.c)&&u.c.type==='troop'&&Math.hypot(u.x-t.x,u.y-t.y)<130&&pw(u)>=12);
+  if(!sup&&(!best||t.hp>best.hp))best={t,half};}
+ return best;
+}
+const pa19=Brain.prototype.persAct;
+Brain.prototype.persAct=function(m,me){
+ if(!this.pf.noSup&&m.t>=2&&!(m.ot&&m.t>=300)){
+  const L=lonelyTank(m,me);
+  if(L){
+   const th=this.threat18?this.threat18(m,me):0;
+   if(th<110){
+    const el=m.el[me],s=this.supInHand(m,me);
+    if(s){
+     this.sw=this.sw||m.t;
+     if(el>=s.c.cost-1e-6){
+      const t=L.t,x=Math.max(20,Math.min(340,t.x+(Math.random()<.5?-14:14)));
+      const y=me===0?Math.max(RY+RH+12,Math.min(560,t.y+24)):Math.min(RY-RH-12,Math.max(40,t.y-24));
+      if(m.play(me,s.i,x,y)){this.sw=null;return true;}
+     }else if(m.t-this.sw<14&&el<9.4)return true;      // Elixier für den Support aufheben
+    }
+   }
+  }else this.sw=null;
+ }
+ return pa19.call(this,m,me);
+};
+globalThis.__lonelyTank=lonelyTank;
 })();
 
 renderTab();requestAnimationFrame(frame);
