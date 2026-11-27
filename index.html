@@ -2193,12 +2193,36 @@ Brain.prototype.save=function(m,me){
  if(el>=9.4)return 0;                                  // Elixier läuft sonst über: normale Logik
  return 1;                                             // sparen
 };
+Brain.prototype.threatNow=function(m,me){
+ const op=1-me,en=m.units.filter(u=>u.team===op&&u.hp>0&&!u.building&&nearMine(me,u));if(!en.length)return 0;
+ const lanes=[[],[]];en.forEach(u=>lanes[u.x<180?0:1].push(u));let pwr=Math.max(P(lanes[0]),P(lanes[1]));
+ for(const u of en)for(const q of m.tw[me])if(!q.dead&&Math.hypot(u.x-q.x,u.y-q.y)<150){pwr+=15;break;}
+ return pwr;
+};
+// Bot-Plays: nicht immer exakt dieselbe Stelle (Gegner kann sonst gezielt kontern)
+const mplay=Match.prototype.play;
+Match.prototype.play=function(team,hi,x,y){
+ const b=this.brains&&this.brains[team];
+ if(b&&b._thinking&&b.pf.v2!==false){
+  const c=CARDS[this.hand[team][hi]];
+  if(c&&c.type!=='spell'){
+   const lp=b._lastPos;
+   if(lp&&this.t-lp.t<10&&Math.abs(lp.x-x)<10&&Math.abs(lp.y-y)<10&&c.type==='troop'){
+    const nx=x+(Math.random()<.5?-16:16);if(this.validAt(team,c,nx,y)){x=nx;}}
+  }
+ }
+ const ok=mplay.call(this,team,hi,x,y);
+ if(ok&&b&&b._thinking)b._lastPos={x,y,t:this.t};
+ return ok;
+};
 const pt=Brain.prototype.think;
 Brain.prototype.think=function(m,me){
  if(this.pf.v2===false)return pt.call(this,m,me);
- let r=0;try{r=this.save(m,me);}catch(e){r=0;}
- if(r)return;
- return pt.call(this,m,me);
+ this._thinking=true;
+ try{let r=0;try{r=this.save(m,me);}catch(e){r=0;}
+  if(r)return;
+  return pt.call(this,m,me);}
+ finally{this._thinking=false;}
 };
 })();
 
