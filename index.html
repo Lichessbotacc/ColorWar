@@ -1434,6 +1434,7 @@ Brain.prototype.smart=function(m,me){
 // === PATCH 7: Starke Bots – Meta-Decks (aus Turnier-Simulationen) + Elite-Spielweise ===
 (function(){
 const CR={wyvern:.644,cart:.629,barbs:.625,horde:.604,axe:.602,speargob:.601,pekka:.598,mage:.594,minik:.582,bigbones:.579,bombtower:.578,gang:.573,bats:.573,copter:.569,clone:.561,dprince:.557,barbhut:.553,fireball:.551,archer:.545,elixir:.544,army:.542,musk:.539,rocket:.539,furnace:.538,ram:.538,exec:.531,dart:.529,witch:.528,bowler:.526,log:.522,icegolem:.521,elite:.518,moth:.515,mortar:.515,rgiant:.513,heal:.509,squire:.508,volley:.506,zap:.506,megamoth:.504,balloon:.5,bomber:.497,rage:.495,golem:.489,megaknight:.487,titan:.485,princess:.484,poison:.483,goblins:.482,trio:.481,icegob:.48,idragon:.477,gobhut:.477,firesp:.474,bones:.473,boar:.467,tesla:.467,tornado:.464,turret:.455,inferno:.455,prince:.453,xbow:.448,tomb:.441,sparky:.439,guards:.428,lava:.425,healer:.424,icesp:.418,icewiz:.416,nwitch:.404,barrel:.395,frost:.382,ewiz:.38,lumber:.376,ninja:.351,skelknight:.351,miner:.331,graveyard:.328};
+globalThis.CRW=CR;
 const botDeck0=botDeck;
 function eliteDeck(b){
  const own=PLAY_CARDS.filter(c=>b.cards[c.id].own);if(own.length<8)return botDeck0(b);
@@ -2250,34 +2251,47 @@ const PERS={
  beat:{n:'Tank-Beatdown',avg:[4,5.4],w:c=>isTankC(c)?4:c.range>=40?2:c.type==='spell'?1.1:1,need:d=>(cnt(d,c=>isTankC(c))>=1?0:5)+(cnt(d,supC)>=3?0:4),arch:'beatdown',st:{gate:2.2,def:1,bridge:0,split:.1,tank:1,spell:1}},
  punish:{n:'Konter-Jäger',avg:[3,4.3],w:c=>c.type==='troop'&&c.cost<=3?2:isBig(c)?1.6:1,need:d=>0,arch:'balanced',st:{gate:1.2,def:1.1,bridge:0,split:.4,tank:.4,spell:1},beh:{punish:1}},
  allround:{n:'Allrounder',avg:[3,3.9],w:c=>1,need:d=>0,arch:'balanced',st:{gate:.9,def:.95,bridge:.08,split:.25,tank:.5,spell:1}},
- chaos:{n:'Chaot',avg:[0,10],maxS:3,w:c=>1,need:d=>0,arch:'balanced',st:null,noAir:true}
+ chaos:{n:'Chaot',avg:[2.2,5.2],maxS:3,w:c=>1,need:d=>0,arch:'balanced',st:null}
 };
 const KEYS=Object.keys(PERS);
 const ownOf=b=>PLAY_CARDS.filter(c=>b.cards[c.id].own);
 const persOf=b=>{if(!PERS[b.pers])b.pers=KEYS[(typeof b.id==='number'?b.id+Math.floor(hh('q'+b.taste)*3):Math.floor(hh('p'+b.taste)*KEYS.length))%KEYS.length];return b.pers;};
+const CRW=globalThis.CRW||{};
+const wc=c=>c.type==='troop'&&(isFastWin(c)||isTankC(c)||c.bOnly||c.cost>=5||c.id==='mortar'||c.id==='xbow')||(c.id==='xbow'||c.id==='mortar');
+const airC=c=>c.fly&&c.type==='troop'||c.hitsAir&&c.type!=='spell'||(c.type==='spell'&&c.dmg>0&&!c.own);
 function pen(P,d){
  const cs=d.map(i=>CARDS[i]),a=avgOf(d),sp=cs.filter(c=>c.type==='spell').length,bl=cs.filter(c=>c.type==='building').length;
  let p=0;if(a<P.avg[0])p+=(P.avg[0]-a)*14;if(a>P.avg[1])p+=(a-P.avg[1])*14;
  const mS=P.maxS||2,mB=P.maxB||1;if(sp>mS)p+=(sp-mS)*5;if(bl>mB)p+=(bl-mB)*5;
  if(P.minS&&sp<P.minS)p+=(P.minS-sp)*3;if(P.minB&&bl<P.minB)p+=(P.minB-bl)*3;
- if(!P.noAir&&!cs.some(nAir))p+=6;
+ if(!cs.some(nAir))p+=6;
+ // Zusammenhang: Gewinn-Karte, Luftabwehr, Schadenszauber, keine Rollen-Häufung
+ if(!P.noCo){
+  if(!cs.some(wc))p+=5;
+  if(cs.filter(airC).length<2)p+=3;
+  if(!cs.some(c=>c.type==='spell'&&c.dmg>0)&&!(P.maxS===0))p+=2;
+  const roles={};cs.forEach(c=>{roles[c.role]=(roles[c.role]||0)+1;});for(const r in roles)if(roles[r]>3&&r!=='ZAUBER')p+=(roles[r]-3)*3;
+  if(cs.filter(c=>c.role==='TANK'||c.bOnly).length>2)p+=4;
+  if(!cs.some(c=>c.type==='troop'&&c.cost<=3))p+=3;
+ }
  return p+P.need(d);
 }
 function buildDeck(b,key){
  const P=PERS[key||persOf(b)],own=ownOf(b);if(own.length<8)return null;
- const lk=c=>.6+.8*hh(c.id+b.taste);
- let best=null,bp=1e9;
- for(let k=0;k<260&&bp>=2;k++){
-  const pool=own.map(c=>({c,w:Math.max(.02,P.w(c))*lk(c)*(1+b.cards[c.id].lvl*.04)*(.5+Math.random())})),d=[];
+ const lk=c=>.85+.3*hh(c.id+b.taste);
+ const W={};own.forEach(c=>{W[c.id]=Math.pow(Math.max(.02,P.w(c)),.7)*Math.exp(9*((CRW[c.id]||.5)-.5))*lk(c)*(1+b.cards[c.id].lvl*.05);});
+ const val=d=>pen(P,d)*3-d.reduce((q,id)=>q+Math.log(W[id]),0);
+ let best=null,bv=1e9;
+ for(let k=0;k<200;k++){
+  const pool=own.map(c=>({c,w:W[c.id]*(.5+Math.random())})),d=[];
   while(d.length<8){const tot=pool.reduce((s,o)=>s+o.w,0);let r=Math.random()*tot,i=0;while(i<pool.length-1&&r>pool[i].w){r-=pool[i].w;i++;}d.push(pool[i].c.id);pool.splice(i,1);}
-  const v=pen(P,d);if(v<bp){bp=v;best=d;}
+  const v=val(d);if(v<bv){bv=v;best=d;}
  }
- // lokale Verbesserung: einzelne Karten tauschen, solange es besser passt
- for(let it=0;it<160&&bp>=2&&best;it++){
-  const i=Math.floor(Math.random()*8),n=pick(own).id;if(best.includes(n))continue;
-  const d=best.slice();d[i]=n;const v=pen(P,d);if(v<bp){bp=v;best=d;}
+ for(let it=0;it<500&&best;it++){
+  const i=Math.floor(Math.random()*8),n=own[Math.floor(Math.random()*own.length)].id;if(best.includes(n))continue;
+  const d=best.slice();d[i]=n;const v=val(d);if(v<bv){bv=v;best=d;}
  }
- return bp<9?best:null;
+ return best&&pen(P,best)<9?best:null;
 }
 const fits=(b,ids)=>{const P=PERS[persOf(b)];return pen(P,ids)<5;};
 globalThis.persOK=function(b,ids){try{return fits(b,ids);}catch(e){return true;}};
@@ -2293,7 +2307,7 @@ botManage=function(b){bm0(b);try{ensure(b);}catch(e){}};
 const bd18=botDeck;
 botDeck=function(b){try{const d=buildDeck(b);if(d)return d;}catch(e){}return bd18(b);};
 try{world.bots.forEach(ensure);}catch(e){}
-globalThis.X2={PERS,buildDeck,fits,persOf,pen,ensure};
+globalThis.X2={PERS,buildDeck,fits,persOf,pen,ensure,oldDeck:bd18};
 
 // ---- Sparen: JEDE teure Karte (nicht nur 5+, auch relativ zum Deck: in Billig-Decks ist eine 4 teuer)
 const isExp=(c,avg)=>c.type!=='spell'&&!c.heal&&!c.elix&&!c.anywhere&&!c.kind&&(c.cost>=5||(c.cost>=4&&c.cost>=avg+1.2)||(c.cost>=3&&c.cost>=avg+1.8));
@@ -2313,11 +2327,11 @@ Brain.prototype.threat18=function(m,me){
  return p;
 };
 Brain.prototype.save=function(m,me){
- const sv=m.sv||(m.sv=[null,null]);sv[me]=null;
+ const sv=m.sv||(m.sv=[null,null]);sv[me]=null;const hold=this._hold&&m.t<this._hold;
  const pf=this.pf,r=pf.skill;if(r<.12)return 0;
  if(m.ot&&m.t>=300)return 0;
  const op=1-me,el=m.el[me],big=this.bigCard(m,me);if(!big)return 0;
- if(this.threat18(m,me)>=40)return 0;                       // echte Bedrohung: normale Verteidigung
+ if(this.threat18(m,me)>=(hold?58:40)){this._hold=0;return 0;}                       // echte Bedrohung: normale Verteidigung
  const c=big.c,fr=m.units.filter(u=>u.team===me&&u.hp>0&&!u.building);
  const push=P0(fr.filter(u=>me===0?u.y<RY+90:u.y>RY-90));
  const sup=this.supInHand?this.supInHand(m,me):null;
@@ -2332,7 +2346,7 @@ Brain.prototype.save=function(m,me){
   return m.play(me,big.i,q.x,q.y)?2:0;
  }
  if(el>=9.4)return 0;
- sv[me]=c.name;return 1;
+ sv[me]=c.name;this._hold=m.t+1.2;{const S=(m.svs||(m.svs=[{n:'',t:-9,since:-9},{n:'',t:-9,since:-9}]))[me];if(!S.n||m.t-S.t>2.2||(S.n!==c.name&&m.t-S.since>=2.5)){S.n=c.name;S.since=m.t;}S.t=m.t;}return 1;
 };
 
 // ---- Verhalten je Persönlichkeit
@@ -2343,6 +2357,7 @@ function initPers(br){
 }
 function frontPush(m,me){return m.units.reduce((q,u)=>q+(u.team===me&&u.hp>0&&!u.building&&(me===0?u.y<RY+120:u.y>RY-120)?pw(u):0),0);}
 Brain.prototype.persAct=function(m,me){
+ if(this.pf.noBeh)return false;
  const B=this.beh,el=m.el[me];if(!B||m.t<2)return false;
  if(m.ot&&m.t>=300)return false;
  const behind=m.t>=140&&m.crowns[me]<m.crowns[1-me];
@@ -2380,7 +2395,7 @@ Brain.prototype.think=function(m,me){
 const wp18=watchPanel;
 watchPanel=function(el,m,k){
  wp18(el,m,k);
- try{const br=m.brains&&m.brains[k],sp=el.querySelector('.welix span'),s=m.sv&&m.sv[k];
+ try{const br=m.brains&&m.brains[k],sp=el.querySelector('.welix span'),ss=m.svs&&m.svs[k],s=ss&&m.t-ss.t<2.2?ss.n:null;
   if(sp)sp.textContent='💧 '+Math.floor(m.el[k])+(s?' · spart auf '+s:'');
   const w=el.querySelector('.wname');if(w&&br&&br.persN){let t=w.querySelector('.ps');if(!t){t=document.createElement('div');t.className='ps';t.style.cssText='font-size:10px;opacity:.85;font-weight:700';w.appendChild(t);}if(t.textContent!==br.persN)t.textContent=br.persN;}}catch(e){}
 };
