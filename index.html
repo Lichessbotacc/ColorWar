@@ -2765,7 +2765,8 @@ Object.assign(ACT,{
  freeChest(){const f=fre();if(Date.now()<f.at)return toast('Noch nicht bereit');f.at=Date.now()+D4;const r=openChest(S,'free');save();renderTab();loot('free',r);},
  crownChest(){const c=crw();if(c.got||c.n<10)return;c.got=true;const r=openChest(S,'crown');save();renderTab();loot('crown',r);},
  stuCreate(){
-  if(S.stu)return;const inp=$('#stuName'),n=inp?inp.value.replace(/[<>&"]/g,'').trim().slice(0,16):'';
+  if(S.stu&&stuBot())return toast('Du hast schon einen Schüler');S.stu=null;
+  const inp=$('#stuName'),n=inp?inp.value.replace(/[<>&"]/g,'').trim().slice(0,16):'';
   if(n.length<2)return toast('Name zu kurz');
   if(world.bots.some(b=>b.name.toLowerCase()===n.toLowerCase())||n.toLowerCase()===String(S.name).toLowerCase())return toast('Name schon vergeben');
   world.bots.forEach(x=>{if(x.stu)delete x.stu;});
