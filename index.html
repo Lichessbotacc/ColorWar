@@ -1054,7 +1054,7 @@ function renderTab(){
   setHTML(c,`<div class="arena" data-act="arenas" style="cursor:pointer;background:linear-gradient(${th.g1},${th.g2})"><div class="sub">${th.i?'Arena '+th.i:'Start'}</div><div class="an">${th.n}</div><div class="tr">🏆 ${S.trophies}</div><div class="sub">${nx?'Nächste Arena ab '+nx.min+' 🏆':'Höchste Arena erreicht'}<br>Antippen: alle Arenen und Karten</div></div>
   <button class="btn green big" style="width:100%" data-act="battle">⚔️ KAMPF</button>
   <div class="chests">${S.chests.map(chestHTML).join('')}</div>${globalThis.specialChests?specialChests():''}
-  <div class="sect">Dein Deck</div><div class="minideck">${S.deck.map(id=>cardHTML(id,S.cards[id].lvl)).join('')}</div>
+  <div class="sect">Dein Deck</div><div class="minideck">${S.deck.map(id=>`<div data-act="card" data-id="${id}">${cardHTML(id,S.cards[id].lvl)}</div>`).join('')}</div>
   <div class="stat">🟢 ${on} Spieler online · 📺 ${world.matches.length} Live-Kämpfe<br>Siege ${S.wins} · Niederlagen ${S.losses} · Unentschieden ${S.draws}</div>`,'tab');
  }else if(tab==='cards'){
   const avg=(S.deck.reduce((s,i)=>s+CARDS[i].cost,0)/8).toFixed(1);
@@ -1986,7 +1986,7 @@ function tick(){
  try{botCards(now);}catch(e){}
 }
 setInterval(tick,3000);setTimeout(tick,1000);
-const membersHTML=(c,canKick)=>c.mem.map(m=>({m,i:info(m.k)})).sort((a,b)=>b.i.tr-a.i.tr).map(({m,i},n)=>`<div class="row ${i.me?'me':''}" style="cursor:default"><div class="rk">${n+1}</div><div class="ra">${i.av}</div><div style="flex:1;min-width:0"><div class="rn">${m.k===c.lead?'👑 ':''}${i.name}</div><span class="rs">${i.on?'<span class="dot"></span>online':'<span class="dot off"></span>offline'}</span></div><div class="rt">🏆 ${i.tr}</div>${canKick&&m.k!==c.lead?`<button class="btn red mini" data-act="clanKick" data-c="${c.id}" data-k="${m.k}">🥾</button>`:''}</div>`).join('');
+const membersHTML=(c,canKick)=>c.mem.map(m=>({m,i:info(m.k)})).sort((a,b)=>b.i.tr-a.i.tr).map(({m,i},n)=>`<div class="row ${i.me?'me':''}" style="cursor:default"><div class="rk">${n+1}</div><div class="ra">${i.av}</div><div style="flex:1;min-width:0"><div class="rn">${m.k===c.lead?'👑 ':''}${i.name}</div><span class="rs">${i.on?'<span class="dot"></span>online':'<span class="dot off"></span>offline'}</span></div><div class="rt">🏆 ${i.tr}</div>${!i.me&&i.on&&clanOf('me')===c?`<button class="btn blue mini" data-act="clanFriend" data-k="${m.k}">⚔️</button>`:''}${canKick&&m.k!==c.lead?`<button class="btn red mini" data-act="clanKick" data-c="${c.id}" data-k="${m.k}">🥾</button>`:''}</div>`).join('');
 const head=c=>`<div class="arena" style="background:linear-gradient(#5a48c8,#2a1f70)"><div style="font-size:46px">${c.badge}</div><div class="an">${c.name}</div><div class="sub">${c.mem.length}/${MAXM} Mitglieder · 🏆 ${total(c)} · Beitritt ab ${c.req} 🏆</div></div>`;
 // --- Karten anfordern & spenden ---
 const RC={c:{cap:30,per:10,g:2,xp:1},r:{cap:9,per:3,g:10,xp:2},e:{cap:2,per:1,g:60,xp:4}},CD=120000,EXP=1200000;
@@ -2878,6 +2878,99 @@ Object.assign(ACT,{
  freeChest(){const f=fre();if(Date.now()<f.at)return toast('Noch nicht bereit');f.at=Date.now()+D4;const r=openChest(S,'free');save();renderTab();loot('free',r);},
  crownChest(){const c=crw();if(c.got||c.n<10)return;c.got=true;const r=openChest(S,'crown');save();renderTab();loot('crown',r);}
 });
+})();
+
+// === PATCH: Shop, Freundschaftskämpfe, Challenges ===
+(function(){
+let MK=null,OV=null,PL=null;
+const TLV={c:9,r:7,e:4,l:1},TL=id=>Math.min(RAR[CARDS[id].rar].max,TLV[CARDS[id].rar]);
+const allowed=()=>{const ar=arenaFor(S.best||0).i;return PLAY_CARDS.filter(c=>c.ar<=ar).map(c=>c.id);};
+const shuf=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;};
+const pp0=playerProfile;
+playerProfile=function(){const p=pp0();if(OV&&OV.deck){p.deck=OV.deck.slice();p.lvl=TL;p.kingLvl=9;}return p;};
+const wpro=World.prototype.profile;
+world.profile=function(b){if(OV&&OV.opp===b)return wpro.call(this,OV.cl);return wpro.call(this,b);};
+function mkClone(opp,pool){const cl=Object.assign(Object.create(Object.getPrototypeOf(opp)),opp);cl.lvl=9;cl.cards={};
+ PLAY_CARDS.forEach(c=>cl.cards[c.id]={lvl:TL(c.id),copies:0,own:pool.includes(c.id)});
+ let d=[];try{d=botDeck(cl)||[];}catch(e){}d=d.filter(id=>pool.includes(id));
+ for(const id of shuf(pool)){if(d.length>=8)break;if(!d.includes(id))d.push(id);}cl.deck=d.slice(0,8);return cl;}
+// ---------- Ergebnisse ----------
+const REW=w=>w>=12?{gold:300,type:'super'}:w>=10?{gold:0,type:'giant'}:w>=8?{gold:0,type:'magic'}:w>=6?{gold:0,type:'gold'}:w>=4?{gold:0,type:'silver'}:w>=2?{gold:0,type:'wood'}:{gold:20,type:null};
+function claimCh(){const ch=S.ch;if(!ch)return null;const r=REW(ch.w);S.gold+=r.gold;const res=r.type?openChest(S,r.type):null;S.ch=null;save();return{w:ch.w,gold:r.gold,type:r.type,res};}
+const sr0=showResult;
+showResult=function(m){
+ if(!MK)return sr0(m);
+ const w=m.winner,opp=MK.opp,cr=m.crowns;MK.done=true;let extra='';
+ if(MK.t==='ch'&&S.ch){if(w===0)S.ch.w++;else if(w===1)S.ch.l++;
+  extra=`<tr><td>Challenge</td><td>${S.ch.w} Siege · ${S.ch.l}/3 Niederlagen</td></tr>`;
+  if(S.ch.w>=12||S.ch.l>=3){const c=claimCh();PL=c.res?{type:c.type,res:c.res}:null;extra+=`<tr><td>Beendet</td><td>${c.w} Siege${c.gold?' · +'+c.gold+' 🪙':''}${c.type?' · '+CHESTS[c.type].n:''}</td></tr>`;}}
+ if(MK.t==='fr'){if(w===0)S.fw=(S.fw||0)+1;extra=`<tr><td>Freundschaftssiege</td><td>${S.fw||0}</td></tr>`;}
+ opp.inMatch=false;opp.idle=rnd(6,16);opp.wait=0;save();(w===0?SND.win:SND.lose)();
+ $('#result').innerHTML=`<div class="mbox"><h1 class="${w===0?'win':w===1?'lose':'draw'}">${w===0?'SIEG!':w===1?'NIEDERLAGE':'UNENTSCHIEDEN'}</h1>
+ <div style="font-size:34px;margin:6px 0" class="crowns"><span style="color:#8cf">${crownsHTML(cr[1])}</span> &nbsp;:&nbsp; <span style="color:#f99">${crownsHTML(cr[0])}</span></div>
+ <div style="font-size:13px;opacity:.9">${S.name} ${cr[0]} : ${cr[1]} ${opp.name}</div>
+ <table style="margin:12px 0"><tr><td>${MK.t==='fr'?'Freundschaftskampf':'Challenge'}</td><td>keine Trophäen</td></tr>${extra}</table>
+ <button class="btn green big" style="width:100%;font-size:20px" data-act="resClose">Weiter</button></div>`;
+ $('#result').classList.remove('hidden');
+};
+const lb0=leaveBattle;
+leaveBattle=function(){const k=MK;MK=null;
+ if(k){if(k.opp){k.opp.inMatch=false;k.opp.idle=rnd(6,16);}
+  if(k.t==='ch'&&!k.done&&S.ch){S.ch.l++;if(S.ch.l>=3){const c=claimCh();PL=c&&c.res?{type:c.type,res:c.res}:null;}save();}}
+ lb0();if(PL){const p=PL;PL=null;setTimeout(()=>loot(p.type,p.res),350);}};
+// ---------- Shop ----------
+const dayKey=()=>new Date().toDateString();
+function seed(str){let h=1779033703^str.length;for(let i=0;i<str.length;i++){h=Math.imul(h^str.charCodeAt(i),3432918353);h=h<<13|h>>>19;}return()=>{h=Math.imul(h^h>>>16,2246822507);h=Math.imul(h^h>>>13,3266489909);return((h^=h>>>16)>>>0)/4294967296;};}
+const PRC={c:4,r:28,e:240};
+function offers(){const ar=arenaFor(S.best||0).i;if(!S.shop||S.shop.d!==dayKey()||S.shop.ar!==ar)S.shop={d:dayKey(),ar,b:[]};
+ const R=seed(dayKey()+'|'+ar),pool=PLAY_CARDS.filter(c=>c.ar<=ar),by=r=>pool.filter(c=>c.rar===r),pk=a=>a[Math.floor(R()*a.length)];
+ const o=[],used=new Set();const add=(r,n)=>{let a=by(r).filter(c=>!used.has(c.id));if(!a.length)a=by('r').filter(c=>!used.has(c.id));if(!a.length)return;const c=pk(a);used.add(c.id);const q=c.rar==='c'?20+Math.floor(R()*21):c.rar==='r'?3+Math.floor(R()*4):1+Math.floor(R()*2);o.push({t:'card',id:c.id,n:q,p:q*PRC[c.rar]});};
+ add('c');add('c');add('r');add('e');o.push({t:'chest',type:'wood',p:100},{t:'chest',type:'silver',p:350});return o;}
+function shopHTML(){const o=offers();return'<div class="sect">🛒 Täglicher Shop <span class="chip">neu um Mitternacht</span></div>'+o.map((x,i)=>{const done=S.shop.b.includes(i);
+ const l=x.t==='card'?`<div style="flex:none">${cardHTML(x.id,0)}</div><div style="flex:1;min-width:0"><div class="rn">${CARDS[x.id].name} ×${x.n}</div><span class="rs">${RAR[CARDS[x.id].rar].n}</span></div><button class="btn mini" data-act="card" data-id="${x.id}">ℹ️</button>`
+ :`<div style="flex:none;width:64px;display:flex;justify-content:center">${CHESTS[x.type].i}</div><div style="flex:1"><div class="rn">${CHESTS[x.type].n}</div><span class="rs">sofort öffnen</span></div>`;
+ return`<div class="row" style="cursor:default">${l}${done?'<span class="rs">✅ gekauft</span>':`<button class="btn green mini" data-act="shopBuy" data-i="${i}">🪙 ${x.p}</button>`}</div>`;}).join('');}
+// ---------- Challenges ----------
+const KN={draft:'🎯 Draft-Challenge',classic:'🏅 Klassik-Challenge'},COST={draft:100,classic:50};
+function chHTML(){const ch=S.ch;let h='<div class="sect">🎯 Challenges</div>';
+ if(!ch){h+=`<div class="stat">Alle Karten auf gleichem Turnier-Level. 12 Siege = Höchstbelohnung, nach 3 Niederlagen ist Schluss. Keine Trophäen.</div>
+ <button class="btn blue big" style="width:100%;margin-bottom:8px" data-act="chStart" data-k="draft">🎯 Draft-Challenge · 🪙 ${COST.draft}<br><small>Wähle 8 Karten aus Vorschlägen</small></button>
+ <button class="btn blue big" style="width:100%" data-act="chStart" data-k="classic">🏅 Klassik-Challenge · 🪙 ${COST.classic}<br><small>Dein Deck, gleiche Level für alle</small></button>
+ <div class="stat">Belohnungen: 0–1 Siege 20 🪙 · 2 Holz · 4 Silber · 6 Gold · 8 Zauber · 10 Riesen · 12 Super-Zauber +300 🪙</div>`;}
+ else{h+=`<div class="arena" style="background:linear-gradient(#5a48c8,#2a1f70)"><div class="an">${KN[ch.k]}</div><div class="sub">🏆 ${ch.w}/12 Siege · ${'❤️'.repeat(3-ch.l)}${'🖤'.repeat(ch.l)}</div></div>
+ <div class="minideck">${ch.deck.map(id=>`<div data-act="card" data-id="${id}">${cardHTML(id,TL(id))}</div>`).join('')}</div>
+ <button class="btn green big" style="width:100%;margin-top:8px" data-act="chFight">⚔️ Kampf</button>
+ <button class="btn red" style="width:100%;margin-top:8px" data-act="chQuit">🏳️ Beenden & Belohnung holen</button>`;}
+ return h;}
+function draftRound(){const D=PL_D;if(D.picks.length>=8){S.gold-=COST.draft;S.ch={k:'draft',deck:D.picks,w:0,l:0};PL_D=null;save();closeModal();lastHTML.tab='';renderTab();return;}
+ const opts=D.pool.splice(0,4);D.opts=opts;
+ showModal(`<h2>Draft ${D.picks.length+1}/8</h2><div class="grid">${opts.map(id=>`<div data-act="chPick" data-id="${id}">${cardHTML(id,TL(id))}</div>`).join('')}</div><div class="minideck" style="margin-top:8px">${D.picks.map(id=>cardHTML(id,TL(id))).join('')}</div>`);}
+let PL_D=null;
+// ---------- Tabs ----------
+const nav=$('#nav'),cl=nav.querySelector('[data-t="clan"]');
+[['shop','🛒','Shop'],['ch','🎯','Events']].forEach(([t,i,n])=>{const b=document.createElement('button');b.dataset.act='tab';b.dataset.t=t;b.innerHTML=`<span>${i}</span>${n}`;nav.insertBefore(b,cl||null);});
+const rtS=renderTab;
+renderTab=function(){if(tab!=='shop'&&tab!=='ch')return rtS();renderTop();document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
+ setHTML($('#content'),tab==='shop'?shopHTML():chHTML(),'tab');};
+const rd=()=>{save();lastHTML.tab='';renderTab();};
+Object.assign(ACT,{
+ shopBuy(el){const o=offers(),i=+el.dataset.i,x=o[i];if(!x||S.shop.b.includes(i))return;if(S.gold<x.p)return toast('Nicht genug Gold');S.gold-=x.p;S.shop.b.push(i);
+  if(x.t==='card'){const d=S.cards[x.id],nw=!d.own;d.own=true;d.copies+=nw?x.n-1:x.n;rd();toast('✅ '+x.n+'× '+CARDS[x.id].name);}
+  else{const r=openChest(S,x.type);rd();loot(x.type,r);}},
+ clanFriend(el){if(searching||mode!=='menu')return;const b=world.bots.find(x=>'b:'+x.name===el.dataset.k);if(!b||!b.online||b.inMatch)return toast('Gerade nicht verfügbar');
+  closeModal();b.inMatch=true;b.search=null;popp=b;MK={t:'fr',opp:b};beginMatch(b);},
+ chStart(el){const k=el.dataset.k;if(S.ch)return;if(S.gold<COST[k])return toast('Nicht genug Gold');
+  if(k==='classic'){S.gold-=COST[k];S.ch={k,deck:S.deck.slice(),w:0,l:0};rd();}
+  else{PL_D={picks:[],pool:shuf(allowed())};draftRound();}},
+ chPick(el){const D=PL_D;if(!D||!D.opts.includes(el.dataset.id))return;D.picks.push(el.dataset.id);draftRound();},
+ chFight(){const ch=S.ch;if(!ch||searching||mode!=='menu')return;
+  const opp=world.pickOpponent(S.trophies)||world.bots.find(b=>!b.inMatch&&b.online)||world.bots.find(b=>!b.inMatch);if(!opp)return toast('Kein Gegner frei – gleich nochmal');
+  const pool=ch.k==='draft'?shuf(allowed()).slice(0,24):allowed();
+  OV={deck:ch.deck,opp,cl:mkClone(opp,pool)};opp.inMatch=true;opp.search=null;popp=opp;MK={t:'ch',opp};
+  try{beginMatch(opp);}finally{OV=null;}},
+ chQuit(){if(!S.ch)return;const c=claimCh();rd();if(c&&c.res)loot(c.type,c.res);else toast('Challenge beendet: '+c.w+' Siege'+(c.gold?' · +'+c.gold+' 🪙':''));}
+});
+const ra3=ACT.resetAll;ACT.resetAll=function(...a){S.ch=null;S.shop=null;S.fw=0;ra3.apply(this,a);};
 })();
 
 renderTab();requestAnimationFrame(frame);
