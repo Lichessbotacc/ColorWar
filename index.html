@@ -2158,5 +2158,49 @@ ACT.bot=function(el){
 };
 })();
 
+// === PATCH 15: Sparen auf teure Karten (Elixier-Bank) – Bots sammeln Elixier, statt Karten sofort zu verheizen ===
+(function(){
+const P=l=>l.reduce((s,u)=>s+pw(u),0);
+const nearMine=(me,u)=>me===0?u.y>RY-30:u.y<RY+30;
+const bigC=c=>c.type==='troop'&&!c.heal&&(c.cost>=5||isTankC(c));
+Brain.prototype.bigCard=function(m,me){
+ let b=null;for(let i=0;i<4;i++){const id=m.hand[me][i],c=CARDS[id];if(!c||!bigC(c))continue;if(!b||c.cost>b.c.cost)b={id,i,c};}
+ return b;
+};
+Brain.prototype.save=function(m,me){
+ const pf=this.pf,r=pf.raw!=null?pf.raw:pf.skill;if(r<.12)return 0;
+ if(m.ot&&m.t>=300)return 0;                         // Dreifach-Elixier: nur noch Druck
+ const op=1-me,el=m.el[me],big=this.bigCard(m,me);if(!big)return 0;
+ const en=m.units.filter(u=>u.team===op&&u.hp>0&&!u.building&&nearMine(me,u));
+ const lanes=[[],[]];en.forEach(u=>lanes[u.x<180?0:1].push(u));
+ const pwr=Math.max(P(lanes[0]),P(lanes[1]));
+ const myT=m.tw[me].filter(x=>!x.dead);
+ let close=false;for(const u of en)for(const q of myT)if(Math.hypot(u.x-q.x,u.y-q.y)<150)close=true;
+ if(pwr>=40||(close&&pwr>=20))return 0;                // echte Bedrohung: Verteidigungslogik arbeitet normal
+ const c=big.c,fr=m.units.filter(u=>u.team===me&&u.hp>0&&!u.building);
+ const mineAhead=u=>me===0?u.y<RY+90:u.y>RY-90;
+ const push=P(fr.filter(mineAhead));
+ const reserve=c.cost>=6?1.7:1.2;   // teure Karten erst mit Puffer fürs Nachlegen
+ const need=Math.min(9.8,c.cost+reserve+(push>=140?1:0));
+ const dbl=m.t>=120?.5:0;
+ if(el>=need-dbl){
+  // Tank hinten auf der schwächeren Lane, sonst wie normale Angriffskarte
+  const foe=m.tw[op],d=[0,0];for(const u of m.units)if(u.team===op&&u.hp>0&&!u.building&&(me===0?u.y<RY:u.y>RY))d[u.x<180?0:1]+=pw(u);
+  let l=d[0]+foe[0].hp*.03<=d[1]+foe[1].hp*.03?0:1;if(foe[l].dead)l=1-l;
+  const q=this.off(m,me,c,l);this.lastL=l;
+  return m.play(me,big.i,q.x,q.y)?2:0;
+ }
+ if(el>=9.4)return 0;                                  // Elixier läuft sonst über: normale Logik
+ return 1;                                             // sparen
+};
+const pt=Brain.prototype.think;
+Brain.prototype.think=function(m,me){
+ if(this.pf.v2===false)return pt.call(this,m,me);
+ let r=0;try{r=this.save(m,me);}catch(e){r=0;}
+ if(r)return;
+ return pt.call(this,m,me);
+};
+})();
+
 renderTab();requestAnimationFrame(frame);
 </script></body></html>
