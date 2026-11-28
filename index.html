@@ -132,8 +132,8 @@ b,.st{text-shadow:0 2px 0 #0008}
   <div id="top"></div>
   <div id="content"></div>
   <div id="nav">
-   <button data-act="tab" data-t="battle" class="on"><span>⚔️</span>Kampf</button>
-   <button data-act="tab" data-t="cards"><span>🃏</span>Karten</button>
+   <button data-act="tab" data-t="battle" class="on"><span>⚔️</span>Battle</button>
+   <button data-act="tab" data-t="cards"><span>🃏</span>Cards</button>
    <button data-act="tab" data-t="rank"><span>🏆</span>Leaderboard</button>
    <button data-act="tab" data-t="live"><span>📺</span>Live</button>
   </div>
@@ -170,8 +170,8 @@ const W=360,H=600,RY=300,BR=[90,270],BW=24,RH=14;
 const rnd=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),pick=a=>a[Math.floor(Math.random()*a.length)];
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const sc=l=>Math.pow(1.1,l-1);
-// ---- Karten (Werte angelehnt an Clash Royale 2017, auf dieses Spiel skaliert)
-const SPD={0:0,s:15,m:20,f:30,v:40}; // 1 Feld = 20 px; Langsam/Mittel/Schnell/Very fast = 45/60/90/120
+// ---- Cards (Werte angelehnt an Clash Royale 2017, auf dieses Spiel skaliert)
+const SPD={0:0,s:15,m:20,f:30,v:40}; // 1 Feld = 20 px; Slow/Medium/Fast/Very fast = 45/60/90/120
 const RAR={c:{n:'Common',max:13},r:{n:'Rare',max:11},e:{n:'Epic',max:8},l:{n:'Legendary',max:5}};
 const CARD_LIST=[],CARDS={};
 function T(id,name,role,cost,rar,ar,hp,dmg,hs,spd,rng,desc,o={}){add(Object.assign({id,name,role,cost,rar,ar,type:'troop',hp,dmg,atk:hs,spd,rng,desc,count:1,rad:9},o));}
@@ -205,7 +205,7 @@ Bd('tomb','Crypt Stone','SPAWNER',3,'r',2,422,0,0,0,40,'Spawns skeletons, four m
 T('bigbones','Bomb Brute','TANK',6,'e',2,2780,167,1.5,'m',.8,'Leaves a big explosion on death.',{rad:14,death:[720,3]});
 T('balloon','Air Pirates','SIEGE',5,'e',2,1396,798,3,'m',.5,'Flies only to buildings, heavy bombs.',{rad:13,fly:1,bOnly:1,death:[205,2]});
 // Arena 3
-T('barbs','Raufbolde','SWARM',5,'c',3,636,159,1.5,'m',.7,'Five strong melee fighters.',{count:5,rad:8});
+T('barbs','Brawlers','SWARM',5,'c',3,636,159,1.5,'m',.7,'Five strong melee fighters.',{count:5,rad:8});
 T('axe','Axe Whirler','SPLASH',4,'r',1,1654,221,1.5,'m',.8,'Spin attack all around.',{splash:1.4,rad:11,self:1});
 Bd('turret','Cannon Turret','BUILDING',3,'c',3,742,127,.8,5.5,30,'Shoots at ground troops for 30 seconds.',{proj:'ball',noAir:1});
 T('megamoth','Armored Flutter','AIR',3,'r',7,695,258,1.6,'m',1.2,'Strong single flier.',{fly:1,hitsAir:1,rad:10});
@@ -285,7 +285,7 @@ const arenaFor=t=>{let r=ARENAS[0];for(const a of ARENAS)if(t>=a.min)r=a;return 
 
 // ---- Fortschritt: gilt identisch für dich und alle Bots
 const START_DECK=PLAY_CARDS.filter(c=>c.starter).map(c=>c.id);
-// Upgrade-Kosten exakt wie Clash Royale 2017 (Level je Seltenheit: Common 1-13, Rare 1-11, Epic 1-8, Legendary 1-5)
+// Upgrade-Kosten exakt wie Clash Royale 2017 (Level je Rarity: Common 1-13, Rare 1-11, Epic 1-8, Legendary 1-5)
 const NEED={c:[2,4,10,20,50,100,200,400,800,1000,2000,5000],r:[2,4,10,20,50,100,200,400,800,1000],e:[2,4,10,20,50,100,200],l:[2,4,10,20]};
 const GOLDC=[5,20,50,150,400,1000,2000,4000,8000,20000,50000,100000],GOLDR={c:GOLDC,r:GOLDC.slice(2),e:GOLDC.slice(5),l:GOLDC.slice(8)};
 const XPT=[20,50,100,180,300,450,650,900,1200,1600,2100,2700];
@@ -295,7 +295,7 @@ const need=(id,l)=>NEED[CARDS[id].rar][l-1],goldNeed=(id,l)=>GOLDR[CARDS[id].rar
 function canUp(a,id){const d=a.cards[id];return d.own&&d.lvl<RAR[CARDS[id].rar].max&&d.copies>=need(id,d.lvl)&&a.gold>=goldNeed(id,d.lvl);}
 function addXp(a,x){a.xp+=x;let up=0;while(a.lvl<13&&a.xp>=XPT[a.lvl-1]){a.xp-=XPT[a.lvl-1];a.lvl++;up++;}return up;}
 function upgrade(a,id){if(!canUp(a,id))return false;const d=a.cards[id];a.gold-=goldNeed(id,d.lvl);d.copies-=need(id,d.lvl);d.lvl++;addXp(a,d.lvl*({c:3,r:5,e:10,l:20})[CARDS[id].rar]);return true;}
-function matchReward(a,res,crowns){ // res: 1 Sieg, 0 Remis, -1 Niederlage
+function matchReward(a,res,crowns){ // res: 1 Sieg, 0 Draw, -1 Niederlage
  const gold=res>0?25+10*crowns:res<0?5+3*crowns:10,xp=res>0?4+crowns:1;let chest=null;
  if(res>0){const f=a.chests.findIndex(c=>!c);if(f>=0){const r=Math.random();chest={type:r<.01?'super':r<.07?'magic':r<.12?'giant':r<.24?'gold':r<.47?'silver':'wood'};a.chests[f]=chest;}}
  a.gold+=gold;const up=addXp(a,xp);a.best=Math.max(a.best||0,a.trophies);return{gold,xp,chest,up};
@@ -510,13 +510,13 @@ class Match{
  }
 }
 
-// Spielstile: gate=Elixier-Schwelle fuers Spielen, def=Verteidigungs-Empfindlichkeit, bridge=Bridge-Spam, split=Lane-Wechsel, tank=Tank-Vorliebe, spell=Zauber-Lust
+// Spielstile: gate=Elixier-Schwelle fuers Spielen, def=Verteidigungs-Empfindlichkeit, bridge=Bridge-Spam, split=Lane-Wechsel, tank=Tank-Vorliebe, spell=Spell-Lust
 const STYLES=[
  {n:'Beatdown',gate:2.2,def:1,bridge:0,split:.1,tank:1,spell:1},
  {n:'Cycle',gate:-.3,def:1.1,bridge:.1,split:.4,tank:0,spell:.9},
- {n:'Kontrolle',gate:1.6,def:.75,bridge:0,split:.15,tank:.2,spell:1.3},
+ {n:'Control',gate:1.6,def:.75,bridge:0,split:.15,tank:.2,spell:1.3},
  {n:'Bridge-Spam',gate:.2,def:1.15,bridge:.4,split:.3,tank:.1,spell:.8},
- {n:'Ausgewogen',gate:.9,def:.95,bridge:.08,split:.25,tank:.5,spell:1}];
+ {n:'Balanced',gate:.9,def:.95,bridge:.08,split:.25,tank:.5,spell:1}];
 const isTankC=c=>c.type==='troop'&&c.cost>=4&&(c.role==='TANK'||['megaknight','rgiant'].includes(c.id));
 const isFastWin=c=>c.type==='troop'&&(c.bOnly&&!isTankC(c)||c.anywhere||['lumber','ninja','prince','dprince'].includes(c.id));
 class Brain{
@@ -581,17 +581,17 @@ class Brain{
     if(s>bs){bs=s;best={o,pos};}}
    if(best){m.play(me,best.o.i,best.pos.x,best.pos.y);return;}
   }
-  // ---- Endphase: Zauber auf angeschlagene Tuerme, wenn es fuer eine Krone reicht
+  // ---- Endphase: Spell auf angeschlagene Tuerme, wenn es fuer eine Krone reicht
   if(pf.skill>.5&&(m.t>=150||m.ot)){for(const o of aff){const c=o.c;if(c.type!=='spell'||c.kind||c.own||!(c.dmg>0))continue;const dm=c.dmg*sc(m.p[me].lvl(c.id));
     const tg=foeT.filter(t=>!t.dead&&t.type!=='k'&&t.hp<=dm*(m.t>=165?1.05:.8)).sort((a,b)=>a.hp-b.hp)[0];
     if(tg&&m.play(me,o.i,tg.x,tg.y))return;}}
-  // ---- Angriff
+  // ---- Attack
   if(lanes[0].p+lanes[1].p>thr*.3&&el<9.3&&!(pf.aggr>.75&&el>=7))return;
   if(el>=5){for(const o of aff){const c=o.c;
    if(c.elix&&el>=8&&!fr.some(u=>u.c.elix)){if(m.play(me,o.i,pick([40,320]),me===0?500:100))return;}
    if((c.kind==='barrel'||c.kind==='grave')&&el>=Math.max(6,c.cost)){const t=pick(foeT.filter(t=>!t.dead));if(t&&m.play(me,o.i,t.x+(c.kind==='grave'?30:0),t.y))return;}
    if(c.kind==='rage'||c.kind==='heal'||c.kind==='clone'){const g=fr.filter(u=>!u.building&&(c.kind!=='heal'||u.hp<u.maxhp*.7)&&!inMy(u));if(g.length>=2&&m.play(me,o.i,g[0].x,g[0].y))return;}}}
-  // ---- Sparen: teure Karte im Blatt abwarten, statt vorher billigere zu verheizen
+  // ---- Sparen: teure Card im Blatt abwarten, statt vorher billigere zu verheizen
   {const ids=new Set(hand.map(o=>o.id));this.sv=this.sv||{};for(const k in this.sv)if(!ids.has(k))delete this.sv[k];
    const want=hand.filter(o=>{const c=o.c;if(c.type==='spell'||c.elix||c.heal||c.cost<5)return false;if(this.sv[o.id]===undefined)this.sv[o.id]=Math.random();return this.sv[o.id]<.5+.45*pf.skill+(this.arch==='beatdown'?.2:0);}).sort((a,b)=>b.c.cost-a.c.cost)[0];
    if(want){
@@ -606,7 +606,7 @@ class Brain{
   if(el<gate&&el<9.6&&!(pushP>=110&&el>=5.5))return;
   const eTot=lanes[0].p+lanes[1].p;
   if(eTot>thr*.6&&el<9.2)return;
-  // Zauber: Finisher oder Cluster in der gegnerischen Hälfte
+  // Spell: Finisher oder Cluster in der gegnerischen Hälfte
   for(const o of aff){const c=o.c;if(c.type!=='spell')continue;
    for(const t of foeT){if(t.dead||t.type==='k'||c.kind)continue;if(t.hp<=c.dmg*sc(m.p[me].lvl(c.id))*.35&&t.hp>0){m.play(me,o.i,t.x,t.y);return;}}
    const r=this.spellTarget(c,en.filter(u=>!inMy(u)),me);if(r&&r.v/c.cost>=1.5/st.spell){m.play(me,o.i,r.pos.x,r.pos.y);return;}}
@@ -618,7 +618,7 @@ class Brain{
    if(push<60){
     if(pf.skill>.45&&this.eCard&&this.eCard.cost>=5&&m.t-this.eT<8&&el>=5.5&&!foeT[1-this.eLane].dead){const f=aff.filter(o=>o.c.type==='troop'&&!o.c.heal&&!o.c.bOnly&&o.c.cost<=el-1&&o.c.cost<=4).sort((a,b)=>b.c.dps*b.c.count/b.c.cost-a.c.dps*a.c.count/a.c.cost)[0];
      if(f){const l=1-this.eLane;this.lastL=l;this.eCard=null;if(m.play(me,f.i,bx(l),me===0?RY+RH+30:RY-RH-30))return;}}
-    // Siege: Armbrust/Moerser in Reichweite des Turms
+    // Siege: Armbrust/Moerser in Range des Turms
     const sg=aff.find(o=>(o.c.id==='xbow'||o.c.id==='mortar')&&!fr.some(u=>u.c.id===o.c.id));
     if(sg&&el>=sg.c.cost+.5){const l=cl();if(m.play(me,sg.i,bx(l),me===0?345:255))return;}
     // Tank im Deck: gezielt sparen und hinten spielen
@@ -656,7 +656,7 @@ class Brain{
 }
 
 // ---- Bots & Welt
-const BOT_NAMES=['DrachenDirk','MiaMagie','Waffelbär','NachtEule','Turbo_Tom','KönigKlaus','FeuerFee','Kartoffel99','ZauberLisa','GolemGustav','Blitz_Ben','Bergtroll','Zuckerwatte','Schnitzel','LordLoki','Pfannkuchen','Mondfalke','KleinerRitter','TurmTitan','BogenBea','Rabauke','Sternschnuppe','EisKönigin','Moritz_M','PixelPaul','Elchjäger','SchlossGeist','OmaHatRecht','Zockerzwerg','LunaLicht','Keksritter','MaxPower','Sahnetorte','RoboRudi','Nebelwolf','PrinzPaprika','Hexe_Hanna','Kaktus_Kai','SturmSara','Brezelboss','Eisbär_Emil','ChaosClara','Pommeskönig','Silberpfeil','TinaTornado','Gurkenglas','Falkenauge','NinjaNils','MarmeladenMax','Donnerdora','Waldschrat','LeoLöwe','Quarkbällchen','Frostfritz','SonnenSofia','Dosenöffner','KrakenKarl','Wolkenfee','Pixelprinz','Mampfred','AdlerAnna','Lavalukas','Käsekuchen','Sir_Schlaf','GlitzerGreta','Büffel_Bo','Zimtschnecke','RakeTim','MoosMona','Kartenkönig','FlinkeFine','Grummelgreg','Bananenbernd','SchattenSina','OttoOtter','Nudelsieb','KometenKim','PandaPia','Eichel_Eddy','JadeJonas'];
+const BOT_NAMES=['DragonDirk','MiaMagic','WaffleBear','NightOwl','Turbo_Tom','KingKlaus','FireFairy','Potato99','WizardLisa','GolemGustav','Lightning_Ben','MountainTroll','CottonCandy','Schnitzel','LordLoki','Pancake','MoonFalcon','LittleKnight','TowerTitan','ArcherBea','Rascal','ShootingStar','IceQueen','Moritz_M','PixelPaul','MooseHunter','CastleGhost','GrannyIsRight','GamerDwarf','LunaLight','CookieKnight','MaxPower','CreamCake','RoboRudi','FogWolf','PrincePaprika','Witch_Hanna','Cactus_Kai','StormSara','PretzelBoss','PolarBear_Emil','ChaosClara','FryKing','SilverArrow','TinaTornado','PickleJar','Hawkeye','NinjaNils','JamMax','ThunderDora','ForestGnome','LeoLion','CurdBalls','FrostFred','SunSofia','CanOpener','KrakenKarl','CloudFairy','PixelPrince','Munchfred','EagleAnna','LavaLucas','Cheesecake','Sir_Sleep','GlitterGreta','Buffalo_Bo','CinnamonRoll','RocketTim','MossMona','CardKing','SwiftFine','GrumpyGreg','BananaBernd','ShadowSina','OttoOtter','Colander','CometKim','PandaPia','Acorn_Eddy','JadeJonas'];
 const AVATARS=['🦊','🐼','🐸','🦁','🐙','🦉','🐺','🐯','🐵','🦄','🐲','🐧','🦖','🐝','🦈','🐨','🦅','🐻','🐰','🐢','🦋','🐞','🦔','🐳','🐮','🦦','🦩','🐷'];
 function mkDeck(){
  const tanks=['titan','boar','axe','guard'],air=['archer','moth','wyvern','mage','healer'],sp=['fireball','frost','volley','bolt'];
@@ -664,8 +664,8 @@ function mkDeck(){
   const a=[...d],avg=a.reduce((s,i)=>s+CARDS[i].cost,0)/8,n=a.filter(i=>CARDS[i].type==='spell').length;
   if(n<=2&&a.some(i=>CARDS[i].hitsAir))return a;}
 }
-const NAME_A=['Blitz','Feuer','Eis','Schatten','Donner','Turbo','Mega','Pixel','Nebel','Sturm','Gold','Silber','Wolken','Zucker','Keks','Chaos','Mond','Sonnen','Wald','Berg'];
-const NAME_B=['Fuchs','Ritter','Drache','Hexe','Bär','Falke','Golem','Zwerg','Wolf','König','Prinz','Pirat','Ninja','Kobold','Elch','Otter','Panda','Troll','Geist','Jäger'];
+const NAME_A=['Lightning','Fire','Ice','Shadow','Thunder','Turbo','Mega','Pixel','Fog','Storm','Gold','Silver','Cloud','Sugar','Cookie','Chaos','Moon','Sun','Forest','Mountain'];
+const NAME_B=['Fox','Knight','Dragon','Witch','Bear','Falcon','Golem','Dwarf','Wolf','King','Prince','Pirate','Ninja','Imp','Moose','Otter','Panda','Troll','Ghost','Hunter'];
 function genName(used){
  for(let k=0;k<60;k++){const n=pick(NAME_A)+pick(NAME_B)+(Math.random()<.5?Math.floor(Math.random()*99)+1:'');if(!used.has(n))return n;}
  let i=1;while(used.has('Bot'+i))i++;return 'Bot'+i;
@@ -691,7 +691,7 @@ function botDeck(b){
  for(const c of list){if(d.length>=8)break;if(!d.includes(c.id))d.push(c.id);}
  return d;
 }
-// Bots verhalten sich wie Spieler: Truhen starten und öffnen, verbessern, Deck umbauen
+// Bots verhalten sich wie Players: Chests starten und öffnen, verbessern, Deck umbauen
 function botManage(b){
  const now=Date.now();let changed=false;
  const i=b.chests.findIndex(c=>c&&c.at&&now>=c.at);
@@ -744,7 +744,7 @@ const SAVE_KEY='kronenkampf_save'; // bleibt bei künftigen Code-Änderungen gle
 const OLD_KEYS=['kronenkampf_v2'],BACKUP_KEY=SAVE_KEY+'_backup';
 const defSave=()=>Object.assign(newAccount(),{v:2,name:'Du',mute:false,bots:null});
 const store={get(k){try{return localStorage.getItem(k);}catch(e){return null;}},set(k,v){try{localStorage.setItem(k,v);return true;}catch(e){return false;}}};
-// Fehlende Felder und neue Karten ergänzen, unbekannte Karten aussortieren
+// Fehlende tiles und neue Cards ergänzen, unbekannte Cards aussortieren
 function repair(a,base){
  const cards=base.cards;for(const id in cards)Object.assign(cards[id],(a.cards||{})[id]);
  const o=Object.assign(base,a,{cards});
@@ -783,7 +783,7 @@ function tn(f,d,type,v,sl,t0,bus){const t=t0==null?AC.currentTime:t0,o=AC.create
 function nz(d,v,f,q,t0,bus,ft){if(!NB){NB=AC.createBuffer(1,AC.sampleRate,AC.sampleRate);const a=NB.getChannelData(0);for(let i=0;i<a.length;i++)a[i]=Math.random()*2-1;}
  const t=t0==null?AC.currentTime:t0,sr=AC.createBufferSource(),fl=AC.createBiquadFilter(),g=AC.createGain();sr.buffer=NB;sr.loop=true;fl.type=ft||'bandpass';fl.frequency.value=f;fl.Q.value=q||1;g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);sr.connect(fl);fl.connect(g);g.connect(bus||SG);sr.start(t);sr.stop(t+d+.02);}
 const rnd2=(a,b)=>a+Math.random()*(b-a);
-// Spawn-/Ruf-Sound je Karte (k = Lautstaerke)
+// Spawn-/Ruf-Sound je Card (k = Lautstaerke)
 const ROLE_SND={
  MELEE:k=>{nz(.07,.12*k,3500,2);tn(620,.12,'triangle',.05*k,-250);},
  RANGED:k=>{tn(950,.14,'triangle',.05*k,-650);nz(.04,.05*k,6000,1);},
@@ -843,7 +843,7 @@ function unitSnd(e,m){if(S.mute)return;try{audio();const p=e.split(':'),kind=p[0
  else if(kind==='die'){if(now-lastDie<.06)return;lastDie=now;if(c.role==='TANK'||c.rad>=13){tn(80,.4,'sine',.14,-50);nz(.3,.1,300,1);}else if(c.fly)tn(500,.15,'sawtooth',.03,-350);else tn(rnd2(260,340),.12,'triangle',.04,-180);}
  else if(kind==='imp'){(IMP_SND[id]||(()=>nz(.15,.07,1500,1)))(1);}
 }catch(er){}}
-// Hintergrundmusik (prozedural): Menue ruhig, Kampf treibend, Doppel-Elixier schneller
+// Hintergrundmusik (prozedural): Menue ruhig, Battle treibend, Doppel-Elixier schneller
 const MN=n=>440*Math.pow(2,(n-69)/12),MUS={step:0,next:0,m:''};
 const PROG={menu:[[60,64,67],[57,60,64],[53,57,60],[55,59,62]],bat:[[57,60,64],[53,57,60],[48,52,55],[55,59,62]]};
 const PENT={menu:[72,74,76,79,81,84],bat:[69,72,74,76,79,81]};
@@ -1000,7 +1000,7 @@ function drawFig(g,id,tc,t=0){
  case'mage': // Spitzhut + Zauberstab
   P([-11,18,-7,-1,7,-1,11,18],'#6b32b8');B(-8,7,16,3.5,1,tc,1);head(-5,7);eyes(0,-5,2.6);P([-5,-1,0,9,5,-1],'#eee',1);P([-13,-8,13,-8,5,-11,9,-23,-5,-11],'#8a46e0');C(1,-14,1.6,'#ffd75e',0);
   L([13,17,13,-5],'#a8702e',2.5);g.shadowColor='#e38bff';g.shadowBlur=8;C(13,-9,4.5+Math.sin(t*6)*.6,'#f0a6ff');break;
- case'wyvern': // fliegender Drache mit Feuer
+ case'wyvern': // fliegender Dragon mit Fire
   P([-6,0,-22,-14-wing,-18,0-wing/2,-13,-1,-10,7],'#ff9a3d');P([6,0,22,-14-wing,18,0-wing/2,13,-1,10,7],'#ff9a3d');L([-6,12,-14,17,-18,13],'#3fb87a',3.5);E(0,6,10,10,'#3fb87a');E(0,9,6,6,'#ffe9a0',1);
   C(0,-6,9.5,'#4fd08e');P([-7,-12,-11,-21,-2,-15],'#fff0c0');P([7,-12,11,-21,2,-15],'#fff0c0');eyes(0,-8,3.8,2.4,'#fff');eyes(0,-8,3.8,1.1);E(0,-2,6,4,'#7fe8ac',1);eyes(0,-3,2,.8);P([-3,1,0,8+wing/2,3,1,0,3],'#ff6a1a',1);B(-7,-1,14,3,1,tc,1);break;
  case'titan': // massiver Steinriese
@@ -1051,11 +1051,11 @@ function renderTab(){
  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
  if(tab==='battle'){
   const th=arenaFor(S.trophies),nx=ARENAS.find(x=>x.min>S.trophies),on=world.bots.filter(b=>b.online).length;
-  setHTML(c,`<div class="arena" data-act="arenas" style="cursor:pointer;background:linear-gradient(${th.g1},${th.g2})"><div class="sub">${th.i?'Arena '+th.i:'Start'}</div><div class="an">${th.n}</div><div class="tr">🏆 ${S.trophies}</div><div class="sub">${nx?'Next Arena ab '+nx.min+' 🏆':'Höchste Arena erreicht'}<br>Tap: all arenas and cards</div></div>
+  setHTML(c,`<div class="arena" data-act="arenas" style="cursor:pointer;background:linear-gradient(${th.g1},${th.g2})"><div class="sub">${th.i?'Arena '+th.i:'Start'}</div><div class="an">${th.n}</div><div class="tr">🏆 ${S.trophies}</div><div class="sub">${nx?'Next Arena ab '+nx.min+' 🏆':'Highest arena reached'}<br>Tap: all arenas and cards</div></div>
   <button class="btn green big" style="width:100%" data-act="battle">⚔️ BATTLE</button>
   <div class="chests">${S.chests.map(chestHTML).join('')}</div>${globalThis.specialChests?specialChests():''}
   <div class="sect">Your deck</div><div class="minideck">${S.deck.map(id=>`<div data-act="card" data-id="${id}">${cardHTML(id,S.cards[id].lvl)}</div>`).join('')}</div>
-  <div class="stat">🟢 ${on} Players online · 📺 ${world.matches.length} Live-Kämpfe<br>Siege ${S.wins} · Losses ${S.losses} · Draws ${S.draws}</div>`,'tab');
+  <div class="stat">🟢 ${on} Players online · 📺 ${world.matches.length} Live battles<br>Wins ${S.wins} · Losses ${S.losses} · Draws ${S.draws}</div>`,'tab');
  }else if(tab==='cards'){
   const avg=(S.deck.reduce((s,i)=>s+CARDS[i].cost,0)/8).toFixed(1);
   const ar=arenaFor(S.best).i,state=c=>S.cards[c.id].own?0:c.ar<=ar?1:2;
@@ -1066,15 +1066,15 @@ function renderTab(){
   const list=world.bots.map(b=>({...b,isBot:true,bot:b}));list.push({name:S.name+' (Du)',av:'👑',trophies:S.trophies,wins:S.wins,losses:S.losses,me:true});
   list.sort((a,b)=>b.trophies-a.trophies||b.wins-a.wins);
   const liveSet=new Set();world.matches.forEach(m=>{liveSet.add(m.A.id);liveSet.add(m.B.id);});
-  setHTML(c,`<div class="sect">Leaderboard · ${list.length} Spieler</div><div class="mrow" style="justify-content:center;gap:10px"><button class="btn red mini" data-act="botDel">➖</button><b style="font-size:16px;min-width:92px;text-align:center">🤖 ${world.bots.length} Bots</b><button class="btn green mini" data-act="botAdd">➕</button></div><button class="btn red" style="width:100%;margin-bottom:10px" data-act="resetAsk">🔄 Reset everything</button><div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn blue" style="flex:1" data-act="exportSave">💾 Export</button><button class="btn blue" style="flex:1" data-act="importSave">📂 Import</button></div>${store.get(BACKUP_KEY)?'<button class="btn" style="width:100%;margin-bottom:10px" data-act="restoreAsk">↩️ Restore backup</button>':''}`+list.map((p,i)=>{
+  setHTML(c,`<div class="sect">Leaderboard · ${list.length} Players</div><div class="mrow" style="justify-content:center;gap:10px"><button class="btn red mini" data-act="botDel">➖</button><b style="font-size:16px;min-width:92px;text-align:center">🤖 ${world.bots.length} Bots</b><button class="btn green mini" data-act="botAdd">➕</button></div><button class="btn red" style="width:100%;margin-bottom:10px" data-act="resetAsk">🔄 Reset everything</button><div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn blue" style="flex:1" data-act="exportSave">💾 Export</button><button class="btn blue" style="flex:1" data-act="importSave">📂 Import</button></div>${store.get(BACKUP_KEY)?'<button class="btn" style="width:100%;margin-bottom:10px" data-act="restoreAsk">↩️ Restore backup</button>':''}`+list.map((p,i)=>{
    let st='';if(p.me)st='<span class="rs">That’s you</span>';else{const act=p.act>.65?'very active':p.act>.35?'aktiv':'rarely online';
     const status=liveSet.has(p.id)?'<span class="live">● LIVE</span>':p.inMatch?'<span class="live">● in battle</span>':p.online&&p.search!=null?'🔍 searching for opponent':p.online?'<span class="dot"></span>online':'<span class="dot off"></span>offline';
     st=`<span class="rs">${status} · ${act} · ${p.wins}S/${p.losses}N · Lv ${p.lvl}</span>`;}
    return`<div class="row ${p.me?'me':''} ${i===0?'gold1':i===1?'gold2':i===2?'gold3':''}" ${p.me?'':`data-act="bot" data-id="${p.id}"`}><div class="rk">${i+1}</div><div class="ra">${p.av}</div><div style="flex:1;min-width:0"><div class="rn">${p.name}</div>${st}</div><div class="rt">🏆 ${p.trophies}</div></div>`;}).join(''),'tab');
  }else{
   const ms=world.matches;
-  setHTML(c,`<div class="sect">📺 Ongoing battles (${ms.length})</div>`+(ms.length?ms.map(m=>`<div class="mrow"><div style="font-size:30px">${m.A.av}</div><div class="t">${m.A.name}<br><span class="rs">🏆${m.A.trophies}</span></div><div style="text-align:center"><div class="sc">${m.crowns[0]} : ${m.crowns[1]}</div><div style="font-size:11px">${m.ot?'Verlängerung':fmt(180-m.t)}</div></div><div class="t">${m.B.name}<br><span class="rs">🏆${m.B.trophies}</span></div><div style="font-size:30px">${m.B.av}</div><button class="btn red" style="padding:8px 10px" data-act="watch" data-id="${m.id}">▶</button></div>`).join(''):'<div class="stat">No battle running right now – continuing shortly …</div>')
-  +`<div class="sect">Latest results</div>`+(world.recent.length?world.recent.map(r=>`<div class="mrow" style="padding:6px 10px"><div class="t" style="text-align:left">${r.av} ${r.a}</div><div class="sc" style="font-size:17px">${r.ca}:${r.cb}</div><div class="t" style="text-align:right">${r.b} ${r.bv}</div><span class="chip">${r.w<0?'Remis':r.w===0?r.a+' ✓':r.b+' ✓'}</span></div>`).join(''):'<div class="stat">No results yet.</div>'),'tab');
+  setHTML(c,`<div class="sect">📺 Ongoing battles (${ms.length})</div>`+(ms.length?ms.map(m=>`<div class="mrow"><div style="font-size:30px">${m.A.av}</div><div class="t">${m.A.name}<br><span class="rs">🏆${m.A.trophies}</span></div><div style="text-align:center"><div class="sc">${m.crowns[0]} : ${m.crowns[1]}</div><div style="font-size:11px">${m.ot?'Overtime':fmt(180-m.t)}</div></div><div class="t">${m.B.name}<br><span class="rs">🏆${m.B.trophies}</span></div><div style="font-size:30px">${m.B.av}</div><button class="btn red" style="padding:8px 10px" data-act="watch" data-id="${m.id}">▶</button></div>`).join(''):'<div class="stat">No battle running right now – continuing shortly …</div>')
+  +`<div class="sect">Latest results</div>`+(world.recent.length?world.recent.map(r=>`<div class="mrow" style="padding:6px 10px"><div class="t" style="text-align:left">${r.av} ${r.a}</div><div class="sc" style="font-size:17px">${r.ca}:${r.cb}</div><div class="t" style="text-align:right">${r.b} ${r.bv}</div><span class="chip">${r.w<0?'Draw':r.w===0?r.a+' ✓':r.b+' ✓'}</span></div>`).join(''):'<div class="stat">No results yet.</div>'),'tab');
  }
 }
 
@@ -1082,16 +1082,16 @@ function renderTab(){
 function showModal(h){const m=$('#modal');m.innerHTML=`<div class="mbox" data-stop="1">${h}</div>`;m.classList.remove('hidden');}
 function closeModal(){$('#modal').classList.add('hidden');}
 function openCard(id){
- const c=CARDS[id],d=S.cards[id],un=isUnlocked(id),s=sc(d.lvl),max=RAR[c.rar].max,spd=v=>v>=40?'Very fast':v>=30?'Schnell':v>=20?'Mittel':'Langsam';
- let rows=[['Seltenheit',RAR[c.rar].n],['Freischaltung',c.ar?'Arena '+c.ar+' · '+ARENAS[c.ar].n:'From the start']];
- if(c.type==='spell'){if(c.dmg)rows.push(['Schaden',Math.round(c.dmg*s)]);rows.push(['Radius',c.r+' Felder']);if(c.dur&&c.kind!=='log')rows.push(['Duration',c.dur+' s']);}
- else{rows.push(['Leben',Math.round(c.hp*s)]);if(c.shield)rows.push(['Schild',Math.round(c.shield*s)]);if(c.atk)rows.push(['Schaden',Math.round(c.dmg*s)],['Attack every',c.atk+' s'],['Reichweite',c.rng>=2?c.rng+' Felder':'Nah'],['Ziele',c.bOnly?'Buildings only':c.hitsAir?'Ground & Air':'Ground only']);rows.push(['Tempo',c.spd?spd(c.spd):'Steht'],['Anzahl',c.count]);if(c.life)rows.push(['Lebensdauer',c.life+' s']);}
+ const c=CARDS[id],d=S.cards[id],un=isUnlocked(id),s=sc(d.lvl),max=RAR[c.rar].max,spd=v=>v>=40?'Very fast':v>=30?'Fast':v>=20?'Medium':'Slow';
+ let rows=[['Rarity',RAR[c.rar].n],['Unlock',c.ar?'Arena '+c.ar+' · '+ARENAS[c.ar].n:'From the start']];
+ if(c.type==='spell'){if(c.dmg)rows.push(['Damage',Math.round(c.dmg*s)]);rows.push(['Radius',c.r+' tiles']);if(c.dur&&c.kind!=='log')rows.push(['Duration',c.dur+' s']);}
+ else{rows.push(['HP',Math.round(c.hp*s)]);if(c.shield)rows.push(['Schild',Math.round(c.shield*s)]);if(c.atk)rows.push(['Damage',Math.round(c.dmg*s)],['Attack every',c.atk+' s'],['Range',c.rng>=2?c.rng+' tiles':'Melee'],['Targets',c.bOnly?'Buildings only':c.hitsAir?'Ground & Air':'Ground only']);rows.push(['Tempo',c.spd?spd(c.spd):'Stationary'],['Count',c.count]);if(c.life)rows.push(['Lifetime',c.life+' s']);}
  const nd=d.lvl<max?need(id,d.lvl):0,gd=d.lvl<max?goldNeed(id,d.lvl):0;
  showModal(`<h2>${c.name}</h2><div style="text-align:center"><span class="tag" style="background:${ROLE_COL[c.role]}">${c.role}</span></div><div style="display:flex;justify-content:center;margin:10px 0">${cardHTML(id,un?d.lvl:0,un?'':'locked')}</div><div style="text-align:center;font-size:13px;margin-bottom:8px">${c.desc}</div>
  <table>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>
- ${un?`<div class="bar"><i style="width:${nd?Math.min(100,d.copies/nd*100):100}%"></i><span>${nd?d.copies+' / '+nd+' Karten':'Maximum level'}</span></div>
+ ${un?`<div class="bar"><i style="width:${nd?Math.min(100,d.copies/nd*100):100}%"></i><span>${nd?d.copies+' / '+nd+' Cards':'Maximum level'}</span></div>
  <button class="btn green" style="width:100%;margin-top:4px" ${canUp(S,id)?'':'disabled'} data-act="upg" data-id="${id}">${nd?'⬆️ Upgrade · 🪙 '+gd:'Max level '+max}</button>
- <button class="btn blue" style="width:100%;margin-top:8px" data-act="swap" data-id="${id}">${S.deck.includes(id)?'✔ In deck':'Put in deck'}</button>`:`<div class="stat">🔒 ${c.ar<=arenaFor(S.best).i?'You find it in chests.':'From arena '+c.ar+' ('+ARENAS[c.ar].min+' 🏆) in Truhen.'}</div>`}
+ <button class="btn blue" style="width:100%;margin-top:8px" data-act="swap" data-id="${id}">${S.deck.includes(id)?'✔ In deck':'Put in deck'}</button>`:`<div class="stat">🔒 ${c.ar<=arenaFor(S.best).i?'You find it in chests.':'From arena '+c.ar+' ('+ARENAS[c.ar].min+' 🏆) in Chests.'}</div>`}
  <button class="btn" style="width:100%;margin-top:8px" data-act="close">Close</button>`);
 }
 const ACT={
@@ -1099,7 +1099,7 @@ const ACT={
   const used=new Set(world.bots.map(b=>b.name)),free=BOT_NAMES.filter(n=>!used.has(n)),b=mkBot(world.bots.length,free.length?pick(free):genName(used),true);
   if(Math.random()<.4+b.act*.3){b.online=true;b.sessEnd=rnd(60,400);b.idle=rnd(0,12);}
   world.bots.push(b);S.botN=world.bots.length;save();lastHTML.tab='';renderTab();toast('🤖 '+b.name+' is in');},
- botDel(){if(world.bots.length<=BOT_MIN)return toast('Mindestens '+BOT_MIN+' Bots');
+ botDel(){if(world.bots.length<=BOT_MIN)return toast('At least '+BOT_MIN+' Bots');
   let i=world.bots.length-1;while(i>=0&&world.bots[i].inMatch)i--;if(i<0)return toast('All bots are busy fighting');
   const b=world.bots.splice(i,1)[0];world.bots.forEach((x,k)=>x.id=k);S.botN=world.bots.length;save();lastHTML.tab='';renderTab();toast('🤖 '+b.name+' entfernt');},
  tab(el){tab=el.dataset.t;lastHTML.tab='';renderTab();$('#content').scrollTop=0;},
@@ -1126,7 +1126,7 @@ const ACT={
   else if(S.chests.some(c=>c&&c.at&&!c.ready))toast('A chest is already being opened');
   else{ch.at=now+C.t*1000;save();renderTab();}},
  bot(el){const b=world.bots[+el.dataset.id],live=world.matches.find(m=>m.A===b||m.B===b);
-  showModal(`<h2>${b.av} ${b.name}</h2><table><tr><td>Trophies</td><td>🏆 ${b.trophies}</td></tr><tr><td>Wins / Losses / Draws</td><td>${b.wins} / ${b.losses} / ${b.draws}</td></tr><tr><td>King level</td><td>${b.lvl}</td></tr><tr><td>Arena</td><td>${arenaFor(b.trophies).n}</td></tr><tr><td>Gold</td><td>🪙 ${b.gold}</td></tr><tr><td>Cards found</td><td>${PLAY_CARDS.filter(c=>b.cards[c.id].own).length}</td></tr><tr><td>Truhen</td><td>${b.chests.filter(c=>c).map(c=>CHESTS[c.type].i).join(' ')||'–'}</td></tr><tr><td>Activity</td><td>${b.act>.65?'very active':b.act>.35?'aktiv':'rarely online'}</td></tr><tr><td>Form</td><td>${(b.form||[]).join(' ')||'–'}</td></tr><tr><td>Status</td><td>${live?'⚔️ im Kampf':b.online?'🟢 online':'⚪ offline'}</td></tr></table>
+  showModal(`<h2>${b.av} ${b.name}</h2><table><tr><td>Trophies</td><td>🏆 ${b.trophies}</td></tr><tr><td>Wins / Losses / Draws</td><td>${b.wins} / ${b.losses} / ${b.draws}</td></tr><tr><td>King level</td><td>${b.lvl}</td></tr><tr><td>Arena</td><td>${arenaFor(b.trophies).n}</td></tr><tr><td>Gold</td><td>🪙 ${b.gold}</td></tr><tr><td>Cards found</td><td>${PLAY_CARDS.filter(c=>b.cards[c.id].own).length}</td></tr><tr><td>Chests</td><td>${b.chests.filter(c=>c).map(c=>CHESTS[c.type].i).join(' ')||'–'}</td></tr><tr><td>Activity</td><td>${b.act>.65?'very active':b.act>.35?'aktiv':'rarely online'}</td></tr><tr><td>Form</td><td>${(b.form||[]).join(' ')||'–'}</td></tr><tr><td>Status</td><td>${live?'⚔️ im Battle':b.online?'🟢 online':'⚪ offline'}</td></tr></table>
   <div class="minideck" style="margin:10px 0">${b.deck.map(k=>cardHTML(k,b.cards[k].lvl)).join('')}</div>${live?`<button class="btn red" style="width:100%" data-act="watch" data-id="${live.id}">▶ Watch live</button>`:''}<button class="btn" style="width:100%;margin-top:8px" data-act="close">Close</button>`);},
  watch(el){closeModal();const m=world.matches.find(x=>x.id==+el.dataset.id);if(m)startWatch(m);else toast('Battle is already over');},
  battle(){startBattle();},
@@ -1267,7 +1267,7 @@ function watchPanel(el,m,k){
 }
 function evSound(m){for(const e of m.ev){if(e==='tower')SND.tower();else if(e.length>3&&e[3]===':')unitSnd(e,m);}m.ev.length=0;}
 
-// ---- Kampf (Spieler)
+// ---- Battle (Players)
 function playerProfile(){return{name:S.name,av:'👑',trophies:S.trophies,deck:S.deck.slice(),kingLvl:S.lvl,lvl:id=>S.cards[id].lvl,brain:null};}
 function showScreen(s){try{const de=document.documentElement;if(s==='battle'&&!document.fullscreenElement&&(de.requestFullscreen||de.webkitRequestFullscreen)){const r=(de.requestFullscreen||de.webkitRequestFullscreen).call(de);if(r&&r.catch)r.catch(()=>{});}else if(s!=='battle'&&document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen();}catch(e){}$('#menu').classList.toggle('hidden',s!=='menu');$('#battle').classList.toggle('hidden',s!=='battle');}
 let searching=null;
@@ -1298,10 +1298,10 @@ function showResult(m){
  const rw=matchReward(S,w<0?0:w===0?1:-1,cr[0]),{gold,xp,chest}=rw;matchReward(opp,w<0?0:w===1?1:-1,cr[1]);opp.inMatch=false;opp.idle=rnd(6,16);opp.wait=0;save();
  const na=arenaFor(S.best).i;if(na>before)setTimeout(()=>toast('🎉 New arena: '+ARENAS[na].n),400);else if(rw.up)setTimeout(()=>toast('🎉 Level '+S.lvl+'!'),400);
  (w===0?SND.win:SND.lose)();
- $('#result').innerHTML=`<div class="mbox"><h1 class="${w===0?'win':w===1?'lose':'draw'}">${w===0?'SIEG!':w===1?'NIEDERLAGE':'UNENTSCHIEDEN'}</h1>
+ $('#result').innerHTML=`<div class="mbox"><h1 class="${w===0?'win':w===1?'lose':'draw'}">${w===0?'VICTORY!':w===1?'DEFEAT':'DRAW'}</h1>
  <div style="font-size:34px;margin:6px 0" class="crowns"><span style="color:#8cf">${crownsHTML(cr[1]).replace(/class="on"/g,'class="on"')}</span> &nbsp;:&nbsp; <span style="color:#f99">${crownsHTML(cr[0])}</span></div>
  <div style="font-size:13px;opacity:.9">${S.name} ${cr[0]} : ${cr[1]} ${opp.name}</div>
- <table style="margin:12px 0"><tr><td>Trophies</td><td>${r.da>=0?'+':''}${r.da} 🏆</td></tr><tr><td>Gold</td><td>+${gold} 🪙</td></tr><tr><td>Experience</td><td>+${xp} XP</td></tr>${chest?`<tr><td>Truhe</td><td>${CHESTS[chest.type].i} ${CHESTS[chest.type].n}</td></tr>`:''}</table>
+ <table style="margin:12px 0"><tr><td>Trophies</td><td>${r.da>=0?'+':''}${r.da} 🏆</td></tr><tr><td>Gold</td><td>+${gold} 🪙</td></tr><tr><td>Experience</td><td>+${xp} XP</td></tr>${chest?`<tr><td>Chest</td><td>${CHESTS[chest.type].i} ${CHESTS[chest.type].n}</td></tr>`:''}</table>
  <button class="btn green big" style="width:100%;font-size:20px" data-act="resClose">Continue</button></div>`;
  $('#result').classList.remove('hidden');
 }
@@ -1336,7 +1336,7 @@ function frame(now){
   if(pm.over&&!pm.shown&&performance.now()-pm.endAt>1600){pm.shown=true;showResult(pm);}
  }else if(mode==='watch'&&wm){
   evSound(wm);drawBattle(wm);hud(wm,true);
-  if(wm.over&&!wm.msg){wm.msg=1;const b=$('#banner');b.textContent=wm.winner<0?'REMIS':(wm.winner===0?wm.A.name:wm.B.name)+' gewinnt!';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');}
+  if(wm.over&&!wm.msg){wm.msg=1;const b=$('#banner');b.textContent=wm.winner<0?'DRAW':(wm.winner===0?wm.A.name:wm.B.name)+' gewinnt!';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');}
  }else{mt+=dt;if(mt>=1){mt=0;if(!$('#modal').classList.contains('hidden')&&tab!=='live'){}else if($('#modal').classList.contains('hidden'))renderTab();}}
  requestAnimationFrame(frame);
 }
@@ -1358,7 +1358,7 @@ Match.prototype.findTarget=function(u){
 const wpf=World.prototype.profile;
 World.prototype.profile=function(b){const p=wpf.call(this,b);p.brain=new Brain(Object.assign({},b,{skill:Math.min(1,.45+b.skill*.65)}));return p;};
 
-// ---- 4./5. Zuschauen: Namen + Kronen oben und unten, je Spieler
+// ---- 4./5. Zuschauen: Namen + Crowns oben und unten, je Players
 const wp0=watchPanel;
 watchPanel=function(el,m,k){wp0(el,m,k);
  let w=el.querySelector('.wname');if(!w){w=document.createElement('div');w.className='wname';el.appendChild(w);}
@@ -1374,12 +1374,12 @@ hud=function(m,w){h0(m,w);document.querySelectorAll('#hud .side').forEach(s=>s.s
 const prevThink=Brain.prototype.think;
 Brain.prototype.think=function(m,me){if(this.smart(m,me))return;return prevThink.call(this,m,me);};
 const sumP=l=>l.reduce((s,u)=>s+pw(u),0);
-// Wohin spielt man eine Karte gegen eine Bedrohung?
+// Wohin spielt man eine Card gegen eine Bedrohung?
 Brain.prototype.place=function(m,me,c,cx,cy,rush,tanky){
  const d=me===0?1:-1,lx=cx<180?90:270;
- if(c.type==='building')return{x:180+(cx<180?-26:26),y:me===0?400:200}; // Mitte: zieht Gegner weg vom Turm
+ if(c.type==='building')return{x:180+(cx<180?-26:26),y:me===0?400:200}; // Mitte: zieht Enemy weg vom Turm
  let y=c.range>60?cy+d*85:rush?cy+d*45:cy+d*(tanky?75:50);  // Fernkämpfer hinten, Nahkämpfer vorne
- y=me===0?clamp(y,345,520):clamp(y,80,255);                  // immer in Reichweite des eigenen Turms
+ y=me===0?clamp(y,345,520):clamp(y,80,255);                  // immer in Range des eigenen Turms
  const x=(c.range>60||tanky)?cx+(lx-cx)*.5:cx;               // Tank-Konter näher zum Turm ziehen
  return{x:clamp(x,20,340),y};
 };
@@ -1399,7 +1399,7 @@ Brain.prototype.smart=function(m,me){
   const air=L.filter(u=>u.fly),anyAir=air.length>0,allAir=air.length===L.length;
   const swarm=L.length>=3&&L.every(u=>u.c.hp<260),tanky=L.some(u=>u.c.hp>=1100),rush=L.some(u=>u.bOnly),ranged=L.some(u=>u.range>=60);
   const danger=dmin<130;
-  // Gegner noch weit weg und nicht gefährlich schnell: Elixier sammeln statt zu früh zu spielen
+  // Enemy noch weit weg und nicht gefährlich schnell: Elixier sammeln statt zu früh zu spielen
   if(!danger&&dmin>235&&el<6&&!anyAir&&!rush)return true;
   let best=null,bs=0;
   for(const o of aff){const c=o.c;let s,pos;
@@ -1409,8 +1409,8 @@ Brain.prototype.smart=function(m,me){
     if(c.range>60)v*=1.1;if(c.splash)v*=1.1;if(c.heal)v*=.5;if(c.bOnly)v*=.1; // Turmjäger verteidigen nicht
     if(c.type==='building'){if(c.elix||c.minR||c.id==='xbow'||(c.spawner&&!rush))v*=.05;else v*=(c.noAir&&allAir)?.03:1.25;if(c.ramp&&tanky)v*=1.5;}
     if(allAir&&!c.hitsAir)v*=.03;else if(anyAir&&!c.hitsAir&&!c.fly)v*=.75;
-    if(swarm){if(c.splash)v*=1.5;else if(c.count===1)v*=.6;}                 // Schwarm -> Flächenschaden
-    if(tanky&&c.dps*c.count>=110)v*=1.3;if(tanky&&c.dps*c.count<45&&!c.heal)v*=.5; // Tank -> viel Schaden
+    if(swarm){if(c.splash)v*=1.5;else if(c.count===1)v*=.6;}                 // Swarm -> Flächenschaden
+    if(tanky&&c.dps*c.count>=110)v*=1.3;if(tanky&&c.dps*c.count<45&&!c.heal)v*=.5; // Tank -> viel Damage
     if(ranged&&c.spd>=30&&c.range<=40)v*=1.2;                                // Fernkämpfer -> schnelle Nahkämpfer
     s=v/pwr;if(s<.55&&!danger)continue;
     s=Math.min(s,1.8)/(1+c.cost*.18);                                        // Elixier-Effizienz
@@ -1519,8 +1519,8 @@ Brain.prototype.think=function(m,me){
 })();
 
 // Gelernt: Elixier zählen, Kartenzyklus mitverfolgen, günstig kontern (positive Elixier-Trades),
-// Turm kleine Gegner erledigen lassen, nicht zu früh/ins Leere spielen, bei Elixier-Nachteil warten,
-// Gegner bestrafen wenn er ausgegeben hat oder seinen Konter im Zyklus hat, Endspiel (Vorsprung halten / alles riskieren).
+// Turm kleine Enemy erledigen lassen, nicht zu früh/ins Leere spielen, bei Elixier-Nachteil warten,
+// Enemy bestrafen wenn er ausgegeben hat oder seinen Konter im Cycle hat, Endspiel (Vorsprung halten / alles riskieren).
 // Jeder Tipp ist an das Können (raw = 0..1) gekoppelt: schwache Bots kennen kaum etwas und spielen impulsiv.
 (function(){
 const near=(me,u)=>me===0?u.y>RY-45:u.y<RY+45;
@@ -1536,7 +1536,7 @@ const prevProfile=World.prototype.profile;
 World.prototype.profile=function(b){const p=prevProfile.call(this,b);
  p.brain=new Brain(Object.assign({},b,{skill:clamp(.2+b.skill*.8,0,1),raw:b.skill}));return p;};
 
-// Kartenzyklus des Gegners: die letzten 4 gespielten Karten liegen in der Warteschlange, nicht in seiner Hand
+// Kartenzyklus des Gegners: die letzten 4 gespielten Cards liegen in der Warteschlange, nicht in seiner Hand
 const prevSeen=Brain.prototype.seen;
 Brain.prototype.seen=function(c,x,y){prevSeen.call(this,c,x,y);(this.seq=this.seq||[]).push(c.id);if(this.seq.length>40)this.seq.shift();};
 Brain.prototype.cantAnswer=function(){
@@ -1554,11 +1554,11 @@ Brain.prototype.pro=function(m,me){
  const li=P(lanes[0])>=P(lanes[1])?0:1,L=lanes[li],pwr=P(L);
  const lx=l=>l?270:90;
 
- // Schwache Anfänger: gelegentlich planlos Karten werfen
+ // Schwache Anfänger: gelegentlich planlos Cards werfen
  if(r<.3&&el>=5&&Math.random()<.05*(1-r)){const o=pick(aff.filter(o=>o.c.type!=='spell'));
   if(o)return m.play(me,o.i,rnd(30,330),me===0?rnd(340,560):rnd(40,260));}
 
- // Tipp: Nie als Erster früh spielen – Elixier füllen, auf den Gegner reagieren
+ // Tipp: Nie als Erster früh spielen – Elixier füllen, auf den Enemy reagieren
  if(t<14&&r>=.35&&!(this.seq&&this.seq.length)&&el<(r>.6?9.3:7.5)&&!thr.length)return true;
 
  // ================= VERTEIDIGUNG =================
@@ -1566,9 +1566,9 @@ Brain.prototype.pro=function(m,me){
   const dmin=Math.min(999,...L.map(u=>Math.min(999,...myT.map(q=>Math.hypot(u.x-q.x,u.y-q.y)))));
   const anyAir=L.some(u=>u.fly),allAir=L.every(u=>u.fly),rush=L.some(u=>u.bOnly);
   const swarm=L.length>=3&&L.every(u=>u.c.hp<260),tanky=L.some(u=>u.c.hp>=1100),danger=dmin<140;
-  // Tipp: Kleine Gegner einfach den Turm erledigen lassen (spart Elixier)
+  // Tipp: Kleine Enemy einfach den Turm erledigen lassen (spart Elixier)
   if(r>=.35&&pwr<80&&L.length<=3&&!rush&&!anyAir&&dmin<175&&Math.random()<r)return true;
-  // Tipp: Gegner herankommen lassen, Elixier sammeln, dann kontern
+  // Tipp: Enemy herankommen lassen, Elixier sammeln, dann kontern
   if(r>=.4&&!danger&&dmin>230&&el<6.5&&!anyAir&&!rush)return true;
   const ec=L.reduce((s,u)=>s+ecost(u),0),cx=L.reduce((s,u)=>s+u.x,0)/L.length,cy=L.reduce((s,u)=>s+u.y,0)/L.length;
   let best=null,bs=-1e9;
@@ -1581,8 +1581,8 @@ Brain.prototype.pro=function(m,me){
     if(allAir&&!c.hitsAir&&!c.fly)continue;
     let v=c.count*(c.hp/10+c.dps*1.2)*sc(lvl(c));
     if(c.range>60)v*=1.1;if(c.splash)v*=1.1;if(c.heal)v*=.5;
-    if(swarm){if(c.splash)v*=1.5;else if(c.count===1)v*=.6;}                       // Schwarm -> Flächenschaden
-    if(tanky&&c.dps*c.count>=110)v*=1.3;if(tanky&&c.dps*c.count<45&&!c.heal)v*=.5;  // Tank -> viel Schaden
+    if(swarm){if(c.splash)v*=1.5;else if(c.count===1)v*=.6;}                       // Swarm -> Flächenschaden
+    if(tanky&&c.dps*c.count>=110)v*=1.3;if(tanky&&c.dps*c.count<45&&!c.heal)v*=.5;  // Tank -> viel Damage
     if(anyAir&&!c.hitsAir&&!c.fly)v*=.75;
     const ad=v/pwr;if(ad<.45||(ad<.7&&!danger))continue;
     s=(ec-c.cost)+Math.min(ad,1.6)*1.5;                                            // positiver Elixier-Trade zählt
@@ -1607,17 +1607,17 @@ Brain.prototype.pro=function(m,me){
  // ================= ANGRIFF =================
  // Tipp: Bei Elixier-Nachteil nicht angreifen
  if(r>=.5&&!late&&this.est-el>=3&&this.est>=7&&el<9.3)return true;
- // Tipp: Konter des Gegners steckt im Zyklus -> jetzt die Gewinnkarte spielen
+ // Tipp: Konter des Gegners steckt im Cycle -> jetzt die Gewinnkarte spielen
  if(r>=.55&&el>=6&&this.cantAnswer()){
   const w=aff.filter(o=>(isTankC(o.c)||isFastWin(o.c))&&el>=o.c.cost+(isTankC(o.c)?.5:1)).sort((a,b)=>b.c.cost-a.c.cost)[0];
   if(w){const l=weakLane(m,me,en),tw=m.tw[op][l];
    if(w.c.anywhere&&!tw.dead)return m.play(me,w.i,tw.x,tw.y+(me===0?34:-34));
    return m.play(me,w.i,lx(l),isTankC(w.c)?bkY(me):brY(me));}}
- // Tipp: Gegner hat gerade alles ausgegeben -> sofort gegenüber Druck machen
+ // Tipp: Enemy hat gerade alles ausgegeben -> sofort gegenüber Druck machen
  if(r>=.5&&this.est<=2.5&&el>=5&&!fr.some(u=>!u.building&&(me===0?u.y<RY+60:u.y>RY-60))){
   const f=aff.filter(o=>o.c.type==='troop'&&!o.c.heal&&o.c.cost<=el-1).sort((a,b)=>b.c.dps*b.c.count/b.c.cost-a.c.dps*a.c.count/a.c.cost)[0];
   if(f){const l=this.lastL!=null&&Math.random()<.6?1-this.lastL:weakLane(m,me,en);this.lastL=l;return m.play(me,f.i,lx(l),f.c.range>50?bkY(me):brY(me));}}
- // Tipp: Zauber-Zyklus – bei vollem Elixier günstigen Zauber auf Turm (kein Elixier verschwenden)
+ // Tipp: Spell-Cycle – bei vollem Elixier günstigen Spell auf Turm (kein Elixier verschwenden)
  if(r>=.6&&el>=9.6){const sp=aff.find(o=>o.c.type==='spell'&&!o.c.kind&&o.c.dmg>0&&o.c.cost<=3),tg=foe.filter(x=>x.type!=='k').sort((a,b)=>a.hp-b.hp)[0];
   if(sp&&tg)return m.play(me,sp.i,tg.x,tg.y);}
  return false;
@@ -1627,7 +1627,7 @@ const prevThink=Brain.prototype.think;
 Brain.prototype.think=function(m,me){let h=false;try{h=this.pro(m,me);}catch(e){h=false;}if(h)return;return prevThink.call(this,m,me);};
 })();
 
-// === PATCH 10: Elite-Taktik (Verteidigung, Konter, Überzahl, Verlängerung 3 Min. / Dreifach-Elixier) ===
+// === PATCH 10: Elite-Taktik (Verteidigung, Konter, Überzahl, Overtime 3 Min. / Triple-Elixier) ===
 (function(){
 const P=l=>l.reduce((s,u)=>s+pw(u),0), dps=c=>c.dps*(c.count||1), ec=u=>u.c.cost/(u.c.count||1);
 const nearMine=(me,u)=>me===0?u.y>RY-30:u.y<RY+30, mineHalf=(me,u)=>me===0?u.y>RY:u.y<RY;
@@ -1649,7 +1649,7 @@ Brain.prototype.pro2=function(m,me){
   const tank=L.filter(u=>u.c.hp>=1100||u.bOnly).sort((a,b)=>b.hp-a.hp)[0],air=L.some(u=>u.fly),allAir=L.every(u=>u.fly);
   const swarm=L.length>=3&&L.every(u=>u.c.hp<260),ranged=L.some(u=>u.range>=60),support=L.length>=2&&tank;
   const cx=L.reduce((s,u)=>s+u.x,0)/L.length,cy=L.reduce((s,u)=>s+u.y,0)/L.length;
-  // Gegner auf MEINER Seite kommen lassen: Turm hilft, Elixier sammeln (nicht bei Fliegern/Rushern)
+  // Enemy auf MEINER Seite kommen lassen: Turm hilft, Elixier sammeln (nicht bei Fliegern/Rushern)
   if(!tri&&dmin>215&&el<7&&!air&&!L.some(u=>u.c.charge||u.c.jump))return true;
   let best=null,bs=-1e9;
   for(const o of aff){const c=o.c;let s,pos;
@@ -1659,7 +1659,7 @@ Brain.prototype.pro2=function(m,me){
     if(c.type==='building'){if(c.elix||c.minR||c.id==='xbow'||(c.noAir&&allAir)||(c.spawner&&!tank))continue;}
     if(allAir&&!c.hitsAir)continue;
     let v=sv(c),d=dps(c);
-    // hoher Schaden gegen Tanks, billige Schwarm-/Flächenkonter gegen Schwärme, Fernkämpfer gegen Nahkämpfer
+    // hoher Damage gegen Tanks, billige Swarm-/Flächenkonter gegen Schwärme, Fernkämpfer gegen Nahkämpfer
     if(tank){if(d>=140)v*=1.8;else if(d<70&&!c.heal)v*=.35;if(c.count>=3&&c.dps*c.count>=140)v*=1.2;}
     if(swarm){if(c.splash)v*=1.9;else if(c.count===1)v*=.5;else if(c.count>=3)v*=1.2;}
     if(air&&!c.hitsAir)v*=.4;if(air&&c.hitsAir&&c.range>=60)v*=1.2;
@@ -1674,7 +1674,7 @@ Brain.prototype.pro2=function(m,me){
   if(best&&(bs>-1.5||dmin<130))return m.play(me,best.o.i,best.pos.x,best.pos.y);
   return false;
  }
- // ---------- Verlängerung: Dreifach-Elixier = Dauerdruck, sonst Krone sichern ----------
+ // ---------- Overtime: Triple-Elixier = Dauerdruck, sonst Krone sichern ----------
  if(ot){
   const tg=foe.filter(x=>x.type!=='k').sort((a,b)=>a.hp-b.hp)[0]||foe[0];
   if(tg){const sp=aff.find(o=>o.c.type==='spell'&&!o.c.kind&&!o.c.own&&o.c.dmg*sc(lvl(o.c))*.35>=tg.hp*.9);if(sp)return m.play(me,sp.i,tg.x,tg.y);}
@@ -1689,22 +1689,22 @@ Brain.prototype.pro2=function(m,me){
     if(sup)return m.play(me,sup.i,clamp(lead.x,20,340),me===0?clamp(lead.y+45,RY+30,520):clamp(lead.y-45,80,RY-30));}
    if(w&&(tri||lead===undefined)){const q=this.off(m,me,w.c,l);return m.play(me,w.i,q.x,q.y);}
   }
-  return tri?false:true; // normale Verlängerung: sparen, auf Error warten
+  return tri?false:true; // normale Overtime: sparen, auf Error warten
  }
- // ---------- Angriff mit Überzahl/Unterstützung ----------
+ // ---------- Attack mit Überzahl/Unterstützung ----------
  // Überlebender Tank an der Brücke: Fernkämpfer/Schadensträger dahinter schicken
  const tk=fr.filter(u=>isTankC(u.c)&&(me===0?u.y<RY+110:u.y>RY-110)).sort((a,b)=>b.hp-a.hp)[0];
  if(tk&&el>=5.5){const sup=aff.filter(o=>o.c.type==='troop'&&!o.c.bOnly&&!o.c.heal&&o.c.cost<=el-1).sort((a,b)=>dps(b.c)-dps(a.c))[0];
   if(sup){const q=this.off(m,me,sup.c,tk.x<180?0:1,tk);return m.play(me,sup.i,q.x,q.y);}}
- // Gegner überlegen: nichts riskieren
+ // Enemy überlegen: nichts riskieren
  if(this.est>=7&&el<8.6&&!tri)return true;
- // Spiel wenn Gegner ausgegeben hat und nichts von mir vorne ist -> Gegendruck
+ // Spiel wenn Enemy ausgegeben hat und nichts von mir vorne ist -> Gegendruck
  return false;
 };
 function lx2(l){return l?270:90;}
 const pt=Brain.prototype.think;
 Brain.prototype.think=function(m,me){let h=false;try{h=this.pro2(m,me);}catch(e){h=false;}if(h)return;return pt.call(this,m,me);};
-// Schnellere Reaktion im Dreifach-Elixier
+// Schnellere Reaktion im Triple-Elixier
 const ptick=Brain.prototype.tick;
 Brain.prototype.tick=function(m,me,dt){if(m.ot&&m.t>=300&&this.pf.skill>.5)this.cd-=dt*1.5;return ptick.call(this,m,me,dt);};
 })();
@@ -1728,46 +1728,46 @@ Brain.prototype.place=function(m,me,c,cx,cy,rush,tanky){
  if(rush){ // Turmjäger/Rammbock: Ziel ist mein Turm -> neben/vor den Turm, Nahkämpfer fangen ihn VOR dem Turm ab, Fernkämpfer stehen hinter dem Turm
   if(ranged||c.fly){x=tx+(cx<tx?-12:12);y=ty+d*32;}
   else{x=tx+(cx<tx?-14:14);y=ty-d*8;}
- }else if(tanky){ // Tank: Nahkämpfer mit viel Schaden vor dem Turm, Fernkämpfer hinter dem Turm (Turm tankt)
+ }else if(tanky){ // Tank: Nahkämpfer mit viel Damage vor dem Turm, Fernkämpfer hinter dem Turm (Turm tankt)
   if(ranged){x=tx;y=ty+d*30;}else{x=tx+(cx-tx)*.5;y=ty-d*12;}
- }else if(ranged){ // Fernkämpfer immer hinter dem Turm: Turm schützt, Reichweite deckt trotzdem
+ }else if(ranged){ // Fernkämpfer immer hinter dem Turm: Turm schützt, Range deckt trotzdem
   x=tx+(cx<tx?-10:10);y=ty+d*38;
- }else if(splash){ // Schwarm/Fläche: dicht bei der Gruppe, im Turmradius, leicht davor
+ }else if(splash){ // Swarm/Fläche: dicht bei der Gruppe, im Turmradius, leicht davor
   x=clamp(cx+(tx-cx)*.35,20,340);y=cy+d*28;
  }else if(fastAir){x=tx;y=ty+d*25;}
- else{ // normale Nahkämpfer: neben den Turm, etwas zur Gegner-Seite (Block, Turm schießt mit)
+ else{ // normale Nahkämpfer: neben den Turm, etwas zur Enemy-Seite (Block, Turm schießt mit)
   x=tx+(cx<tx?-18:18);y=ty-d*4+(dang>150?-d*10:0);
  }
- // Gegner schon tief in meiner Hälfte (neben meinem Turm): direkt daneben platzieren statt weit weg
+ // Enemy schon tief in meiner Hälfte (neben meinem Turm): direkt daneben platzieren statt weit weg
  if(dang<45){x=cx+(cx<tx?-16:16);y=cy+d*(ranged?40:20);}
  return{x:clamp(x,20,340),y:lim(me,y)};
 };
-// ANGRIFF: wohin spiele ich eine Karte in Lane l? ref = vorhandene eigene Truppe (Unterstützung)
+// ANGRIFF: wohin spiele ich eine Card in Lane l? ref = vorhandene eigene Truppe (Unterstützung)
 Brain.prototype.off=function(m,me,c,l,ref){
  const d=D(me),tx=TX(l),brY=me===0?RY+RH+22:RY-RH-22,bkY=KY(me)-d*8;
- if(ref&&ref.x!=null){ // Unterstützung hinter die eigene Truppe: Fernkämpfer weiter zurück, Schaden/Schwarm nah dahinter
+ if(ref&&ref.x!=null){ // Unterstützung hinter die eigene Truppe: Fernkämpfer weiter zurück, Damage/Swarm nah dahinter
   const back=c.range>60?60:c.splash||c.count>=3?38:45;return{x:clamp(ref.x+(c.range>60?(ref.x<180?10:-10):0),20,340),y:lim(me,ref.y+d*back)};}
  if(c.anywhere){const t=m.tw[1-me][l];return{x:t.x,y:t.y+d*34};}                  // Tunnel Digger: direkt am Turm
- if(c.type==='building')return{x:tx,y:me===0?348:252};                                 // Belagerung (Armbrust/Mortar) knapp hinter der Brücke
+ if(c.type==='building')return{x:tx,y:me===0?348:252};                                 // Siege (Armbrust/Mortar) knapp hinter der Brücke
  if(c.type==='spell')return{x:tx,y:m.tw[1-me][l].y};
  if(c.role==='TANK'||c.hp*(c.count||1)>=2200)return{x:tx,y:bkY};                       // Tank ganz hinten: langer Weg = Elixier sammeln, Unterstützung kommt nach
  if(c.bOnly&&c.fly)return{x:tx,y:KY(me)-d*30};                                         // Luft-Turmjäger hinten, fliegt über alles
  if(c.charge||c.jump||c.spd>=40&&c.bOnly)return{x:tx,y:brY};                           // schnelle Turmjäger: direkt an die Brücke
  if(c.range>60)return{x:tx+(l?-10:10),y:me===0?TY(me)+30:TY(me)-30};                   // Fernkämpfer hinter dem eigenen Turm
- if(c.count>=3||c.cost<=3)return{x:tx,y:brY-d*6};                                      // billige Zyklus-Karten an der Brücke: Druck, Gegner muss reagieren
+ if(c.count>=3||c.cost<=3)return{x:tx,y:brY-d*6};                                      // billige Cycle-Cards an der Brücke: Druck, Enemy muss reagieren
  return{x:tx,y:me===0?RY+RH+60:RY-RH-60};                                              // normale Troops etwas hinter der Brücke
 };
 })();
 
-// === PATCH 12: Bots behalten ihr Deck – ab und zu werden 1–3 Karten getestet und bei Gefallen behalten ===
+// === PATCH 12: Bots behalten ihr Deck – ab und zu werden 1–3 Cards getestet und bei Gefallen behalten ===
 (function(){
 BKEYS.push('cx'); // Lernstand der Bots mitspeichern
 const prevDeck=botDeck;
-const TEST=4; // so viele Kämpfe dauert ein Test
+const TEST=4; // so viele Battles dauert ein Test
 const hh=s=>{let h=0;for(const ch of String(s))h=(h*31+ch.charCodeAt(0))%997;return h/997;};
 const cur=b=>.25+.75*hh('c'+b.taste);          // Neugier: wie gern probiert der Bot Neues aus
-const aff=(b,id)=>hh(id+b.taste);              // persönlicher Geschmack pro Karte (0..1)
-const pause=b=>2+Math.floor(Math.random()*(8-4*cur(b))); // Kämpfe Ruhe bis zum nächsten Test
+const aff=(b,id)=>hh(id+b.taste);              // persönlicher Geschmack pro Card (0..1)
+const pause=b=>2+Math.floor(Math.random()*(8-4*cur(b))); // Battles Ruhe bis zum nächsten Test
 function CX(b){
  const x=b.cx||(b.cx={n:{},w:{},lk:{},m:0});
  if(!x.out){x.tr=[];x.out=[];x.trN=0;x.tw=0;x.base=.5;x.cd=Math.floor(Math.random()*4);}
@@ -1785,7 +1785,7 @@ function draw(list,weight){
  while(i<list.length-1&&r>ws[i]){r-=ws[i];i++;}
  return list[i];
 }
-// Test starten: 1–3 Karten tauschen
+// Test starten: 1–3 Cards tauschen
 function startTest(b){
  const x=CX(b);if(!good(b))return;
  const own=PLAY_CARDS.filter(c=>b.cards[c.id].own).map(c=>c.id);
@@ -1796,7 +1796,7 @@ function startTest(b){
  for(let t=0;t<60&&tr.length<k;t++){
   const pool=own.filter(id=>!b.deck.includes(id)&&!deck.includes(id));if(!pool.length)break;
   const neu=draw(pool,wIn);
-  // eher ungeliebte Karten ersetzen, am liebsten durch den gleichen Typ
+  // eher ungeliebte Cards ersetzen, am liebsten durch den gleichen Typ
   const alt=draw(deck.filter(id=>!tr.includes(id)),id=>Math.exp(-1.5*(x.lk[id]||0))*(1.2-aff(b,id))*(CARDS[id].type===CARDS[neu].type?3:1));
   const next=deck.map(id=>id===alt?neu:id);
   if(!valid(next,b)&&valid(deck,b))continue;
@@ -1804,7 +1804,7 @@ function startTest(b){
  }
  if(tr.length){b.deck=deck;x.tr=tr;x.out=out;x.trN=0;x.tw=0;}
 }
-// Test auswerten: gefällt die Karte -> behalten, sonst kommt die alte zurück
+// Test auswerten: gefällt die Card -> behalten, sonst kommt die alte zurück
 function endTest(b){
  const x=CX(b),diff=x.tw/x.trN-x.base;
  let deck=b.deck.slice();const keep=[];
@@ -1821,7 +1821,7 @@ function endTest(b){
  });
  b.deck=deck;x.tr=[];x.out=[];x.trN=0;x.tw=0;x.cd=pause(b);
 }
-// Nach jedem Kampf: Karten bewerten und Test weiterführen
+// Nach jedem Battle: Cards bewerten und Test weiterführen
 function learn(b,deck,res){
  if(!b||!deck)return;
  const x=CX(b);x.m++;
@@ -1900,7 +1900,7 @@ function bars(rows,col,fmt){
 }
 const grid=a=>'<div class="sg">'+a.map(([k,v])=>`<div>${k}<b>${v}</b></div>`).join('')+'</div>';
 const box=(t,h)=>`<div class="sect">${t}</div><div class="sbox">${h}</div>`;
-const ARCH={beatdown:'Beatdown',cycle:'Cycle',control:'Kontrolle',bridge:'Bridge-Spam',siege:'Belagerung',balanced:'Ausgewogen'};
+const ARCH={beatdown:'Beatdown',cycle:'Cycle',control:'Control',bridge:'Bridge-Spam',siege:'Siege',balanced:'Balanced'};
 const top=(o,n,asc)=>Object.entries(o).sort((a,b)=>asc?a[1]-b[1]:b[1]-a[1]).slice(0,n);
 const fmtT=s=>Math.floor(s/60)+':'+String(Math.round(s%60)).padStart(2,'0');
 
@@ -1925,7 +1925,7 @@ function statsHTML(){
  const mg=S.wins+S.losses+S.draws;
  const cl=c=>CARDS[c].name;
  let h='';
- h+=box('🌍 Overview',grid([['Total battles',G.matches],['You vs Bots',G.pMatches],['Bot vs Bot',G.bMatches],['Live now',lv],['Online',on+' / '+N],['Ø Battle length',G.matches?fmtT(G.dur/G.matches):'–'],['Longest battle',G.longest?fmtT(G.longest):'–'],['Shortest battle',G.shortest?fmtT(G.shortest):'–'],['Ø Crowns / battle',G.matches?(G.crowns/G.matches).toFixed(2):'–'],['Verlängerung',pct(G.ot,G.matches)],['Remis',pct(G.draws,G.matches)],['3-Kronen-Siege',G.three],['Towers destroyed',G.towers],['King towers fallen',G.kings],['Max crowns in 1 battle',G.maxCrowns],['Total players',N+1]]));
+ h+=box('🌍 Overview',grid([['Total battles',G.matches],['You vs Bots',G.pMatches],['Bot vs Bot',G.bMatches],['Live now',lv],['Online',on+' / '+N],['Ø Battle length',G.matches?fmtT(G.dur/G.matches):'–'],['Longest battle',G.longest?fmtT(G.longest):'–'],['Shortest battle',G.shortest?fmtT(G.shortest):'–'],['Ø Crowns / battle',G.matches?(G.crowns/G.matches).toFixed(2):'–'],['Overtime',pct(G.ot,G.matches)],['Draw',pct(G.draws,G.matches)],['3-crown wins',G.three],['Towers destroyed',G.towers],['King towers fallen',G.kings],['Max crowns in 1 battle',G.maxCrowns],['Total players',N+1]]));
  h+=box('🃏 Most popular cards in decks (Top 15)',bars(top(use,15).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#6cf,#27c)',(v)=>v+' · '+pct(v,N)));
  h+=box('🥀 Least popular cards in decks',bars(PLAY_CARDS.map(c=>[c.name,use[c.id]||0]).sort((a,b)=>a[1]-b[1]).slice(0,10),'linear-gradient(90deg,#f99,#c33)',(v)=>v+' · '+pct(v,N)));
  h+=box('🏅 Highest win rate (min. 10 battles)',bars(top(wr,10).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#8f8,#2a2)',v=>Math.round(v*100)+'%'));
@@ -1935,12 +1935,12 @@ function statsHTML(){
  h+=box('💖 Bots’ favorite cards (after test phase)',bars(top(lk,8).filter(e=>e[1]>0).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#f9c,#c39)',v=>'+'+v.toFixed(1)));
  h+=box('👎 Discarded cards',bars(top(lk,8,true).filter(e=>e[1]<0).map(([id,v])=>[cl(id),-v]),'linear-gradient(90deg,#9ab,#567)',v=>'−'+v.toFixed(1)));
  h+=box('🧪 Currently in testing',Object.keys(trial).length?bars(top(trial,10).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#c9f,#73c)',v=>v+' Bots'):'<div class="stat">Nobody is testing a new card right now.</div>');
- h+=box('🧬 Deck composition',grid([['Ø Elixir',dk?(cs/dk).toFixed(2):'–'],['Troops',pct(typ.troop,dk)],['Zauber',pct(typ.spell,dk)],['Buildings',pct(typ.building,dk)],['Common',pct(rar.c,dk)],['Rare',pct(rar.r,dk)],['Epic',pct(rar.e,dk)],['Legendary',pct(rar.l,dk)]])+'<div style="height:8px"></div>'+bars(Object.keys(cost).sort((a,b)=>a-b).map(k=>[k+' 💧',cost[k]]),'linear-gradient(90deg,#e6f,#a2d)',(v)=>pct(v,dk)));
+ h+=box('🧬 Deck composition',grid([['Ø Elixir',dk?(cs/dk).toFixed(2):'–'],['Troops',pct(typ.troop,dk)],['Spell',pct(typ.spell,dk)],['Buildings',pct(typ.building,dk)],['Common',pct(rar.c,dk)],['Rare',pct(rar.r,dk)],['Epic',pct(rar.e,dk)],['Legendary',pct(rar.l,dk)]])+'<div style="height:8px"></div>'+bars(Object.keys(cost).sort((a,b)=>a-b).map(k=>[k+' 💧',cost[k]]),'linear-gradient(90deg,#e6f,#a2d)',(v)=>pct(v,dk)));
  h+=box('🎭 Bot play styles',bars(top(arch,6).map(([k,v])=>[k,v]),'linear-gradient(90deg,#6df,#38c)',(v)=>v+' Bots'));
  h+=box('🗺️ Players per arena',bars(ARENAS.map(a=>[a.n,ar[a.n]||0]).filter(r=>r[1]>0),'linear-gradient(90deg,#9e9,#5a5)'));
  h+=box('📦 Card ownership',grid([['Ø Cards per bot',(cards/N).toFixed(1)],['Cards at max level',maxed],['Ø King level',(lvl/N).toFixed(1)],['Total gold',gold.toLocaleString('en-US')]])+'<div style="height:6px"></div><b style="font-size:12px">Least owned</b>'+bars(PLAY_CARDS.map(c=>[c.name,own[c.id]||0]).sort((a,b)=>a[1]-b[1]).slice(0,6),'linear-gradient(90deg,#ccc,#889)',(v)=>pct(v,N))+'<div style="height:6px"></div><b style="font-size:12px">Highest Ø card level</b>'+bars(Object.keys(lvSum).map(id=>[nm(id),lvSum[id]/own[id]]).sort((a,b)=>b[1]-a[1]).slice(0,6),'linear-gradient(90deg,#fe9,#ca3)',v=>v.toFixed(1)));
- h+=box('👑 Leaderboards',`<b style="font-size:12px">Most trophies</b>`+bars(ranked.slice(0,5).map(b=>[b.av+' '+b.name,b.trophies]),'linear-gradient(90deg,#fd7,#e90)')+'<div style="height:6px"></div><b style="font-size:12px">Most wins</b>'+bars(bots.slice().sort((a,b)=>b.wins-a.wins).slice(0,5).map(b=>[b.av+' '+b.name,b.wins]),'linear-gradient(90deg,#8f8,#2a2)')+'<div style="height:6px"></div><b style="font-size:12px">Best win rate (min. 10 battles)</b>'+bars(bots.filter(b=>games(b)>=10).sort((a,b)=>b.wins/games(b)-a.wins/games(a)).slice(0,5).map(b=>[b.av+' '+b.name,b.wins/games(b)]),'linear-gradient(90deg,#6df,#38c)',v=>Math.round(v*100)+'%')+'<div style="height:6px"></div><b style="font-size:12px">Most active players</b>'+bars(bots.slice().sort((a,b)=>games(b)-games(a)).slice(0,5).map(b=>[b.av+' '+b.name,games(b)]),'linear-gradient(90deg,#c9f,#73c)',v=>v+' Kämpfe'));
- h+=box('🙋 Your stats',grid([['Rang',myRank+' / '+(N+1)],['Trophies',S.trophies],['Bestwert',S.best],['Kämpfe',mg],['Siege',S.wins],['Niederlagen',S.losses],['Remis',S.draws],['Siegquote',pct(S.wins,mg)],['Form',(S.form||[]).join(' ')||'–'],['King level',S.lvl],['Gold',S.gold],['Karten',PLAY_CARDS.filter(c=>S.cards[c.id].own).length+' / '+PLAY_CARDS.length]]));
+ h+=box('👑 Leaderboards',`<b style="font-size:12px">Most trophies</b>`+bars(ranked.slice(0,5).map(b=>[b.av+' '+b.name,b.trophies]),'linear-gradient(90deg,#fd7,#e90)')+'<div style="height:6px"></div><b style="font-size:12px">Most wins</b>'+bars(bots.slice().sort((a,b)=>b.wins-a.wins).slice(0,5).map(b=>[b.av+' '+b.name,b.wins]),'linear-gradient(90deg,#8f8,#2a2)')+'<div style="height:6px"></div><b style="font-size:12px">Best win rate (min. 10 battles)</b>'+bars(bots.filter(b=>games(b)>=10).sort((a,b)=>b.wins/games(b)-a.wins/games(a)).slice(0,5).map(b=>[b.av+' '+b.name,b.wins/games(b)]),'linear-gradient(90deg,#6df,#38c)',v=>Math.round(v*100)+'%')+'<div style="height:6px"></div><b style="font-size:12px">Most active players</b>'+bars(bots.slice().sort((a,b)=>games(b)-games(a)).slice(0,5).map(b=>[b.av+' '+b.name,games(b)]),'linear-gradient(90deg,#c9f,#73c)',v=>v+' Battles'));
+ h+=box('🙋 Your stats',grid([['Rang',myRank+' / '+(N+1)],['Trophies',S.trophies],['Best',S.best],['Battles',mg],['Wins',S.wins],['Losses',S.losses],['Draw',S.draws],['Win rate',pct(S.wins,mg)],['Form',(S.form||[]).join(' ')||'–'],['King level',S.lvl],['Gold',S.gold],['Cards',PLAY_CARDS.filter(c=>S.cards[c.id].own).length+' / '+PLAY_CARDS.length]]));
  return h;
 }
 // Tab in renderTab einhängen
@@ -1957,7 +1957,7 @@ renderTab=function(){
 (function(){
 const MAXM=20,KICK_AFTER=240000;
 S.clans=Array.isArray(S.clans)?S.clans:[];S.cn=S.cn||1;
-const CN=['Drachenwache','Turmtitanen','Kronenjäger','Elixierjunkies','Königsmacher','Pfannkuchen-Pack','Nachtwölfe','Blitzbande','Eisgarde','Golden Guild','Feuerfalken','Schlosswächter','Gobbo-Gang','Mauerbrecher'];
+const CN=['Dragon Watch','Tower Titans','Crown Hunters','Elixir Junkies','Kingmaker','Pancake Pack','Night Wolves','Lightning Gang','Ice Guard','Golden Guild','Fire Falcons','Castle Guards','Goblin Gang','Wall Breakers'];
 const BD=['🛡️','⚔️','🐉','🔥','❄️','⚡','🦅','🐺','👑','💎','🌙','☠️'];
 const bk=b=>'b:'+b.name,botOf=k=>world.bots.find(b=>bk(b)===k);
 const byId=id=>S.clans.find(c=>c.id===id),clanOf=k=>S.clans.find(c=>c.mem.some(m=>m.k===k));
@@ -1978,7 +1978,7 @@ function tick(){
   if(Math.random()<b.cc){const used=new Set(S.clans.map(c=>c.name.toLowerCase()));let n=pick(CN),i=2;while(used.has(n.toLowerCase()))n=pick(CN)+' '+(i++);
    mk(k,n,pick(BD),Math.floor(b.trophies*.4/100)*100);}
   else{const el=S.clans.filter(c=>c.mem.length<MAXM&&c.req<=b.trophies&&!c.ban.includes(k));if(el.length)pick(el).mem.push({k,t:now});}}
- // Bot-Anführer werfen nach einer Weile schwache Mitglieder raus
+ // Bot-Anführer werfen nach einer Weile schwache Members raus
  for(const c of S.clans.slice()){if(c.lead==='me'||c.mem.length<4||Math.random()>.04)continue;
   const avg=total(c)/c.mem.length;
   const w=c.mem.filter(m=>m.k!==c.lead&&now-m.t>=KICK_AFTER&&info(m.k).tr<avg*.5).sort((a,b)=>info(a.k).tr-info(b.k).tr)[0];
@@ -1988,13 +1988,13 @@ function tick(){
 setInterval(tick,3000);setTimeout(tick,1000);
 const membersHTML=(c,canKick)=>c.mem.map(m=>({m,i:info(m.k)})).sort((a,b)=>b.i.tr-a.i.tr).map(({m,i},n)=>`<div class="row ${i.me?'me':''}" style="cursor:default"><div class="rk">${n+1}</div><div class="ra">${i.av}</div><div style="flex:1;min-width:0"><div class="rn">${m.k===c.lead?'👑 ':''}${i.name}</div><span class="rs">${i.on?'<span class="dot"></span>online':'<span class="dot off"></span>offline'}</span></div><div class="rt">🏆 ${i.tr}</div>${!i.me&&i.on&&clanOf('me')===c?`<button class="btn blue mini" data-act="clanFriend" data-k="${m.k}">⚔️</button>`:''}${canKick&&m.k!==c.lead?`<button class="btn red mini" data-act="clanKick" data-c="${c.id}" data-k="${m.k}">🥾</button>`:''}</div>`).join('');
 const head=c=>`<div class="arena" style="background:linear-gradient(#5a48c8,#2a1f70)"><div style="font-size:46px">${c.badge}</div><div class="an">${c.name}</div><div class="sub">${c.mem.length}/${MAXM} Members · 🏆 ${total(c)} · Join from ${c.req} 🏆</div></div>`;
-// --- Karten anfordern & spenden ---
+// --- Cards anfordern & spenden ---
 const RC={c:{cap:30,per:10,g:2,xp:1},r:{cap:9,per:3,g:10,xp:2},e:{cap:2,per:1,g:60,xp:4}},CD=120000,EXP=1200000;
 const acc=k=>k==='me'?S:botOf(k);
 function donate(r,dk){const rc=RC[CARDS[r.id].rar],a=acc(dk),t=acc(r.k);if(!rc||!a||!t||!a.cards[r.id]||!a.cards[r.id].own||!t.cards[r.id])return 0;
  const n=Math.min(rc.per,r.cap-r.got);if(n<=0||r.don[dk])return 0;r.got+=n;r.don[dk]=n;if(r.got>=r.cap)r.fin=Date.now();
  a.gold+=n*rc.g;addXp(a,n*rc.xp);t.cards[r.id].copies+=n;
- if(r.k==='me'&&dk!=='me'){const i=info(dk);toast('🃏 '+(i?i.name:'Clanmitglied')+' spendete '+n+'× '+CARDS[r.id].name);}return n;}
+ if(r.k==='me'&&dk!=='me'){const i=info(dk);toast('🃏 '+(i?i.name:'Clan member')+' donated '+n+'× '+CARDS[r.id].name);}return n;}
 function botCards(now){let ch=false;
  for(const c of S.clans){c.cr=(c.cr||[]).filter(r=>now-r.t<EXP&&!(r.fin&&now-r.fin>60000));
   for(const m of c.mem){const b=botOf(m.k);if(!b||!b.online||b.inMatch)continue;
@@ -2017,10 +2017,10 @@ function cardsHTML(c){const now=Date.now(),mine=(c.cr||[]).some(r=>r.k==='me');
  return h;}
 function clanTab(){
  const my=clanOf('me');let h='';
- if(my)h+=head(my)+cardsHTML(my)+`<div class="sect">Mitglieder${my.lead==='me'?' <span class="chip">🥾 = kick</span>':''}</div>`+membersHTML(my,my.lead==='me')+`<button class="btn red" style="width:100%;margin-top:10px" data-act="clanLeaveAsk">🚪 Leave clan</button>`;
+ if(my)h+=head(my)+cardsHTML(my)+`<div class="sect">Members${my.lead==='me'?' <span class="chip">🥾 = kick</span>':''}</div>`+membersHTML(my,my.lead==='me')+`<button class="btn red" style="width:100%;margin-top:10px" data-act="clanLeaveAsk">🚪 Leave clan</button>`;
  else h+=`<button class="btn green big" style="width:100%" data-act="clanNew">➕ Create clan</button>`;
  const oth=S.clans.filter(c=>c!==my).sort((a,b)=>total(b)-total(a));
- h+=`<div class="sect">${my?'Andere Clans':'Clans beitreten'} (${oth.length})</div>`+(oth.length?oth.map(c=>`<div class="row" data-act="clanView" data-c="${c.id}"><div class="ra">${c.badge}</div><div style="flex:1;min-width:0"><div class="rn">${c.name}</div><span class="rs">${c.mem.length>=MAXM?'voll · ':''}${c.mem.length}/${MAXM} · ab ${c.req} 🏆</span></div><div class="rt">🏆 ${total(c)}</div></div>`).join(''):'<div class="stat">No clans yet – they will form on their own shortly.</div>');
+ h+=`<div class="sect">${my?'Other Clans':'Join clans'} (${oth.length})</div>`+(oth.length?oth.map(c=>`<div class="row" data-act="clanView" data-c="${c.id}"><div class="ra">${c.badge}</div><div style="flex:1;min-width:0"><div class="rn">${c.name}</div><span class="rs">${c.mem.length>=MAXM?'voll · ':''}${c.mem.length}/${MAXM} · ab ${c.req} 🏆</span></div><div class="rt">🏆 ${total(c)}</div></div>`).join(''):'<div class="stat">No clans yet – they will form on their own shortly.</div>');
  return h;
 }
 const rt2=renderTab;
@@ -2028,7 +2028,7 @@ renderTab=function(){if(tab!=='clan')return rt2();renderTop();document.querySele
 const nav=$('#nav'),btn=document.createElement('button');btn.dataset.act='tab';btn.dataset.t='clan';btn.innerHTML='<span>🛡️</span>Clan';nav.insertBefore(btn,nav.querySelector('[data-t="stats"]'));
 const redraw=()=>{save();lastHTML.tab='';renderTab();};
 Object.assign(ACT,{
- clanNew(){if(clanOf('me'))return;showModal(`<h2>Create clan</h2><div style="display:flex;flex-direction:column;gap:8px"><input id="clName" maxlength="16" placeholder="Clan-Name (3–16 Zeichen)" style="padding:10px;border-radius:10px;border:0;font:800 15px inherit"><input id="clReq" type="number" min="0" max="9999" value="0" placeholder="Mindest-Trophies" style="padding:10px;border-radius:10px;border:0;font:800 15px inherit"><select id="clBadge" style="padding:10px;border-radius:10px;border:0;font:800 18px inherit">${BD.map(b=>`<option>${b}</option>`).join('')}</select><button class="btn green" data-act="clanCreate">Create</button><button class="btn" data-act="clanClose">Cancel</button></div>`);},
+ clanNew(){if(clanOf('me'))return;showModal(`<h2>Create clan</h2><div style="display:flex;flex-direction:column;gap:8px"><input id="clName" maxlength="16" placeholder="Clan name (3–16 characters)" style="padding:10px;border-radius:10px;border:0;font:800 15px inherit"><input id="clReq" type="number" min="0" max="9999" value="0" placeholder="Min. trophies" style="padding:10px;border-radius:10px;border:0;font:800 15px inherit"><select id="clBadge" style="padding:10px;border-radius:10px;border:0;font:800 18px inherit">${BD.map(b=>`<option>${b}</option>`).join('')}</select><button class="btn green" data-act="clanCreate">Create</button><button class="btn" data-act="clanClose">Cancel</button></div>`);},
  clanCreate(){const n=$('#clName').value.replace(/[<>&"]/g,'').trim(),req=Math.max(0,Math.min(9999,Math.floor(+$('#clReq').value)||0));
   if(n.length<3)return toast('Name too short');if(S.clans.some(c=>c.name.toLowerCase()===n.toLowerCase()))return toast('Name already taken');
   mk('me',n,$('#clBadge').value,req);closeModal();redraw();toast('🛡️ Clan created');},
@@ -2037,7 +2037,7 @@ Object.assign(ACT,{
   showModal(`<h2>${c.badge} ${c.name}</h2><div style="text-align:center;font-size:13px;margin-bottom:8px">${c.mem.length}/${MAXM} Members · 🏆 ${total(c)} · ab ${c.req} 🏆</div><div style="max-height:45vh;overflow:auto">${membersHTML(c,false)}</div>${clanOf('me')?'':can?`<button class="btn green" style="width:100%;margin-top:8px" data-act="clanJoin" data-c="${c.id}">Join</button>`:`<div class="stat">${c.ban.includes('me')?'You were kicked from here.':c.mem.length>=MAXM?'Clan is full.':'You need at least '+c.req+' 🏆.'}</div>`}<button class="btn" style="width:100%;margin-top:8px" data-act="clanClose">Close</button>`);},
  clanJoin(el){const c=byId(+el.dataset.c);if(!c||clanOf('me'))return;if(c.mem.length>=MAXM)return toast('Clan is full');if(c.req>S.trophies||c.ban.includes('me'))return toast('Cannot join');
   c.mem.push({k:'me',t:Date.now()});closeModal();redraw();toast('Welcome to '+c.name+'!');},
- clanKick(el){const c=byId(+el.dataset.c),k=el.dataset.k;if(!c||c.lead!=='me'||k==='me')return;const i=info(k);kick(c,k);redraw();toast('🥾 '+(i?i.name:'Spieler')+' gekickt');},
+ clanKick(el){const c=byId(+el.dataset.c),k=el.dataset.k;if(!c||c.lead!=='me'||k==='me')return;const i=info(k);kick(c,k);redraw();toast('🥾 '+(i?i.name:'Players')+' kicked');},
  clanReqAsk(){const c=clanOf('me');if(!c)return;if((c.cr||[]).some(r=>r.k==='me'))return toast('You already have a request');if(Date.now()<(S.reqAt||0))return toast('Not ready yet');
   const ids=PLAY_CARDS.filter(x=>x.rar!=='l'&&S.cards[x.id].own&&S.cards[x.id].lvl<RAR[x.rar].max);
   if(!ids.length)return toast('No card can be requested');
@@ -2077,7 +2077,7 @@ function BR(b){
 const lr=b=>(.6+.8*(((b.taste||0)*2654435761%1000)/1000))*(.7+.6*cl(b.skill||0,0,1));
 const OB=()=>({T:0,ov:0,lo:0,pl:0,sp:0,fl:-1});
 
-// ---- Beobachten: Elixier-Verschwendung, Elixier-Leere, Zauber, erster Gegentreffer
+// ---- Beobachten: Elixier-Verschwendung, Elixier-Leere, Spell, erster Gegentreffer
 const pt=Brain.prototype.tick;
 Brain.prototype.tick=function(m,me,dt){
  if(this.bot){const o=this.ob||(this.ob=OB());o.T+=dt;const e=m.el[me];
@@ -2117,7 +2117,7 @@ World.prototype.profile=function(b){
  return p;
 };
 
-// ---- Nach dem Kampf: Error und Strengths erkennen, Spielweise anpassen
+// ---- Nach dem Battle: Error und Strengths erkennen, Spielweise anpassen
 function note(x,kind,label){
  const a=kind==='fe'?x.fe:x.st,i=a.indexOf(label);if(i>=0)a.splice(i,1);a.unshift(label);if(a.length>3)a.length=3;
  const key=kind+':'+label;x.cnt[key]=(x.cnt[key]||0)+1;
@@ -2199,7 +2199,7 @@ ACT.bot=function(el){
 };
 })();
 
-// === PATCH 15: Sparen auf teure Karten (Elixier-Bank) – Bots sammeln Elixier, statt Karten sofort zu verheizen ===
+// === PATCH 15: Sparen auf teure Cards (Elixier-Bank) – Bots sammeln Elixier, statt Cards sofort zu verheizen ===
 (function(){
 const P=l=>l.reduce((s,u)=>s+pw(u),0);
 const nearMine=(me,u)=>me===0?u.y>RY-30:u.y<RY+30;
@@ -2210,7 +2210,7 @@ Brain.prototype.bigCard=function(m,me){
 };
 Brain.prototype.save=function(m,me){
  const pf=this.pf,r=pf.raw!=null?pf.raw:pf.skill;if(r<.12)return 0;
- if(m.ot&&m.t>=300)return 0;                         // Dreifach-Elixier: nur noch Druck
+ if(m.ot&&m.t>=300)return 0;                         // Triple-Elixier: nur noch Druck
  const op=1-me,el=m.el[me],big=this.bigCard(m,me);if(!big)return 0;
  const en=m.units.filter(u=>u.team===op&&u.hp>0&&!u.building&&nearMine(me,u));
  const lanes=[[],[]];en.forEach(u=>lanes[u.x<180?0:1].push(u));
@@ -2221,7 +2221,7 @@ Brain.prototype.save=function(m,me){
  const c=big.c,fr=m.units.filter(u=>u.team===me&&u.hp>0&&!u.building);
  const mineAhead=u=>me===0?u.y<RY+90:u.y>RY-90;
  const push=P(fr.filter(mineAhead));
- const reserve=c.cost>=6?1.7:1.2;   // teure Karten erst mit Puffer fürs Nachlegen
+ const reserve=c.cost>=6?1.7:1.2;   // teure Cards erst mit Puffer fürs Nachlegen
  const need=Math.min(9.8,c.cost+reserve+(push>=140?1:0));
  const dbl=m.t>=120?.5:0;
  if(el>=need-dbl){
@@ -2240,7 +2240,7 @@ Brain.prototype.threatNow=function(m,me){
  for(const u of en)for(const q of m.tw[me])if(!q.dead&&Math.hypot(u.x-q.x,u.y-q.y)<150){pwr+=15;break;}
  return pwr;
 };
-// Bot-Plays: nicht immer exakt dieselbe Stelle (Gegner kann sonst gezielt kontern)
+// Bot-Plays: nicht immer exakt dieselbe Stelle (Enemy kann sonst gezielt kontern)
 const mplay=Match.prototype.play;
 Match.prototype.play=function(team,hi,x,y){
  const b=this.brains&&this.brains[team];
@@ -2267,7 +2267,7 @@ Brain.prototype.think=function(m,me){
 };
 })();
 
-// === PATCH 18: Spielstile + Decks ohne Elixier-Limit (sehr teuer bis sehr billig) + Sparen auf JEDE teure Karte ===
+// === PATCH 18: Spielstile + Decks ohne Elixier-Limit (sehr teuer bis sehr billig) + Sparen auf JEDE teure Card ===
 (function(){
 BKEYS.push('pers','dv','po');
 const hh=s=>{let h=0;for(const ch of String(s))h=(h*31+ch.charCodeAt(0))%9973;return h/9973;};
@@ -2280,19 +2280,19 @@ const supC=c=>c.type==='troop'&&c.cost<=5&&!c.bOnly&&!c.anywhere&&!(c.hp>=1000&&
 // ---- Persönlichkeiten: Deck-Wunsch (avg = Elixier-Spanne, w = Kartenvorliebe) + Play style
 const PERS={
  schwer:{n:'Schwergewicht',avg:[4.7,7],w:c=>c.cost>=6?5:c.cost>=5?3.6:c.cost===4?1.2:c.cost<=2?.15:.5,need:d=>(cnt(d,c=>c.cost>=5&&c.type!=='spell')>=3?0:5)+(cnt(d,supC)>=2?0:4),arch:'beatdown',st:{gate:2.8,def:.9,bridge:0,split:.1,tank:1,spell:.8}},
- billig:{n:'Billig-Zyklus',avg:[1.8,3],w:c=>(fastW(c)&&c.cost<=4?5:0)+(c.cost<=2?5:c.cost===3?2.2:c.cost===4?.3:.015),need:d=>cnt(d,c=>fastW(c)&&c.cost<=4)>=1&&cnt(d,c=>c.type==='troop'&&c.cost<=2)>=2?0:5,arch:'cycle',st:{gate:-.9,def:1.15,bridge:.15,split:.5,tank:0,spell:.9}},
- spam:{n:'Brücken-Spammer',avg:[2.2,3.5],w:c=>fastW(c)?4:c.type==='troop'&&c.cost<=3?2.4:c.type==='spell'?.8:c.cost>=5?.15:.7,need:d=>cnt(d,c=>c.type==='troop'&&c.cost<=4&&!c.heal)>=5?0:4,arch:'bridge',st:{gate:-.5,def:1.1,bridge:.6,split:.4,tank:0,spell:.7},beh:{spam:{keep:.8,maxCost:4}}},
+ billig:{n:'Cheap Cycle',avg:[1.8,3],w:c=>(fastW(c)&&c.cost<=4?5:0)+(c.cost<=2?5:c.cost===3?2.2:c.cost===4?.3:.015),need:d=>cnt(d,c=>fastW(c)&&c.cost<=4)>=1&&cnt(d,c=>c.type==='troop'&&c.cost<=2)>=2?0:5,arch:'cycle',st:{gate:-.9,def:1.15,bridge:.15,split:.5,tank:0,spell:.9}},
+ spam:{n:'Bridge Spammers',avg:[2.2,3.5],w:c=>fastW(c)?4:c.type==='troop'&&c.cost<=3?2.4:c.type==='spell'?.8:c.cost>=5?.15:.7,need:d=>cnt(d,c=>c.type==='troop'&&c.cost<=4&&!c.heal)>=5?0:4,arch:'bridge',st:{gate:-.5,def:1.1,bridge:.6,split:.4,tank:0,spell:.7},beh:{spam:{keep:.8,maxCost:4}}},
  rush:{n:'Rusher',avg:[2.4,3.7],w:c=>fastW(c)?3:c.type==='troop'&&c.cost<=4?2:c.type==='spell'?1:.4,need:d=>cnt(d,c=>c.type==='troop'&&c.cost<=4)>=5?0:4,arch:'bridge',st:{gate:-1.5,def:.9,bridge:.5,split:.3,tank:.2,spell:1},beh:{spam:{keep:.5,maxCost:5,until:100}}},
- zange:{n:'Zangen-Angreifer',avg:[2.8,3.9],w:c=>c.type==='troop'&&!c.heal?(c.cost<=4?2.2:1):c.type==='spell'?1:.5,need:d=>cnt(d,c=>c.type==='troop'&&c.cost<=4)>=4?0:4,arch:'bridge',st:{gate:.6,def:1,bridge:.2,split:.9,tank:.1,spell:1},beh:{spam:{keep:2,maxCost:4,alt:true}}},
- turtle:{n:'Verteidiger',avg:[3.3,4.7],minB:1,maxB:3,w:c=>c.type==='building'?3.2:c.range>=40||c.hp*(c.count||1)>=1200?2:c.type==='spell'?1.4:1,need:d=>cnt(d,c=>c.type==='building')>=1?0:4,arch:'control',st:{gate:3.5,def:1.4,bridge:0,split:.1,tank:.3,spell:1.2},beh:{turtle:1}},
- siege:{n:'Belagerer',avg:[3,4.4],w:c=>(c.id==='xbow'||c.id==='mortar')?10:c.type==='building'?1.8:c.range>=40?1.6:1,need:d=>cnt(d,c=>c.id==='xbow'||c.id==='mortar')>=1?0:7,arch:'siege',st:{gate:1.8,def:1.2,bridge:0,split:.1,tank:.2,spell:1},maxB:3},
- control:{n:'Zauber-Kontrolle',avg:[3.1,4.5],minS:3,maxS:4,w:c=>c.type==='spell'?3.2:1,need:d=>0,arch:'control',st:{gate:1.6,def:.8,bridge:0,split:.15,tank:.2,spell:1.7}},
- swarm:{n:'Schwarm',avg:[2.5,3.9],w:c=>(c.count>=3?3.6:1)*(c.splash?1.5:1),need:d=>cnt(d,c=>c.count>=3&&c.type==='troop')>=3?0:5,arch:'bridge',st:{gate:.4,def:1,bridge:.3,split:.4,tank:0,spell:1.1}},
- air:{n:'Luftwaffe',avg:[3,4.6],w:c=>c.fly?4:c.hitsAir?1.8:.8,need:d=>cnt(d,c=>c.fly)>=3?0:5,arch:'balanced',st:{gate:1,def:1,bridge:.05,split:.3,tank:.3,spell:1}},
+ zange:{n:'Pincer Attackers',avg:[2.8,3.9],w:c=>c.type==='troop'&&!c.heal?(c.cost<=4?2.2:1):c.type==='spell'?1:.5,need:d=>cnt(d,c=>c.type==='troop'&&c.cost<=4)>=4?0:4,arch:'bridge',st:{gate:.6,def:1,bridge:.2,split:.9,tank:.1,spell:1},beh:{spam:{keep:2,maxCost:4,alt:true}}},
+ turtle:{n:'Defender',avg:[3.3,4.7],minB:1,maxB:3,w:c=>c.type==='building'?3.2:c.range>=40||c.hp*(c.count||1)>=1200?2:c.type==='spell'?1.4:1,need:d=>cnt(d,c=>c.type==='building')>=1?0:4,arch:'control',st:{gate:3.5,def:1.4,bridge:0,split:.1,tank:.3,spell:1.2},beh:{turtle:1}},
+ siege:{n:'Sieger',avg:[3,4.4],w:c=>(c.id==='xbow'||c.id==='mortar')?10:c.type==='building'?1.8:c.range>=40?1.6:1,need:d=>cnt(d,c=>c.id==='xbow'||c.id==='mortar')>=1?0:7,arch:'siege',st:{gate:1.8,def:1.2,bridge:0,split:.1,tank:.2,spell:1},maxB:3},
+ control:{n:'Spell Control',avg:[3.1,4.5],minS:3,maxS:4,w:c=>c.type==='spell'?3.2:1,need:d=>0,arch:'control',st:{gate:1.6,def:.8,bridge:0,split:.15,tank:.2,spell:1.7}},
+ swarm:{n:'Swarm',avg:[2.5,3.9],w:c=>(c.count>=3?3.6:1)*(c.splash?1.5:1),need:d=>cnt(d,c=>c.count>=3&&c.type==='troop')>=3?0:5,arch:'bridge',st:{gate:.4,def:1,bridge:.3,split:.4,tank:0,spell:1.1}},
+ air:{n:'Air Force',avg:[3,4.6],w:c=>c.fly?4:c.hitsAir?1.8:.8,need:d=>cnt(d,c=>c.fly)>=3?0:5,arch:'balanced',st:{gate:1,def:1,bridge:.05,split:.3,tank:.3,spell:1}},
  beat:{n:'Tank-Beatdown',avg:[4,5.4],w:c=>isTankC(c)?4:c.range>=40?2:c.type==='spell'?1.1:1,need:d=>(cnt(d,c=>isTankC(c))>=1?0:5)+(cnt(d,supC)>=3?0:4),arch:'beatdown',st:{gate:2.2,def:1,bridge:0,split:.1,tank:1,spell:1}},
- punish:{n:'Konter-Jäger',avg:[3,4.3],w:c=>c.type==='troop'&&c.cost<=3?2:isBig(c)?1.6:1,need:d=>0,arch:'balanced',st:{gate:1.2,def:1.1,bridge:0,split:.4,tank:.4,spell:1},beh:{punish:1}},
+ punish:{n:'Konter-Hunter',avg:[3,4.3],w:c=>c.type==='troop'&&c.cost<=3?2:isBig(c)?1.6:1,need:d=>0,arch:'balanced',st:{gate:1.2,def:1.1,bridge:0,split:.4,tank:.4,spell:1},beh:{punish:1}},
  allround:{n:'Allrounder',avg:[3,3.9],w:c=>1,need:d=>0,arch:'balanced',st:{gate:.9,def:.95,bridge:.08,split:.25,tank:.5,spell:1}},
- chaos:{n:'Chaot',avg:[2.2,5.2],maxS:3,w:c=>1,need:d=>0,arch:'balanced',st:null}
+ chaos:{n:'Chaotic',avg:[2.2,5.2],maxS:3,w:c=>1,need:d=>0,arch:'balanced',st:null}
 };
 const KEYS=Object.keys(PERS);
 const ownOf=b=>PLAY_CARDS.filter(c=>b.cards[c.id].own);
@@ -2306,7 +2306,7 @@ function pen(P,d){
  const mS=P.maxS||2,mB=P.maxB||1;if(sp>mS)p+=(sp-mS)*5;if(bl>mB)p+=(bl-mB)*5;
  if(P.minS&&sp<P.minS)p+=(P.minS-sp)*3;if(P.minB&&bl<P.minB)p+=(P.minB-bl)*3;
  if(!cs.some(nAir))p+=6;
- // Zusammenhang: Gewinn-Karte, Luftabwehr, Schadenszauber, keine Rollen-Häufung
+ // Zusammenhang: Gewinn-Card, Luftabwehr, Schadenszauber, keine Rollen-Häufung
  if(!P.noCo){
   if(!cs.some(wc))p+=5;
   if(cs.filter(airC).length<2)p+=3;
@@ -2349,7 +2349,7 @@ botManage=function(b){bm0(b);try{ensure(b);}catch(e){}};
 try{world.bots.forEach(ensure);}catch(e){}
 globalThis.X2={PERS,buildDeck,fits,persOf,pen,ensure,oldDeck:bd18};
 
-// ---- Sparen: JEDE teure Karte (nicht nur 5+, auch relativ zum Deck: in Billig-Decks ist eine 4 teuer)
+// ---- Sparen: JEDE teure Card (nicht nur 5+, auch relativ zum Deck: in Billig-Decks ist eine 4 teuer)
 const isExp=(c,avg)=>c.type!=='spell'&&!c.heal&&!c.elix&&!c.anywhere&&!c.kind&&(c.cost>=5||(c.cost>=4&&c.cost>=avg+1.2)||(c.cost>=3&&c.cost>=avg+1.8));
 globalThis.isExpC=isExp;
 const P0=l=>l.reduce((s,u)=>s+pw(u),0);
@@ -2463,7 +2463,7 @@ function lonelyTank(m,me){
  const us=m.units.filter(u=>u.team===me&&u.hp>0&&!u.building);
  let best=null;
  for(const t of us){if(!tankU(t.c))continue;
-  const half=me===0?t.y<RY+60:t.y>RY-60;   // schon in Bewegung Richtung Gegner
+  const half=me===0?t.y<RY+60:t.y>RY-60;   // schon in Bewegung Richtung Enemy
   const sup=us.some(u=>u!==t&&!tankU(u.c)&&u.c.type==='troop'&&Math.hypot(u.x-t.x,u.y-t.y)<130&&pw(u)>=12);
   if(!sup&&(!best||t.hp>best.hp))best={t,half};}
  return best;
@@ -2492,14 +2492,14 @@ Brain.prototype.persAct=function(m,me){
 globalThis.__lonelyTank=lonelyTank;
 })();
 
-// === PATCH 20: Truhen (CR 2017), Bot-Stimmung, Tank-Vorlage, neue Spieler, Schüler-Bot + Lernstunde ===
+// === PATCH 20: Chests (CR 2017), Bot-Stimmung, Tank-Vorlage, neue Players, Student-Bot + Lernstunde ===
 (function(){
 BKEYS.push('stu','cyc');
 const rn=(a,b)=>a+Math.random()*(b-a);
 const redraw=()=>{save();lastHTML.tab='';renderTab();};
 
-// ---------- 1. Truhen wie Clash Royale 2017 ----------
-// Plan: [Seltenheit, min, max, Wahrscheinlichkeit] – jede Zeile ist eine andere Karte
+// ---------- 1. Chests wie Clash Royale 2017 ----------
+// Plan: [Rarity, min, max, Wahrscheinlichkeit] – jede Zeile ist eine andere Card
 const PLAN={
  free:[['c',4,9,1],['c',3,6,1],['r',1,2,.3]],
  wood:[['c',5,10,1],['c',3,7,1],['r',1,2,.3]],
@@ -2589,7 +2589,7 @@ Brain.prototype.think=function(m,me){
  return t20.call(this,m,me);
 };
 
-// ---------- 4. Neue Spieler kommen nach und nach (10 Min bis 1 Std) ----------
+// ---------- 4. Neue Players kommen nach und nach (10 Min bis 1 Std) ----------
 function arrive(){
  const now=Date.now();if(!S.nextBot||S.nextBot<=0||S.nextBot>now+6e5)S.nextBot=now+rn(6e4,6e5);
  let n=0;while(S.nextBot<=now&&n<30){
@@ -2600,7 +2600,7 @@ function arrive(){
 }
 setInterval(arrive,5000);setTimeout(arrive,800);
 
-// ---------- 5. Schüler-Bot ----------
+// ---------- 5. Student-Bot ----------
 const stuBot=()=>world.bots.find(b=>b.stu);
 const WT=[1.4,1.6,1.6,.9,.9,.4,.25,.7,.4,1.2,1.3,.5,.5,.6,.6,1,1.1,4,1,.8,1.1,.8],WS=WT.reduce((a,b)=>a+b,0);
 const dist2=(a,b)=>{let s=0,w=0;for(let i=0;i<WT.length;i++){if(a[i]===undefined||b[i]===undefined)continue;const d=a[i]-b[i];s+=WT[i]*d*d;w+=WT[i];}return Math.sqrt(s/(w||WS));};
@@ -2614,7 +2614,7 @@ function sitInfo(m,me){
  const q=v=>Math.min(1,v/300);const ids=(a,f)=>a.filter(f).sort((x,y)=>pw(y)-pw(x)).slice(0,3).map(u=>u.c.id);const tfs=r=>{const a=m.tw[op].filter(t=>t.type!=='k'&&(r?t.x>=180:t.x<180));return a.length?Math.min(...a.map(frac)):0;};const tfm=r=>{const a=m.tw[me].filter(t=>t.type!=='k'&&(r?t.x>=180:t.x<180));return a.length?Math.min(...a.map(frac)):0;};const kg=t=>{const k=m.tw[t].find(x=>x.type==='k');return k?frac(k):0;},tsum=t=>m.tw[t].reduce((a,x)=>a+frac(x),0)/3;let dfn=0;try{for(const u of m.units)if(u.team===op&&u.hp>0&&!near(u))dfn+=pw(u)||0;}catch(e){}
  return{v:[el/10,q(tL),q(tR),q(pL),q(pR),(m.crowns[me]-m.crowns[op])/3,Math.min(1,m.t/180),q(air),Math.min(1,nn/6),q(dfn),(m.lesson?.5:(m.el[op]||0)/10),tfs(0),tfs(1),tfm(0),tfm(1),m.lesson?.5:Math.min(1,(m.t-(m._elt??-99))/10),m.lesson?.5:Math.max(0,Math.min(1,.5+(el-(m.el[op]||0))/10)),m.lesson?0:(m.ot&&m.t>=300?1:m.t>=120?.5:0),kg(op),kg(me),.5+(tsum(me)-tsum(op))/2,m.ot?1:m.t>=150?.5:0],e:big?big.c.id:'',eu:ids(en,near),fu:ids(fr,u=>me===0?u.y>=RY+RH:u.y<=RY-RH),el,c:cp>0?{x:cx/cp,y:pY(cy/cp)}:null};
 }
-// Lernen: jede Karte, die ich im Kampf oder in der Lernstunde spiele
+// Lernen: jede Card, die ich im Battle oder in der Lernstunde spiele
 const ms20=Match.prototype.step;
 Match.prototype.step=function(dt){
  ms20.call(this,dt);
@@ -2679,8 +2679,7 @@ const pf20=World.prototype.profile;
 World.prototype.profile=function(b){
  const p=pf20.call(this,b);
  if(b&&b.stu&&p&&p.brain){const br=p.brain;br.stu=true;
-  br.think=function(m,me){let ok=false;try{ok=stuAct(this,m,me);}catch(e){ok=false;}if(ok)return;
-   const mem=S.stu?S.stu.mem.length:0;if(mem<25||m.el[me]>=9.6||emerg(m,me))return Brain.prototype.think.call(this,m,me);};}
+  br.think=function(m,me){try{stuAct(this,m,me);}catch(e){}};}
  return p;
 };
 const wu20=World.prototype.update;
@@ -2705,14 +2704,14 @@ const SCN=[
  {n:'Air Pirates',atk:['balloon'],hand:['musk','archer','tesla','fireball'],ex:['squire','goblins','zap','volley']},
  {n:'Bone Army (Swarm)',atk:['army'],hand:['bomber','volley','zap','titan'],ex:['archer','squire','musk','fireball']},
  {n:'Boar Rider + Goblins',atk:['boar','goblins'],hand:['squire','bomber','turret','fireball'],ex:['archer','musk','zap','minik']},
- {n:'Raufbold-Rush',atk:['barbs'],hand:['axe','volley','fireball','squire'],ex:['musk','archer','tesla','zap']},
+ {n:'Brawler Rush',atk:['barbs'],hand:['axe','volley','fireball','squire'],ex:['musk','archer','tesla','zap']},
  {n:'Dragon + Flutter Swarm',atk:['wyvern','horde'],hand:['musk','archer','volley','tesla'],ex:['squire','zap','fireball','minik']},
  {n:'Iron Colossus',atk:['pekka'],hand:['goblins','skelknight','inferno','zap'],ex:['archer','musk','speargob','squire']},
  {n:'Tunnel Digger + Night Flutterers',atk:['miner','bats'],hand:['squire','archer','volley','zap'],ex:['tesla','musk','minik','fireball']},
  {n:'Mighty Knight + Healer',atk:['megaknight','healer'],hand:['minik','pekka','goblins','tesla'],ex:['musk','fireball','zap','archer']},
  {n:'Thunder Cart',atk:['sparky'],hand:['ram','goblins','zap','tesla'],ex:['archer','squire','fireball','musk']},
  {n:'Giant Crossbow',atk:['xbow'],hand:['fireball','squire','zap','minik'],ex:['archer','musk','tesla','goblins']},
- {n:'Fernkämpfer-Duo',atk:['princess','dart'],hand:['boar','squire','fireball','zap'],ex:['goblins','archer','minik','musk']}
+ {n:'Ranged Duo',atk:['princess','dart'],hand:['boar','squire','fireball','zap'],ex:['goblins','archer','minik','musk']}
 ,
  {n:'⚔️ Attack: Golem + Witch',mode:'a',atk:['musk','archer'],hand:['golem','mage','zap','fireball'],ex:['squire','goblins','tesla','minik']},
  {n:'⚔️ Attack: Boar Rider over the bridge',mode:'a',atk:['tesla','squire'],hand:['boar','goblins','fireball','zap'],ex:['musk','archer','minik','volley']},
@@ -2747,7 +2746,7 @@ function startLesson(scn){
  $('#wTop').classList.add('hidden');$('#wBot').classList.add('hidden');
  showScreen('battle');$('#bar').classList.remove('hidden');$('#watchBar').classList.add('hidden');$('#emoBtn').classList.remove('hidden');fit();
  $('#emoPick').innerHTML=['😀','😎','😂','😭','😡','👍'].map(e=>`<span data-act="emo" data-e="${e}">${e}</span>`).join('');$('#emoPick').classList.add('hidden');
- const b=$('#banner');b.textContent='LERNSTUNDE';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');
+ const b=$('#banner');b.textContent='LESSON';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');
 }
 const sr20=showResult;
 showResult=function(m){
@@ -2761,7 +2760,7 @@ showResult=function(m){
  return sr20(m);
 };
 
-// ---------- Schüler-Tab ----------
+// ---------- Student-Tab ----------
 function learnedHTML(st){
  const use={},ctr={};
  for(const r of st.mem){use[r.c]=(use[r.c]||0)+1;if(r.e){const k=r.e+'>'+r.c;ctr[k]=(ctr[k]||0)+1;}}
@@ -2774,19 +2773,19 @@ function learnedHTML(st){
  const atk=sy&&sy.n?`<div class="sect">Your attack</div><div class="sbox"><div class="stat">Attack cards: ${top(at)}<br>Opening: ${top(op)}<br>Punishing (enemy ≤4 elixir): ${pc(sy.pun|0,sy.n)}% of your plays<br>Ø Enemy elixir during your attack: ${sy.on?(sy.oe/sy.on).toFixed(1):'–'}</div></div>`:'';
  const ecc={};for(const r of st.mem)if(r.ec&&r.ec!==r.c){const k=r.ec+'>'+r.c;ecc[k]=(ecc[k]||0)+1;}
  const ecl=Object.entries(ecc).sort((a,b)=>b[1]-a[1]).slice(0,5);
- const sit=sy&&sy.n?`<div class="sect">Your situations</div><div class="sbox"><div class="stat">When leading: ${pc(sy.ah|0,sy.n)}% · when behind: ${pc(sy.bh|0,sy.n)}% of your plays<br>In double elixir: ${pc(sy.dbl|0,sy.n)}%<br>With a weak own tower: ${pc(sy.dfp|0,sy.n)}%<br>Enemy tower almost gone (&lt;40%): ${pc(sy.fin|0,sy.n)}%<br>Enemy king tower damaged: ${pc(sy.kk|0,sy.n)}%</div>${ecl.map(([k,n])=>{const[e,a]=k.split('>');return`<div style="font-size:12px;font-weight:800;margin:3px 0">Gegner spielt ${CARDS[e].name} → du ${CARDS[a].name} <span class="chip">${n}×</span></div>`;}).join('')}</div>`:'';
- const wt=`<div class="sect">Timing</div><div class="sbox"><div class="stat">Waiting moments learned: ${(st.idle||[]).length}<br>${[0,1,2].map(i=>{const P=(sy&&sy.ph||{})[i];return P&&P.n?['Normal','Doppelt','Dreifach'][i]+': Ø '+(P.el/P.n).toFixed(1)+' Elixier, '+(P.gn?(P.gap/P.gn).toFixed(1):'–')+'s Tempo':'';}).filter(Boolean).join('<br>')}<br>He considers both sides’ elixir, enemy tempo and when you wait.</div></div>`;
- const sty=wt+atk+sit+(sy&&sy.n?`<div class="sect">Your play style (copied by him)</div><div class="sbox"><div class="stat">Ø Elixir when playing: ${(sy.el/sy.n).toFixed(1)} · Tempo: ${sy.gn?(sy.gap/sy.gn).toFixed(1):'–'}s between cards<br>Angriff ${pc(sy.off,sy.n)}% / Defense ${pc(sy.def,sy.n)}%<br>Links ${pc(sy.L,sy.n)}% / Right ${pc(sy.R,sy.n)}%<br>Troops ${pc(sy.tr,sy.n)}% · Spells ${pc(sy.sp,sy.n)}% · Buildings ${pc(sy.bl,sy.n)}%</div></div>`:'')
+ const sit=sy&&sy.n?`<div class="sect">Your situations</div><div class="sbox"><div class="stat">When leading: ${pc(sy.ah|0,sy.n)}% · when behind: ${pc(sy.bh|0,sy.n)}% of your plays<br>In double elixir: ${pc(sy.dbl|0,sy.n)}%<br>With a weak own tower: ${pc(sy.dfp|0,sy.n)}%<br>Enemy tower almost gone (&lt;40%): ${pc(sy.fin|0,sy.n)}%<br>Enemy king tower damaged: ${pc(sy.kk|0,sy.n)}%</div>${ecl.map(([k,n])=>{const[e,a]=k.split('>');return`<div style="font-size:12px;font-weight:800;margin:3px 0">Enemy spielt ${CARDS[e].name} → du ${CARDS[a].name} <span class="chip">${n}×</span></div>`;}).join('')}</div>`:'';
+ const wt=`<div class="sect">Timing</div><div class="sbox"><div class="stat">Waiting moments learned: ${(st.idle||[]).length}<br>${[0,1,2].map(i=>{const P=(sy&&sy.ph||{})[i];return P&&P.n?['Normal','Double','Triple'][i]+': Ø '+(P.el/P.n).toFixed(1)+' Elixier, '+(P.gn?(P.gap/P.gn).toFixed(1):'–')+'s Tempo':'';}).filter(Boolean).join('<br>')}<br>He considers both sides’ elixir, enemy tempo and when you wait.</div></div>`;
+ const sty=wt+atk+sit+(sy&&sy.n?`<div class="sect">Your play style (copied by him)</div><div class="sbox"><div class="stat">Ø Elixir when playing: ${(sy.el/sy.n).toFixed(1)} · Tempo: ${sy.gn?(sy.gap/sy.gn).toFixed(1):'–'}s between cards<br>Attack ${pc(sy.off,sy.n)}% / Defense ${pc(sy.def,sy.n)}%<br>Left ${pc(sy.L,sy.n)}% / Right ${pc(sy.R,sy.n)}%<br>Troops ${pc(sy.tr,sy.n)}% · Spells ${pc(sy.sp,sy.n)}% · Buildings ${pc(sy.bl,sy.n)}%</div></div>`:'')
  +(cm.length?`<div class="sect">His combos (with own units)</div><div class="sbox">${cm.map(([k,n])=>{const[f,a]=k.split('>');return`<div style="font-size:12px;font-weight:800;margin:3px 0">Mit ${CARDS[f].name} → ${CARDS[a].name} <span class="chip">${n}×</span></div>`;}).join('')}</div>`:'');
  return`${sty}<div class="sect">His favorite cards (learned from you)</div><div class="sbox">${t.length?t.map(([id,n])=>`<div class="sb"><span class="l">${CARDS[id].name}</span><span class="t"><i style="width:${Math.max(3,n/mx*100)}%;background:linear-gradient(90deg,#fd7,#e90)"></i></span><span class="v">${n}</span></div>`).join(''):'<div class="stat">Nothing learned yet.</div>'}</div>
- <div class="sect">His counters</div><div class="sbox">${c.length?c.map(([k,n])=>{const[e,a]=k.split('>');return`<div style="font-size:12px;font-weight:800;margin:3px 0">Gegen ${CARDS[e].name} → ${CARDS[a].name} <span class="chip">${n}×</span></div>`;}).join(''):'<div class="stat">No counters learned yet – do a lesson.</div>'}</div>`;
+ <div class="sect">His counters</div><div class="sbox">${c.length?c.map(([k,n])=>{const[e,a]=k.split('>');return`<div style="font-size:12px;font-weight:800;margin:3px 0">Against ${CARDS[e].name} → ${CARDS[a].name} <span class="chip">${n}×</span></div>`;}).join(''):'<div class="stat">No counters learned yet – do a lesson.</div>'}</div>`;
 }
 function stuTab(){
  const st=S.stu,b=stuBot();
- if(!st||!b)return`<div class="sect">🎓 Your student</div><div class="stat" style="font-size:13px;margin-bottom:10px">Create your own bot. He can fight on his own or watch you and learn exactly from your plays. He starts with his own cards and deck.</div><input id="stuName" type="text" maxlength="16" placeholder="Name des Schülers" style="width:100%;padding:10px;border-radius:10px;border:0;font:800 15px inherit;margin-bottom:10px"><button class="btn green big" style="width:100%" data-act="stuCreate">🎓 Create student</button>`;
- return`<div class="arena" style="background:linear-gradient(#5a48c8,#2a1f70)"><div style="font-size:46px">🎓</div><div class="an">${b.name}</div><div class="sub">🏆 ${b.trophies} · ${b.wins}S/${b.losses}N · ${st.mem.length} Memories · ${st.lessons|0} Lernstunden</div></div>
+ if(!st||!b)return`<div class="sect">🎓 Your student</div><div class="stat" style="font-size:13px;margin-bottom:10px">Create your own bot. He can fight on his own or watch you and learn exactly from your plays. He starts with his own cards and deck.</div><input id="stuName" type="text" maxlength="16" placeholder="Student name" style="width:100%;padding:10px;border-radius:10px;border:0;font:800 15px inherit;margin-bottom:10px"><button class="btn green big" style="width:100%" data-act="stuCreate">🎓 Create student</button>`;
+ return`<div class="arena" style="background:linear-gradient(#5a48c8,#2a1f70)"><div style="font-size:46px">🎓</div><div class="an">${b.name}</div><div class="sub">🏆 ${b.trophies} · ${b.wins}S/${b.losses}N · ${st.mem.length} Memories · ${st.lessons|0} lessons</div></div>
  <div class="sect">Mode</div><div style="display:flex;gap:8px"><button class="btn ${st.mode==='watch'?'green':'blue'}" style="flex:1" data-act="stuMode" data-m="watch">👀 Watches &amp; learns</button><button class="btn ${st.mode==='play'?'green':'blue'}" style="flex:1" data-act="stuMode" data-m="play">🎮 Plays himself</button></div>
- <div class="stat">${st.mode==='watch'?'Er merkt sich jede Karte, die du spielst: Situation, Ort und Elixier. Er kämpft solange nicht.':'Er kämpft in der Leaderboard und spielt so, wie du es ihm gezeigt hast.'}</div>
+ <div class="stat">${st.mode==='watch'?'He remembers every card you play: situation, place and elixir. He doesn’t fight meanwhile.':'He fights on the leaderboard and plays the way you showed him.'}</div>
  <button class="btn" style="width:100%;margin-top:10px" data-act="stuLessons">📚 Start lesson</button>
  <button class="btn blue" style="width:100%;margin-top:8px" data-act="stuSync">📋 Copy my deck</button>
  <div class="sect">His deck</div><div class="minideck">${b.deck.map(id=>cardHTML(id,b.cards[id].lvl)).join('')}</div>
@@ -2800,7 +2799,7 @@ renderTab=function(){
  renderTop();document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
  setHTML($('#content'),stuTab(),'tab');
 };
-const nav=$('#nav'),nb=document.createElement('button');nb.dataset.act='tab';nb.dataset.t='stu';nb.innerHTML='<span>🎓</span>Schüler';
+const nav=$('#nav'),nb=document.createElement('button');nb.dataset.act='tab';nb.dataset.t='stu';nb.innerHTML='<span>🎓</span>Student';
 nav.insertBefore(nb,nav.querySelector('[data-t="clan"]')||null);
 
 Object.assign(ACT,{
@@ -2820,7 +2819,7 @@ Object.assign(ACT,{
  stuMode(el){if(!S.stu)return;S.stu.mode=el.dataset.m;const b=stuBot();if(b&&S.stu.mode==='watch'&&!b.inMatch){b.online=false;b.search=null;}redraw();},
  stuLessons(){
   if(!S.stu)return toast('Create your student first');
-  showModal(`<h2>📚 Lesson</h2><div class="stat" style="font-size:12px;margin:0 0 8px">Short lesson: one push to defend against (🎯) or one defense to attack into (⚔️). You get a fixed starting hand, and lessons count more for the student than normal battles.</div>${SCN.map((s,i)=>`<div class="row" data-act="stuLesson" data-i="${i}"><div class="ra">${s.mode==='a'?'⚔️':'🎯'}</div><div style="flex:1;min-width:0"><div class="rn">${s.n}</div><span class="rs">${s.mode==='a'?'Defends with':'Gegner'}: ${s.atk.map(id=>CARDS[id].name).join(' + ')}<br>Hand: ${s.hand.map(id=>CARDS[id].name).join(', ')}</span></div></div>`).join('')}<button class="btn" style="width:100%;margin-top:8px" data-act="close">Close</button>`);
+  showModal(`<h2>📚 Lesson</h2><div class="stat" style="font-size:12px;margin:0 0 8px">Short lesson: one push to defend against (🎯) or one defense to attack into (⚔️). You get a fixed starting hand, and lessons count more for the student than normal battles.</div>${SCN.map((s,i)=>`<div class="row" data-act="stuLesson" data-i="${i}"><div class="ra">${s.mode==='a'?'⚔️':'🎯'}</div><div style="flex:1;min-width:0"><div class="rn">${s.n}</div><span class="rs">${s.mode==='a'?'Defends with':'Enemy'}: ${s.atk.map(id=>CARDS[id].name).join(' + ')}<br>Hand: ${s.hand.map(id=>CARDS[id].name).join(', ')}</span></div></div>`).join('')}<button class="btn" style="width:100%;margin-top:8px" data-act="close">Close</button>`);
  },
  stuLesson(el){const s=SCN[+el.dataset.i];if(s&&S.stu)startLesson(s);},
  stuSync(){
@@ -2835,21 +2834,21 @@ Object.assign(ACT,{
   if(b){world.bots.splice(world.bots.indexOf(b),1);world.bots.forEach((x,k)=>x.id=k);S.botN=world.bots.length;}
   S.stu=null;closeModal();redraw();},
  botDel(){
-  if(world.bots.length<=BOT_MIN)return toast('Mindestens '+BOT_MIN+' Bots');
+  if(world.bots.length<=BOT_MIN)return toast('At least '+BOT_MIN+' Bots');
   let i=world.bots.length-1;while(i>=0&&(world.bots[i].inMatch||world.bots[i].stu))i--;if(i<0)return toast('No bots to remove');
   const b=world.bots.splice(i,1)[0];world.bots.forEach((x,k)=>x.id=k);S.botN=world.bots.length;redraw();toast('🤖 '+b.name+' entfernt');
  }
 });
 })();
 
-// === PATCH 21: Truhen wie Clash Royale 2017 (Zyklus, Zeiten, Seltenheit, Design, Gratis-/Crown Chest) ===
+// === PATCH 21: Chests wie Clash Royale 2017 (Cycle, Zeiten, Rarity, Design, Gratis-/Crown Chest) ===
 (function(){
 BKEYS.push('cp');
 const COL={wood:'#c98a4b',silver:'#c3cddb',gold:'#ffd75e',giant:'#ff9a3c',magic:'#b48cff',super:'#ff5fb0',free:'#5fe08a',crown:'#ffd75e'};
 const TIME={wood:300,silver:10800,gold:28800,giant:43200,magic:43200,super:86400}; // 5 Min, 3h, 8h, 12h, 12h, 24h
-const FREQ={wood:'Very common',silver:'Häufig',gold:'Rare',giant:'Rare',magic:'Very rare',super:'Extremely rare',free:'Every 4 hrs',crown:'1× daily'};
+const FREQ={wood:'Very common',silver:'Common',gold:'Rare',giant:'Rare',magic:'Very rare',super:'Extremely rare',free:'Every 4 hrs',crown:'1× daily'};
 const RN={c:'Common',r:'Rare',e:'Epic',l:'Legendary'};
-// Truhen-Zyklus (wie 2017: feste Reihenfolge, Super Magic Chest nur als seltener Zufallstreffer)
+// Chests-Cycle (wie 2017: feste Reihenfolge, Super Magic Chest nur als seltener Zufallstreffer)
 const CYCLE=['silver','wood','wood','silver','wood','silver','gold','wood','wood','silver','wood','wood','silver','wood','gold','wood','silver','wood','wood','silver','wood','gold','wood','silver','wood','wood','silver','wood','giant','wood','silver','wood','gold','wood','silver','wood','wood','silver','wood','magic'];
 const PLAN={
  free:[['c',4,9,1],['c',3,6,1],['r',1,2,.3]],
@@ -2926,7 +2925,7 @@ function infoModal(i){
  for(const[r,lo,hi,p]of rows){avg+=p*(lo+hi)/2;if(p>=1)gu[r]=(gu[r]||0)+1;else chn.push(`${RN[r]}: ${Math.round(p*100)} %`);}
  const g=Object.keys(gu).map(r=>`${RN[r]} ×${gu[r]}`).join(', ');
  const btn=run?'':busy?'<div class="stat" style="margin:8px 0">A chest is already being unlocked.</div>':`<button class="btn blue" style="width:100%;margin-top:8px" data-act="chestStart" data-i="${i}">Unlock · ${fdur(C.t)}</button>`;
- showModal(`<h2 style="color:${COL[ch.type]}">${C.n}</h2><div style="text-align:center">${chestSVG(ch.type,80)}</div><table class="cinfo" style="width:100%"><tr><td>Frequency</td><td>${FREQ[ch.type]}</td></tr><tr><td>Duration</td><td>${fdur(C.t)}</td></tr><tr><td>Gold</td><td>🪙 ${C.g[0]}–${C.g[1]}</td></tr><tr><td>Cards (Ø)</td><td>~${Math.round(avg)}</td></tr><tr><td>Guaranteed</td><td>${g}</td></tr>${chn.length?`<tr><td>Chance</td><td>${chn.join('<br>')}</td></tr>`:''}</table>${run?`<div class="stat" style="margin:8px 0">Noch ${fdur((ch.at-Date.now())/1000)}</div>`:''}${btn}<button class="btn red" style="width:100%;margin-top:8px" data-act="chestSkip" data-i="${i}">⚡ Open now · ${skipCost(ch)} 💎</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Close</button>`);
+ showModal(`<h2 style="color:${COL[ch.type]}">${C.n}</h2><div style="text-align:center">${chestSVG(ch.type,80)}</div><table class="cinfo" style="width:100%"><tr><td>Frequency</td><td>${FREQ[ch.type]}</td></tr><tr><td>Duration</td><td>${fdur(C.t)}</td></tr><tr><td>Gold</td><td>🪙 ${C.g[0]}–${C.g[1]}</td></tr><tr><td>Cards (Ø)</td><td>~${Math.round(avg)}</td></tr><tr><td>Guaranteed</td><td>${g}</td></tr>${chn.length?`<tr><td>Chance</td><td>${chn.join('<br>')}</td></tr>`:''}</table>${run?`<div class="stat" style="margin:8px 0">Remaining ${fdur((ch.at-Date.now())/1000)}</div>`:''}${btn}<button class="btn red" style="width:100%;margin-top:8px" data-act="chestSkip" data-i="${i}">⚡ Open now · ${skipCost(ch)} 💎</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Close</button>`);
 }
 Object.assign(ACT,{
  chest(el){const i=+el.dataset.i,ch=S.chests[i];if(!ch)return;if(ch.ready||(ch.at&&Date.now()>=ch.at))return openSlot(i);infoModal(i);},
@@ -2960,13 +2959,13 @@ showResult=function(m){
  const w=m.winner,opp=MK.opp,cr=m.crowns;MK.done=true;let extra='';
  if(MK.t==='ch'&&S.ch){if(w===0)S.ch.w++;else if(w===1)S.ch.l++;
   extra=`<tr><td>Challenge</td><td>${S.ch.w} Wins · ${S.ch.l}/3 losses</td></tr>`;
-  if(S.ch.w>=12||S.ch.l>=3){const c=claimCh();PL=c.res?{type:c.type,res:c.res}:null;extra+=`<tr><td>Ended</td><td>${c.w} Siege${c.gold?' · +'+c.gold+' 🪙':''}${c.type?' · '+CHESTS[c.type].n:''}</td></tr>`;}}
+  if(S.ch.w>=12||S.ch.l>=3){const c=claimCh();PL=c.res?{type:c.type,res:c.res}:null;extra+=`<tr><td>Ended</td><td>${c.w} wins${c.gold?' · +'+c.gold+' 🪙':''}${c.type?' · '+CHESTS[c.type].n:''}</td></tr>`;}}
  if(MK.t==='fr'){if(w===0)S.fw=(S.fw||0)+1;extra=`<tr><td>Friendly wins</td><td>${S.fw||0}</td></tr>`;}
  opp.inMatch=false;opp.idle=rnd(6,16);opp.wait=0;save();(w===0?SND.win:SND.lose)();
- $('#result').innerHTML=`<div class="mbox"><h1 class="${w===0?'win':w===1?'lose':'draw'}">${w===0?'SIEG!':w===1?'NIEDERLAGE':'UNENTSCHIEDEN'}</h1>
+ $('#result').innerHTML=`<div class="mbox"><h1 class="${w===0?'win':w===1?'lose':'draw'}">${w===0?'VICTORY!':w===1?'DEFEAT':'DRAW'}</h1>
  <div style="font-size:34px;margin:6px 0" class="crowns"><span style="color:#8cf">${crownsHTML(cr[1])}</span> &nbsp;:&nbsp; <span style="color:#f99">${crownsHTML(cr[0])}</span></div>
  <div style="font-size:13px;opacity:.9">${S.name} ${cr[0]} : ${cr[1]} ${opp.name}</div>
- <table style="margin:12px 0"><tr><td>${MK.t==='fr'?'Freundschaftskampf':'Challenge'}</td><td>no trophies</td></tr>${extra}</table>
+ <table style="margin:12px 0"><tr><td>${MK.t==='fr'?'Friendly battle':'Challenge'}</td><td>no trophies</td></tr>${extra}</table>
  <button class="btn green big" style="width:100%;font-size:20px" data-act="resClose">Continue</button></div>`;
  $('#result').classList.remove('hidden');
 };
@@ -3025,14 +3024,14 @@ Object.assign(ACT,{
   const pool=ch.k==='draft'?shuf(allowed()).slice(0,24):allowed();
   OV={deck:ch.deck,opp,cl:mkClone(opp,pool)};opp.inMatch=true;opp.search=null;popp=opp;MK={t:'ch',opp};
   try{beginMatch(opp);}finally{OV=null;}},
- chQuit(){if(!S.ch)return;const c=claimCh();rd();if(c&&c.res)loot(c.type,c.res);else toast('Challenge finished: '+c.w+' Siege'+(c.gold?' · +'+c.gold+' 🪙':''));}
+ chQuit(){if(!S.ch)return;const c=claimCh();rd();if(c&&c.res)loot(c.type,c.res);else toast('Challenge finished: '+c.w+' wins'+(c.gold?' · +'+c.gold+' 🪙':''));}
 });
 const ra3=ACT.resetAll;ACT.resetAll=function(...a){S.ch=null;S.shop=null;S.fw=0;ra3.apply(this,a);};
 })();
 
 renderTab();requestAnimationFrame(frame);
 
-// === PATCH: Juwelen & Gold-Design ===
+// === PATCH: Gems & Gold-Design ===
 (function(){
 const GEMS={wood:[0,1],silver:[1,2],gold:[3,6],giant:[6,10],magic:[12,20],super:[30,50],free:[0,2],crown:[2,4]};
 const coin=z=>`<svg class="ic" style="width:${z}px;height:${z}px" viewBox="0 0 24 24"><defs><radialGradient id="gcA" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#fff6b0"/><stop offset=".45" stop-color="#ffd23a"/><stop offset="1" stop-color="#b87400"/></radialGradient></defs><circle cx="12" cy="12" r="10.5" fill="url(#gcA)" stroke="#8a5600" stroke-width="1.5"/><circle cx="12" cy="12" r="7.3" fill="none" stroke="#fff3a0" stroke-opacity=".85" stroke-width="1.2"/><path d="M9.6 9.4Q12 7 14.4 9.4M9.6 14.6Q12 17 14.4 14.6M12 7.4v9.2" fill="none" stroke="#9a6200" stroke-width="1.6" stroke-linecap="round"/></svg>`;
@@ -3052,7 +3051,7 @@ renderTop=function(){
 const oc=openChest;
 openChest=function(a,type){const r=oc(a,type);if(a===S){const g=GEMS[type]||[0,0],n=g[0]+Math.floor(Math.random()*(g[1]-g[0]+1));S.gems=(S.gems|0)+n;r.gems=n;}return r;};
 const mr=matchReward;
-matchReward=function(a,res,crowns){const r=mr(a,res,crowns);if(a===S&&res>0){const n=crowns>=3?3:crowns>=2?2:1;S.gems=(S.gems|0)+n;r.gems=n;setTimeout(()=>toast('💎 +'+n+' Juwelen'),900);}return r;};
+matchReward=function(a,res,crowns){const r=mr(a,res,crowns);if(a===S&&res>0){const n=crowns>=3?3:crowns>=2?2:1;S.gems=(S.gems|0)+n;r.gems=n;setTimeout(()=>toast('💎 +'+n+' Gems'),900);}return r;};
 })();
 
 // === PATCH: Bot-Persönlichkeiten (Stärke & Play style pro Bot) ===
@@ -3098,4 +3097,7 @@ World.prototype.profile=function(b){
  return p;
 };
 })();
+
+// === PATCH: Alte deutsche Namen im Spielstand auf Englisch umstellen ===
+(function(){const MIG={"DrachenDirk": "DragonDirk", "MiaMagie": "MiaMagic", "Waffelbär": "WaffleBear", "NachtEule": "NightOwl", "KönigKlaus": "KingKlaus", "FeuerFee": "FireFairy", "Kartoffel99": "Potato99", "ZauberLisa": "WizardLisa", "Bergtroll": "MountainTroll", "Zuckerwatte": "CottonCandy", "Pfannkuchen": "Pancake", "Mondfalke": "MoonFalcon", "KleinerRitter": "LittleKnight", "TurmTitan": "TowerTitan", "BogenBea": "ArcherBea", "Rabauke": "Rascal", "Sternschnuppe": "ShootingStar", "EisKönigin": "IceQueen", "Elchjäger": "MooseHunter", "SchlossGeist": "CastleGhost", "OmaHatRecht": "GrannyIsRight", "Zockerzwerg": "GamerDwarf", "LunaLicht": "LunaLight", "Keksritter": "CookieKnight", "Sahnetorte": "CreamCake", "Nebelwolf": "FogWolf", "PrinzPaprika": "PrincePaprika", "Hexe_Hanna": "Witch_Hanna", "Kaktus_Kai": "Cactus_Kai", "SturmSara": "StormSara", "Brezelboss": "PretzelBoss", "Eisbär_Emil": "PolarBear_Emil", "ChaosClara": "ChaosClara", "Pommeskönig": "FryKing", "Silberpfeil": "SilverArrow", "Gurkenglas": "PickleJar", "Falkenauge": "Hawkeye", "MarmeladenMax": "JamMax", "Donnerdora": "ThunderDora", "Waldschrat": "ForestGnome", "LeoLöwe": "LeoLion", "Quarkbällchen": "CurdBalls", "Frostfritz": "FrostFred", "SonnenSofia": "SunSofia", "Dosenöffner": "CanOpener", "KrakenKarl": "KrakenKarl", "Wolkenfee": "CloudFairy", "Pixelprinz": "PixelPrince", "Mampfred": "Munchfred", "AdlerAnna": "EagleAnna", "Lavalukas": "LavaLucas", "Käsekuchen": "Cheesecake", "Sir_Schlaf": "Sir_Sleep", "GlitzerGreta": "GlitterGreta", "Büffel_Bo": "Buffalo_Bo", "Zimtschnecke": "CinnamonRoll", "RakeTim": "RocketTim", "MoosMona": "MossMona", "Kartenkönig": "CardKing", "FlinkeFine": "SwiftFine", "Grummelgreg": "GrumpyGreg", "Bananenbernd": "BananaBernd", "SchattenSina": "ShadowSina", "Nudelsieb": "Colander", "KometenKim": "CometKim", "Eichel_Eddy": "Acorn_Eddy", "Blitz_Ben": "Lightning_Ben", "Schnitzel": "Schnitzel", "Drachenwache": "Dragon Watch", "Turmtitanen": "Tower Titans", "Kronenjäger": "Crown Hunters", "Elixierjunkies": "Elixir Junkies", "Pfannkuchen-Pack": "Pancake Pack", "Nachtwölfe": "Night Wolves", "Blitzbande": "Lightning Gang", "Eisgarde": "Ice Guard", "Feuerfalken": "Fire Falcons", "Schlosswächter": "Castle Guards", "Gobbo-Gang": "Goblin Gang", "Mauerbrecher": "Wall Breakers", "Luftwaffe": "Air Force", "Fernkämpfer-Duo": "Ranged Duo"};let done=false;const u0=World.prototype.update;World.prototype.update=function(dt){if(!done){done=true;try{for(const b of this.bots)if(MIG[b.name])b.name=MIG[b.name];for(const c of (S.clans||[]))if(MIG[c.name])c.name=MIG[c.name];}catch(e){}}return u0.call(this,dt);};})();
 </script></body></html>
