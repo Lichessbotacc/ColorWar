@@ -1,7 +1,7 @@
 <!DOCTYPE html>
-<html lang="de"><head><meta charset="utf-8">
+<html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
-<title>Kronenkampf</title>
+<title>Crown battle</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none}
 html,body{margin:0;height:100%;background:#08051f;font-family:'Trebuchet MS','Segoe UI',system-ui,sans-serif;color:#fff;overflow:hidden}
@@ -134,7 +134,7 @@ b,.st{text-shadow:0 2px 0 #0008}
   <div id="nav">
    <button data-act="tab" data-t="battle" class="on"><span>⚔️</span>Kampf</button>
    <button data-act="tab" data-t="cards"><span>🃏</span>Karten</button>
-   <button data-act="tab" data-t="rank"><span>🏆</span>Rangliste</button>
+   <button data-act="tab" data-t="rank"><span>🏆</span>Leaderboard</button>
    <button data-act="tab" data-t="live"><span>📺</span>Live</button>
   </div>
  </div>
@@ -146,7 +146,7 @@ b,.st{text-shadow:0 2px 0 #0008}
   </div>
   <div id="wTop" class="wp hidden"></div>
   <div id="stage"><canvas id="cv"></canvas><div id="banner"></div>
-   <button class="btn" id="emoBtn" data-act="emoToggle">😀</button><div id="emoPick" class="hidden"></div><button class="btn blue" id="lblBtn" data-act="labels" title="Namen ein/aus">🏷️</button></div>
+   <button class="btn" id="emoBtn" data-act="emoToggle">😀</button><div id="emoPick" class="hidden"></div><button class="btn blue" id="lblBtn" data-act="labels" title="Names on/off">🏷️</button></div>
   <div id="wBot" class="wp hidden"></div>
   <div id="bar">
    <div id="info"></div>
@@ -154,9 +154,9 @@ b,.st{text-shadow:0 2px 0 #0008}
    <div id="hand"><div id="nextCard"></div><div id="cards"></div></div>
   </div>
   <div id="watchBar" class="hidden">
-   <button class="btn red" data-act="back">⟵ Zurück</button>
+   <button class="btn red" data-act="back">⟵ Back</button>
    <button class="btn blue sp" data-act="speed" data-s="1">1×</button><button class="btn blue sp" data-act="speed" data-s="2">2×</button><button class="btn blue sp" data-act="speed" data-s="4">4×</button>
-   <button class="btn" data-act="flip">🔄 Ansicht</button>
+   <button class="btn" data-act="flip">🔄 View</button>
   </div>
  </div>
  <div id="vs" class="hidden"></div>
@@ -171,12 +171,12 @@ const rnd=(a,b)=>a+Math.random()*(b-a),clamp=(v,a,b)=>Math.max(a,Math.min(b,v)),
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const sc=l=>Math.pow(1.1,l-1);
 // ---- Karten (Werte angelehnt an Clash Royale 2017, auf dieses Spiel skaliert)
-const SPD={0:0,s:15,m:20,f:30,v:40}; // 1 Feld = 20 px; Langsam/Mittel/Schnell/Sehr schnell = 45/60/90/120
-const RAR={c:{n:'Gewöhnlich',max:13},r:{n:'Selten',max:11},e:{n:'Episch',max:8},l:{n:'Legendär',max:5}};
+const SPD={0:0,s:15,m:20,f:30,v:40}; // 1 Feld = 20 px; Langsam/Mittel/Schnell/Very fast = 45/60/90/120
+const RAR={c:{n:'Common',max:13},r:{n:'Rare',max:11},e:{n:'Epic',max:8},l:{n:'Legendary',max:5}};
 const CARD_LIST=[],CARDS={};
 function T(id,name,role,cost,rar,ar,hp,dmg,hs,spd,rng,desc,o={}){add(Object.assign({id,name,role,cost,rar,ar,type:'troop',hp,dmg,atk:hs,spd,rng,desc,count:1,rad:9},o));}
 function Bd(id,name,role,cost,rar,ar,hp,dmg,hs,rng,life,desc,o={}){add(Object.assign({id,name,role,cost,rar,ar,type:'building',hp,dmg,atk:hs,spd:0,rng,life,desc,count:1,rad:13},o));}
-function Sp(id,name,cost,rar,ar,dmg,r,desc,o={}){add(Object.assign({id,name,role:'ZAUBER',cost,rar,ar,type:'spell',dmg,r,desc},o));}
+function Sp(id,name,cost,rar,ar,dmg,r,desc,o={}){add(Object.assign({id,name,role:'SPELL',cost,rar,ar,type:'spell',dmg,r,desc},o));}
 function add(c){
  const K=.6;c.hp=Math.round((c.hp||0)*K);c.dmg=Math.round((c.dmg||0)*K);
  if(c.shield)c.shield=Math.round(c.shield*K);if(c.heal)c.heal=Math.round(c.heal*K);if(c.death)c.death=[Math.round(c.death[0]*K),c.death[1]*20];if(c.land)c.land=[Math.round(c.land[0]*K),c.land[1]*20,c.land[2]||0];
@@ -184,112 +184,112 @@ function add(c){
  CARD_LIST.push(c);CARDS[c.id]=c;
 }
 // Arena 0 – Start
-T('squire','Jungritter','NAH',3,'c',0,1452,167,1.2,'m',.7,'Solider Schwertkämpfer gegen Bodenziele.',{starter:1});
-T('archer','Bogen-Duo','FERN',3,'c',0,252,86,1.2,'m',5,'Zwei Schützinnen, treffen Boden und Luft.',{count:2,rad:7,hitsAir:1,starter:1});
-T('moth','Flatterbiester','LUFT',3,'c',0,190,84,1,'f',1,'Drei Flieger, greifen Boden und Luft an.',{count:3,rad:6,fly:1,hitsAir:1,starter:1});
-T('titan','Steinhüne','TANK',5,'r',0,3275,211,1.5,'s',.8,'Greift nur Gebäude an und hält enorm viel aus.',{rad:15,bOnly:1,starter:1});
-T('minik','Blech-Knirps','NAH',4,'r',0,1129,598,1.8,'f',.7,'Wenige, aber gewaltige Schläge.',{starter:1});
-T('musk','Musketenmaid','FERN',4,'r',0,598,181,1.1,'m',6,'Weitschüsse auf Boden und Luft.',{hitsAir:1,proj:'ball',starter:1});
-Sp('volley','Pfeilhagel',3,'c',0,243,4,'Großer Kreis, ideal gegen Schwärme.',{starter:1});
-Sp('fireball','Feuerkugel',4,'r',0,572,2.5,'Viel Schaden in einem mittleren Kreis.',{starter:1});
+T('squire','Young Knight','MELEE',3,'c',0,1452,167,1.2,'m',.7,'Solid swordsman against ground targets.',{starter:1});
+T('archer','Archer Duo','RANGED',3,'c',0,252,86,1.2,'m',5,'Two markswomen, hit ground and air.',{count:2,rad:7,hitsAir:1,starter:1});
+T('moth','Flutter Beasts','AIR',3,'c',0,190,84,1,'f',1,'Three fliers, attack ground and air.',{count:3,rad:6,fly:1,hitsAir:1,starter:1});
+T('titan','Stone Giant','TANK',5,'r',0,3275,211,1.5,'s',.8,'Only attacks buildings and withstands a ton of damage.',{rad:15,bOnly:1,starter:1});
+T('minik','Tin Tot','MELEE',4,'r',0,1129,598,1.8,'f',.7,'Few but mighty blows.',{starter:1});
+T('musk','Musket Maid','RANGED',4,'r',0,598,181,1.1,'m',6,'Long shots at ground and air.',{hitsAir:1,proj:'ball',starter:1});
+Sp('volley','Arrow Hail',3,'c',0,243,4,'Large radius, ideal against swarms.',{starter:1});
+Sp('fireball','Fireball',4,'r',0,572,2.5,'Lots of damage in a medium radius.',{starter:1});
 // Arena 1
-T('goblins','Gobbo-Bande','SCHWARM',2,'c',1,167,99,1.1,'v',.5,'Drei sehr schnelle Dolchkämpfer.',{count:3,rad:6});
-T('speargob','Speer-Gobbos','FERN',2,'c',1,110,67,1.3,'v',5,'Drei flinke Speerwerfer, auch gegen Luft.',{count:3,rad:6,hitsAir:1});
-Bd('gobhut','Gobbo-Hütte','SPAWNER',5,'r',1,1060,0,0,0,40,'Schickt regelmäßig Speer-Gobbos los.',{spawner:['speargob',1,4.9]});
-T('skelknight','Knochenritter','NAH',3,'c',1,900,120,1,'m',.7,'Zäher Skelett-Krieger mit Schild.',{shield:200});
-T('icegob','Frost-Gobbo','FERN',2,'c',1,160,70,1.2,'m',4.5,'Schleudert Eisklumpen und bremst Gegner.',{hitsAir:1,rad:6,slowHit:1.5,proj:'ice'});
-T('bomber','Bombenknochen','FLÄCHE',3,'c',0,310,225,1.9,'m',4.5,'Wirft Bomben auf Bodentruppen.',{splash:1.5,proj:'bomb'});
+T('goblins','Goblin Gang','SWARM',2,'c',1,167,99,1.1,'v',.5,'Three very fast dagger fighters.',{count:3,rad:6});
+T('speargob','Spear Goblins','RANGED',2,'c',1,110,67,1.3,'v',5,'Three nimble spear throwers, also against air.',{count:3,rad:6,hitsAir:1});
+Bd('gobhut','Goblin Hut','SPAWNER',5,'r',1,1060,0,0,0,40,'Regularly sends out Spear Goblins.',{spawner:['speargob',1,4.9]});
+T('skelknight','Bone Knight','MELEE',3,'c',1,900,120,1,'m',.7,'Tough skeleton warrior with a shield.',{shield:200});
+T('icegob','Frost Goblin','RANGED',2,'c',1,160,70,1.2,'m',4.5,'Hurls ice chunks and slows enemies.',{hitsAir:1,rad:6,slowHit:1.5,proj:'ice'});
+T('bomber','Bomb Bones','SPLASH',3,'c',0,310,225,1.9,'m',4.5,'Throws bombs at ground troops.',{splash:1.5,proj:'bomb'});
 // Arena 2
-T('bones','Klapperhaufen','SCHWARM',1,'c',2,67,67,1,'f',.5,'Drei billige Skelette zum Ablenken.',{count:3,rad:5});
-Bd('tomb','Gruftstein','SPAWNER',3,'r',2,422,0,0,0,40,'Spuckt Skelette aus, beim Zerfall noch vier.',{spawner:['bones',1,2.9],spawnDeath:['bones',4]});
-T('bigbones','Bombenhüne','TANK',6,'e',2,2780,167,1.5,'m',.8,'Hinterlässt beim Tod eine große Explosion.',{rad:14,death:[720,3]});
-T('balloon','Luftpiraten','TURMJAGD',5,'e',2,1396,798,3,'m',.5,'Fliegt nur zu Gebäuden, schwere Bomben.',{rad:13,fly:1,bOnly:1,death:[205,2]});
+T('bones','Rattle Pile','SWARM',1,'c',2,67,67,1,'f',.5,'Three cheap skeletons for distraction.',{count:3,rad:5});
+Bd('tomb','Crypt Stone','SPAWNER',3,'r',2,422,0,0,0,40,'Spawns skeletons, four more when destroyed.',{spawner:['bones',1,2.9],spawnDeath:['bones',4]});
+T('bigbones','Bomb Brute','TANK',6,'e',2,2780,167,1.5,'m',.8,'Leaves a big explosion on death.',{rad:14,death:[720,3]});
+T('balloon','Air Pirates','SIEGE',5,'e',2,1396,798,3,'m',.5,'Flies only to buildings, heavy bombs.',{rad:13,fly:1,bOnly:1,death:[205,2]});
 // Arena 3
-T('barbs','Raufbolde','SCHWARM',5,'c',3,636,159,1.5,'m',.7,'Fünf kräftige Nahkämpfer.',{count:5,rad:8});
-T('axe','Axtwirbler','FLÄCHE',4,'r',1,1654,221,1.5,'m',.8,'Rundschlag um sich herum.',{splash:1.4,rad:11,self:1});
-Bd('turret','Böllerkanone','GEBÄUDE',3,'c',3,742,127,.8,5.5,30,'Schießt 30 Sekunden lang auf Bodentruppen.',{proj:'ball',noAir:1});
-T('megamoth','Panzerflatter','LUFT',3,'r',7,695,258,1.6,'m',1.2,'Starker einzelner Flieger.',{fly:1,hitsAir:1,rad:10});
-T('ram','Rammbock-Brüder','TURMJAGD',4,'r',6,967,246,1,'m',.5,'Stürmen mit Baumstamm los, danach zwei Raufbolde.',{rad:12,bOnly:1,charge:1,kami:1,spawnDeath:['barbs',2]});
+T('barbs','Raufbolde','SWARM',5,'c',3,636,159,1.5,'m',.7,'Five strong melee fighters.',{count:5,rad:8});
+T('axe','Axe Whirler','SPLASH',4,'r',1,1654,221,1.5,'m',.8,'Spin attack all around.',{splash:1.4,rad:11,self:1});
+Bd('turret','Cannon Turret','BUILDING',3,'c',3,742,127,.8,5.5,30,'Shoots at ground troops for 30 seconds.',{proj:'ball',noAir:1});
+T('megamoth','Armored Flutter','AIR',3,'r',7,695,258,1.6,'m',1.2,'Strong single flier.',{fly:1,hitsAir:1,rad:10});
+T('ram','Ram Brothers','SIEGE',4,'r',6,967,246,1,'m',.5,'Charge with a log, then two Brawlers.',{rad:12,bOnly:1,charge:1,kami:1,spawnDeath:['barbs',2]});
 // Arena 4
-T('pekka','Eisenkoloss','TANK',7,'e',4,3458,678,1.8,'s',1,'Zerlegt jedes Bodenziel.',{rad:15});
-T('wyvern','Drachenwelpe','LUFT',4,'e',0,1064,133,1.6,'f',3.5,'Fliegt und spuckt Flächenfeuer.',{fly:1,hitsAir:1,splash:1.2,proj:'fire',rad:11});
-T('army','Knochenheer','SCHWARM',3,'e',0,67,67,1,'f',.5,'Fünfzehn Skelette auf einmal.',{count:15,rad:5});
-T('witch','Gruftzauberin','SPAWNER',5,'e',0,696,111,1.1,'m',5,'Flächenangriff und ruft Skelette.',{hitsAir:1,splash:.8,proj:'magic',spawner:['bones',3,7]});
-Sp('barrel','Gobbo-Fass',3,'e',1,0,1.5,'Wirft drei Gobbos an jede Stelle.',{kind:'barrel',spawn:['goblins',3]});
-T('guards','Knochenwache','SCHWARM',3,'e',7,90,90,1.1,'f',1.2,'Drei Skelette mit Schild.',{count:3,rad:6,shield:240});
+T('pekka','Iron Colossus','TANK',7,'e',4,3458,678,1.8,'s',1,'Tears apart any ground target.',{rad:15});
+T('wyvern','Dragon Whelp','AIR',4,'e',0,1064,133,1.6,'f',3.5,'Flies and spits area fire.',{fly:1,hitsAir:1,splash:1.2,proj:'fire',rad:11});
+T('army','Bone Army','SWARM',3,'e',0,67,67,1,'f',.5,'Fifteen skeletons at once.',{count:15,rad:5});
+T('witch','Crypt Witch','SPAWNER',5,'e',0,696,111,1.1,'m',5,'Area attack and summons skeletons.',{hitsAir:1,splash:.8,proj:'magic',spawner:['bones',3,7]});
+Sp('barrel','Goblin Barrel',3,'e',1,0,1.5,'Throws three Goblins anywhere.',{kind:'barrel',spawn:['goblins',3]});
+T('guards','Bone Guard','SWARM',3,'e',7,90,90,1.1,'f',1.2,'Three skeletons with shields.',{count:3,rad:6,shield:240});
 // Arena 5
-T('mage','Funkenmagier','FLÄCHE',5,'r',5,598,234,1.4,'m',5.5,'Zauberkugeln treffen mehrere Gegner.',{hitsAir:1,splash:1.5,proj:'magic'});
-T('firesp','Glutgeister','FLÄCHE',2,'c',5,91,169,1,'v',2,'Drei Geister springen an und verpuffen.',{count:3,rad:6,hitsAir:1,splash:1.5,kami:1,proj:'fire'});
-Bd('inferno','Glutturm','GEBÄUDE',5,'r',5,1408,40,.4,6,40,'Strahl wird immer stärker.',{hitsAir:1,ramp:1,proj:'beam'});
-Bd('bombtower','Bombenturm','GEBÄUDE',5,'r',2,1672,184,1.6,6,40,'Flächenbomben gegen Bodentruppen.',{splash:1.5,proj:'bomb',noAir:1});
-Sp('rage','Wutelixier',2,'e',3,0,5,'Deine Truppen werden schneller.',{kind:'rage',dur:6});
+T('mage','Spark Mage','SPLASH',5,'r',5,598,234,1.4,'m',5.5,'Magic orbs hit multiple enemies.',{hitsAir:1,splash:1.5,proj:'magic'});
+T('firesp','Ember Spirits','SPLASH',2,'c',5,91,169,1,'v',2,'Three spirits leap in and burst.',{count:3,rad:6,hitsAir:1,splash:1.5,kami:1,proj:'fire'});
+Bd('inferno','Ember Tower','BUILDING',5,'r',5,1408,40,.4,6,40,'The beam grows stronger and stronger.',{hitsAir:1,ramp:1,proj:'beam'});
+Bd('bombtower','Bomb Tower','BUILDING',5,'r',2,1672,184,1.6,6,40,'Area bombs against ground troops.',{splash:1.5,proj:'bomb',noAir:1});
+Sp('rage','Rage Elixir',2,'e',3,0,5,'Your troops get faster.',{kind:'rage',dur:6});
 // Arena 6
-Sp('zap','Funkenstoß',2,'c',6,159,2.5,'Kurze Betäubung in kleinem Kreis.',{stun:.5});
-Bd('mortar','Mörser','GEBÄUDE',4,'c',6,1163,228,5,11.5,30,'Große Reichweite, nicht auf nahe Ziele.',{splash:2,proj:'bomb',noAir:1,minR:3.5,dep:3.5});
-Sp('rocket','Rakete',6,'r',3,1232,2,'Enormer Schaden, kleiner Kreis.',{delay:1.2});
-T('boar','Eberreiter','TURMJAGD',4,'r',6,1408,264,1.6,'v',.8,'Springt über den Fluss direkt zu Gebäuden.',{rad:10,bOnly:1,jump:1});
-Bd('xbow','Riesenarmbrust','GEBÄUDE',6,'e',3,1330,26,.25,11.5,40,'Schnellfeuer bis zum gegnerischen Turm.',{noAir:1,dep:3.5});
-T('copter','Fliegende Büchse','LUFT',4,'r',9,510,142,1.1,'f',6,'Schießt aus der Luft von weit weg.',{fly:1,hitsAir:1,proj:'ball',rad:10});
+Sp('zap','Spark Zap',2,'c',6,159,2.5,'Short stun in a small radius.',{stun:.5});
+Bd('mortar','Mortar','BUILDING',4,'c',6,1163,228,5,11.5,30,'Long range, can’t hit nearby targets.',{splash:2,proj:'bomb',noAir:1,minR:3.5,dep:3.5});
+Sp('rocket','Rocket',6,'r',3,1232,2,'Enormous damage, small radius.',{delay:1.2});
+T('boar','Boar Rider','SIEGE',4,'r',6,1408,264,1.6,'v',.8,'Jumps over the river straight to buildings.',{rad:10,bOnly:1,jump:1});
+Bd('xbow','Giant Crossbow','BUILDING',6,'e',3,1330,26,.25,11.5,40,'Rapid fire all the way to the enemy tower.',{noAir:1,dep:3.5});
+T('copter','Flying Blaster','AIR',4,'r',9,510,142,1.1,'f',6,'Shoots from the air from far away.',{fly:1,hitsAir:1,proj:'ball',rad:10});
 // Arena 7
-T('rgiant','Kanonenriese','TURMJAGD',6,'c',7,2544,254,1.7,'s',5,'Beschießt Gebäude aus der Ferne.',{rad:15,bOnly:1,proj:'ball'});
-T('trio','Musketen-Trio','FERN',9,'r',7,598,181,1.1,'m',6,'Drei Musketenmaiden auf einmal.',{count:3,hitsAir:1,proj:'ball'});
-T('dprince','Dunkelprinz','FLÄCHE',4,'e',7,1030,208,1.3,'m',1,'Schild, Anlauf und Rundschlag.',{charge:1,splash:1.1,self:1,shield:270,rad:11});
-T('prince','Lanzenprinz','NAH',5,'e',0,1669,325,1.4,'m',1.6,'Nach Anlauf doppelter Lanzenschaden.',{charge:1,rad:11});
-Sp('heal','Heilzauber',3,'r',10,0,3,'Heilt deine Truppen im Kreis.',{kind:'heal',dur:2.5,amount:90});
-Bd('elixir','Elixierpumpe','ELIXIR',6,'r',6,888,0,0,0,70,'Erzeugt mit der Zeit zusätzliches Elixier.',{elix:8.5});
+T('rgiant','Cannon Giant','SIEGE',6,'c',7,2544,254,1.7,'s',5,'Shells buildings from afar.',{rad:15,bOnly:1,proj:'ball'});
+T('trio','Musket Trio','RANGED',9,'r',7,598,181,1.1,'m',6,'Three Musket Maids at once.',{count:3,hitsAir:1,proj:'ball'});
+T('dprince','Dark Prince','SPLASH',4,'e',7,1030,208,1.3,'m',1,'Shield, charge and spin attack.',{charge:1,splash:1.1,self:1,shield:270,rad:11});
+T('prince','Lance Prince','MELEE',5,'e',0,1669,325,1.4,'m',1.6,'Double lance damage after a charge.',{charge:1,rad:11});
+Sp('heal','Heal Spell',3,'r',10,0,3,'Heals your troops in an area.',{kind:'heal',dur:2.5,amount:90});
+Bd('elixir','Elixir Pump','ELIXIR',6,'r',6,888,0,0,0,70,'Generates extra elixir over time.',{elix:8.5});
 // Arena 8
-T('icesp','Frostgeist','FLÄCHE',1,'c',8,190,91,1,'v',2,'Springt an und friert kurz ein.',{rad:6,hitsAir:1,splash:1.5,kami:1,stunHit:1.2,proj:'ice'});
-T('icegolem','Frostgolem','TANK',2,'r',8,1058,70,2.5,'s',.8,'Billiger Tank, explodiert frostig.',{rad:12,bOnly:1,death:[70,2]});
-T('lumber','Holzfäller','FLINK',4,'l',8,1060,200,.8,'v',.7,'Rasend schnell, lässt Wut zurück.',{deathSpell:'rage'});
-Sp('frost','Eiszauber',4,'e',4,95,3,'Friert alles für 4 Sekunden ein.',{stun:4});
-Sp('poison','Giftwolke',4,'e',9,600,3.5,'Schaden über 8 Sekunden und bremst.',{kind:'poison',dur:8});
-Sp('graveyard','Spukfriedhof',5,'l',8,0,4,'Skelette steigen im Kreis auf.',{kind:'grave',dur:9});
-T('bowler','Brockenwerfer','FLÄCHE',5,'e',8,1550,239,2.5,'s',5,'Rollt Felsen in Bodentruppen.',{splash:1.6,proj:'rock',rad:13});
+T('icesp','Frost Spirit','SPLASH',1,'c',8,190,91,1,'v',2,'Leaps in and briefly freezes.',{rad:6,hitsAir:1,splash:1.5,kami:1,stunHit:1.2,proj:'ice'});
+T('icegolem','Frost Golem','TANK',2,'r',8,1058,70,2.5,'s',.8,'Cheap tank, explodes with frost.',{rad:12,bOnly:1,death:[70,2]});
+T('lumber','Lumberjack','FAST',4,'l',8,1060,200,.8,'v',.7,'Blazing fast, leaves rage behind.',{deathSpell:'rage'});
+Sp('frost','Freeze Spell',4,'e',4,95,3,'Freezes everything for 4 seconds.',{stun:4});
+Sp('poison','Poison Cloud',4,'e',9,600,3.5,'Damage over 8 seconds and slows.',{kind:'poison',dur:8});
+Sp('graveyard','Haunted Graveyard',5,'l',8,0,4,'Skeletons rise up in a circle.',{kind:'grave',dur:9});
+T('bowler','Boulder Bowler','SPLASH',5,'e',8,1550,239,2.5,'s',5,'Rolls boulders into ground troops.',{splash:1.6,proj:'rock',rad:13});
 // Arena 9
-T('gang','Gobbo-Horde','SCHWARM',3,'c',9,167,99,1.1,'v',.5,'Drei Dolch- und zwei Speer-Gobbos.',{count:5,rad:6,mix:['goblins','goblins','goblins','speargob','speargob']});
-T('dart','Blasrohr-Gobbo','FERN',3,'r',9,216,108,.7,'v',6.5,'Schnelle Pfeile aus großer Distanz.',{rad:7,hitsAir:1});
-Bd('barbhut','Raufbold-Lager','SPAWNER',7,'r',3,1560,0,0,0,50,'Schickt immer wieder Raufbolde.',{spawner:['barbs',2,12],spawnDeath:['barbs',1],rad:15});
-T('exec','Henkersknecht','FLÄCHE',5,'e',9,1010,270,2.4,'m',4.5,'Wurfaxt trifft ganze Gruppen.',{hitsAir:1,splash:1.5,proj:'axe',rad:11});
-Sp('tornado','Wirbelsturm',3,'e',9,200,5,'Saugt Gegner zur Mitte.',{kind:'tornado',dur:1.4});
-Sp('clone','Doppelgänger',3,'e',8,0,3,'Kopiert deine Truppen (1 Lebenspunkt).',{kind:'clone'});
+T('gang','Goblin Horde','SWARM',3,'c',9,167,99,1.1,'v',.5,'Three dagger and two spear Goblins.',{count:5,rad:6,mix:['goblins','goblins','goblins','speargob','speargob']});
+T('dart','Blowpipe Goblin','RANGED',3,'r',9,216,108,.7,'v',6.5,'Fast darts from long range.',{rad:7,hitsAir:1});
+Bd('barbhut','Brawler Camp','SPAWNER',7,'r',3,1560,0,0,0,50,'Keeps sending Brawlers.',{spawner:['barbs',2,12],spawnDeath:['barbs',1],rad:15});
+T('exec','Executioner','SPLASH',5,'e',9,1010,270,2.4,'m',4.5,'Thrown axe hits whole groups.',{hitsAir:1,splash:1.5,proj:'axe',rad:11});
+Sp('tornado','Whirlwind',3,'e',9,200,5,'Pulls enemies to the center.',{kind:'tornado',dur:1.4});
+Sp('clone','Doppelganger',3,'e',8,0,3,'Copies your troops (1 hit point).',{kind:'clone'});
 // Arena 10
-Bd('tesla','Blitzspule','GEBÄUDE',4,'c',10,954,150,1.1,5.5,35,'Trifft Boden und Luft.',{hitsAir:1,proj:'zap'});
-T('elite','Elite-Raufbolde','NAH',6,'c',7,1050,254,1.7,'v',.8,'Zwei sehr schnelle Schlägertypen.',{count:2,rad:10});
-T('horde','Flatterschwarm','LUFT',5,'c',10,190,84,1,'f',1,'Sechs Flieger auf einmal.',{count:6,rad:6,fly:1,hitsAir:1});
-Bd('furnace','Glutofen','SPAWNER',4,'r',10,950,0,0,0,40,'Erzeugt Glutgeister.',{spawner:['firesp',2,10]});
-T('golem','Felsgolem','TANK',8,'e',10,4256,259,2.5,'s',.8,'Zerbricht in zwei kleine Golems.',{rad:16,bOnly:1,death:[259,2],spawnDeath:['golemlet',2]});
-T('bats','Nachtflatterer','LUFT',2,'c',8,67,67,1.1,'v',1,'Fünf winzige, schnelle Flieger.',{count:5,rad:5,fly:1,hitsAir:1});
+Bd('tesla','Tesla Coil','BUILDING',4,'c',10,954,150,1.1,5.5,35,'Hits ground and air.',{hitsAir:1,proj:'zap'});
+T('elite','Elite Brawlers','MELEE',6,'c',7,1050,254,1.7,'v',.8,'Two very fast bruisers.',{count:2,rad:10});
+T('horde','Flutter Swarm','AIR',5,'c',10,190,84,1,'f',1,'Six fliers at once.',{count:6,rad:6,fly:1,hitsAir:1});
+Bd('furnace','Ember Furnace','SPAWNER',4,'r',10,950,0,0,0,40,'Spawns Ember Spirits.',{spawner:['firesp',2,10]});
+T('golem','Rock Golem','TANK',8,'e',10,4256,259,2.5,'s',.8,'Breaks into two small Golems.',{rad:16,bOnly:1,death:[259,2],spawnDeath:['golemlet',2]});
+T('bats','Night Flutterers','AIR',2,'c',8,67,67,1.1,'v',1,'Five tiny, fast fliers.',{count:5,rad:5,fly:1,hitsAir:1});
 // Arena 11
-T('ewiz','Voltmagier','FERN',4,'l',7,590,91,1.8,'f',5,'Betäubt zwei Ziele, Blitz beim Landen.',{hitsAir:1,multi:2,stunHit:.5,proj:'zap',land:[159,2.5,.5]});
-T('idragon','Glutdrache','LUFT',4,'l',11,1070,40,.4,'m',3.5,'Strahl wird immer heißer.',{fly:1,hitsAir:1,ramp:1,proj:'beam',rad:11});
-T('sparky','Donnerkarre','FLÄCHE',6,'l',11,1200,1100,5,'s',5,'Lädt lange, dann gewaltiger Schlag.',{splash:1.8,proj:'zap',rad:14});
-T('miner','Tunnelgräber','FLINK',3,'l',11,1000,160,1.2,'f',.8,'Kann überall auftauchen.',{anywhere:1,tdmg:.4});
-T('princess','Turmprinzessin','FERN',3,'l',7,216,140,3,'m',9,'Brandpfeile aus riesiger Distanz.',{hitsAir:1,splash:2,proj:'fire',rad:7});
-Sp('log','Rollstamm',2,'l',11,240,2,'Rollt vorwärts und stößt Bodentruppen zurück.',{kind:'log',dur:1.3,own:1});
-// Arena 12 – Legendenarena
-T('ninja','Dolchräuberin','FLINK',3,'l',9,780,160,1,'f',.8,'Stürmt an und schlägt doppelt zu.',{charge:1});
-T('icewiz','Frostmagier','FLÄCHE',3,'l',5,590,75,1.7,'m',5.5,'Verlangsamt Gruppen.',{hitsAir:1,splash:1,slowHit:2,proj:'ice',land:[80,3]});
-T('lava','Magmahund','TANK',7,'l',12,3150,45,1.3,'s',3.5,'Fliegender Tank, zerfällt in Funken.',{fly:1,bOnly:1,rad:16,proj:'fire',spawnDeath:['lavapup',6]});
-T('nwitch','Nachthexe','SPAWNER',4,'l',8,750,260,1.5,'m',1.6,'Kämpft nah und ruft Flatterer.',{spawner:['bats',2,6],spawnDeath:['bats',3]});
-T('megaknight','Wuchtritter','FLÄCHE',7,'l',10,3300,222,1.7,'m',1.2,'Landet mit Wucht, trifft Gruppen.',{splash:1.4,self:1,rad:15,land:[444,2.5]});
-T('cart','Kanonenkarren','FERN',5,'e',10,1300,180,1.2,'m',5.5,'Rollende Kanone mit Schild.',{shield:700,proj:'ball',rad:12});
-T('healer','Heilerin','HEILT',4,'r',5,800,75,1.5,'m',4,'Heilt Verbündete in der Nähe.',{hitsAir:1,proj:'magic',heal:110});
+T('ewiz','Volt Mage','RANGED',4,'l',7,590,91,1.8,'f',5,'Stuns two targets, lightning on landing.',{hitsAir:1,multi:2,stunHit:.5,proj:'zap',land:[159,2.5,.5]});
+T('idragon','Ember Dragon','AIR',4,'l',11,1070,40,.4,'m',3.5,'The beam gets hotter and hotter.',{fly:1,hitsAir:1,ramp:1,proj:'beam',rad:11});
+T('sparky','Thunder Cart','SPLASH',6,'l',11,1200,1100,5,'s',5,'Charges for a long time, then a massive blow.',{splash:1.8,proj:'zap',rad:14});
+T('miner','Tunnel Digger','FAST',3,'l',11,1000,160,1.2,'f',.8,'Can appear anywhere.',{anywhere:1,tdmg:.4});
+T('princess','Tower Princess','RANGED',3,'l',7,216,140,3,'m',9,'Fire arrows from huge range.',{hitsAir:1,splash:2,proj:'fire',rad:7});
+Sp('log','Rolling Log',2,'l',11,240,2,'Rolls forward and pushes ground troops back.',{kind:'log',dur:1.3,own:1});
+// Arena 12 – Legend Arena
+T('ninja','Dagger Bandit','FAST',3,'l',9,780,160,1,'f',.8,'Charges in and hits twice.',{charge:1});
+T('icewiz','Frost Mage','SPLASH',3,'l',5,590,75,1.7,'m',5.5,'Slows groups.',{hitsAir:1,splash:1,slowHit:2,proj:'ice',land:[80,3]});
+T('lava','Magma Hound','TANK',7,'l',12,3150,45,1.3,'s',3.5,'Flying tank, breaks into sparks.',{fly:1,bOnly:1,rad:16,proj:'fire',spawnDeath:['lavapup',6]});
+T('nwitch','Night Witch','SPAWNER',4,'l',8,750,260,1.5,'m',1.6,'Fights up close and summons Flutterers.',{spawner:['bats',2,6],spawnDeath:['bats',3]});
+T('megaknight','Mighty Knight','SPLASH',7,'l',10,3300,222,1.7,'m',1.2,'Lands with force, hits groups.',{splash:1.4,self:1,rad:15,land:[444,2.5]});
+T('cart','Cannon Cart','RANGED',5,'e',10,1300,180,1.2,'m',5.5,'Rolling cannon with a shield.',{shield:700,proj:'ball',rad:12});
+T('healer','Healer','HEAL',4,'r',5,800,75,1.5,'m',4,'Heals nearby allies.',{hitsAir:1,proj:'magic',heal:110});
 // Nur beschworen
-T('golemlet','Golembrocken','TANK',3,'e',99,860,52,2.5,'s',.6,'',{rad:10,bOnly:1,count:2,hidden:1,death:[52,1.5]});
-T('lavapup','Magmafunke','LUFT',1,'c',99,180,75,1.7,'m',1.6,'',{rad:6,fly:1,hitsAir:1,count:6,hidden:1});
+T('golemlet','Golemite','TANK',3,'e',99,860,52,2.5,'s',.6,'',{rad:10,bOnly:1,count:2,hidden:1,death:[52,1.5]});
+T('lavapup','Magma Pup','AIR',1,'c',99,180,75,1.7,'m',1.6,'',{rad:6,fly:1,hitsAir:1,count:6,hidden:1});
 const PLAY_CARDS=CARD_LIST.filter(c=>!c.hidden);
-const ARENAS=[['Übungswiese',0],['Gobbo-Grube',150],['Knochenkuhle',300],['Raufbold-Kessel',500],['Eisenburg',700],['Zaubertal',950],['Werkstatt',1200],['Königsarena',1500],['Frostgipfel',1800],['Dschungelarena',2100],['Eberberg',2500],['Blitztal',2900],['Legendenarena',3300]].map(([n,min],i)=>{
+const ARENAS=[['Training Meadow',0],['Goblin Pit',150],['Bone Hollow',300],['Brawler Cauldron',500],['Iron Castle',700],['Wizard Valley',950],['Workshop',1200],['King’s Arena',1500],['Frost Peak',1800],['Jungle Arena',2100],['Boar Mountain',2500],['Lightning Valley',2900],['Legend Arena',3300]].map(([n,min],i)=>{
  const L=[['#62b955','#4a9c3f','#6fd0ff','#2f8fd8'],['#7da84a','#5d8434','#7fd8a0','#2f9870'],['#9a9482','#7a7566','#8fb0c0','#4a7088'],['#c89a5a','#a67a40','#6fd0ff','#2f8fd8'],['#7a86a6','#5c6788','#a0c8ff','#4a70c0'],['#8a68b8','#6c4c9a','#e0a0ff','#9040d0'],['#a88868','#86684c','#7fc8e0','#2f78a8'],['#5a9a8a','#3f7a6c','#8fd8ff','#3a80e0'],['#d4ecf5','#b4d6e6','#8fe3ff','#4aa8e6'],['#3f8a4a','#2c6a36','#8fe0b0','#209070'],['#b07a48','#8c5a30','#ffd070','#e08020'],['#4a5a78','#343f5c','#fff080','#e0b020'],['#4a3f8f','#352c73','#7ee8ff','#5a6cff']][i];
  return{n,min,i,g1:L[0],g2:L[1],riv:[L[2],L[3]],chk:i===8?'rgba(255,255,255,.22)':'rgba(255,255,255,.06)'};});
 const arenaFor=t=>{let r=ARENAS[0];for(const a of ARENAS)if(t>=a.min)r=a;return r;};
 
 // ---- Fortschritt: gilt identisch für dich und alle Bots
 const START_DECK=PLAY_CARDS.filter(c=>c.starter).map(c=>c.id);
-// Upgrade-Kosten exakt wie Clash Royale 2017 (Level je Seltenheit: Gewöhnlich 1-13, Selten 1-11, Episch 1-8, Legendär 1-5)
+// Upgrade-Kosten exakt wie Clash Royale 2017 (Level je Seltenheit: Common 1-13, Rare 1-11, Epic 1-8, Legendary 1-5)
 const NEED={c:[2,4,10,20,50,100,200,400,800,1000,2000,5000],r:[2,4,10,20,50,100,200,400,800,1000],e:[2,4,10,20,50,100,200],l:[2,4,10,20]};
 const GOLDC=[5,20,50,150,400,1000,2000,4000,8000,20000,50000,100000],GOLDR={c:GOLDC,r:GOLDC.slice(2),e:GOLDC.slice(5),l:GOLDC.slice(8)};
 const XPT=[20,50,100,180,300,450,650,900,1200,1600,2100,2700];
-const CHESTS={wood:{n:'Holztruhe',i:'📦',t:20,k:2,m:1,g:[20,40]},silver:{n:'Silbertruhe',i:'🧰',t:45,k:3,m:1.5,g:[40,80]},gold:{n:'Goldtruhe',i:'🎁',t:120,k:4,m:2.5,g:[100,180]},magic:{n:'Zaubertruhe',i:'💎',t:240,k:5,m:3,g:[150,260]},free:{n:'Gratis-Truhe',i:'🎀',g:[20,40]},crown:{n:'Kronentruhe',i:'👑',g:[90,160]},giant:{n:'Riesentruhe',i:'🗃️',t:360,g:[200,340]},super:{n:'Super-Zaubertruhe',i:'🔮',t:480,g:[500,800]}};
+const CHESTS={wood:{n:'Wooden Chest',i:'📦',t:20,k:2,m:1,g:[20,40]},silver:{n:'Silver Chest',i:'🧰',t:45,k:3,m:1.5,g:[40,80]},gold:{n:'Golden Chest',i:'🎁',t:120,k:4,m:2.5,g:[100,180]},magic:{n:'Magic Chest',i:'💎',t:240,k:5,m:3,g:[150,260]},free:{n:'Free Chest',i:'🎀',g:[20,40]},crown:{n:'Crown Chest',i:'👑',g:[90,160]},giant:{n:'Giant Chest',i:'🗃️',t:360,g:[200,340]},super:{n:'Super Magic Chest',i:'🔮',t:480,g:[500,800]}};
 function newAccount(){const cards={};PLAY_CARDS.forEach(c=>cards[c.id]={lvl:1,copies:0,own:!!c.starter});return{trophies:0,best:0,gold:0,xp:0,lvl:1,wins:0,losses:0,draws:0,form:[],cards,deck:START_DECK.slice(),chests:[null,null,null,null]};}
 const need=(id,l)=>NEED[CARDS[id].rar][l-1],goldNeed=(id,l)=>GOLDR[CARDS[id].rar][l-1];
 function canUp(a,id){const d=a.cards[id];return d.own&&d.lvl<RAR[CARDS[id].rar].max&&d.copies>=need(id,d.lvl)&&a.gold>=goldNeed(id,d.lvl);}
@@ -368,7 +368,7 @@ class Match{
   if(Math.abs(u.x-bx)<=BW-5&&Math.abs(sy)<RH+34)return{x:bx,y:RY-s*(RH+16)};
   return{x:bx,y:RY+s*(RH+9)};
  }
- // Laufrichtung um Türme und Gebäude herumlenken
+ // Laufrichtung um Türme und Buildings herumlenken
  steer(u,dest,tgt){
   const want=Math.atan2(dest.y-u.y,dest.x-u.x),far=Math.hypot(dest.x-u.x,dest.y-u.y);
   let best=null,bd=1e9;
@@ -551,7 +551,7 @@ class Brain{
   const lanes=[{u:[],p:0},{u:[],p:0}];
   for(const u of en)if(inMy(u)){const l=lanes[u.x<180?0:1];l.u.push(u);l.p+=pw(u);}
   const li=lanes[0].p>=lanes[1].p?0:1,L=lanes[li],lx=li?270:90;
-  // ---- Fehler: schwache Bots spielen oft planlos
+  // ---- Error: schwache Bots spielen oft planlos
   if(Math.random()<Math.pow(1-pf.skill,2)*.02&&el>=8){const o=pick(aff.filter(o=>o.c.type!=='spell'));if(o){m.play(me,o.i,rnd(30,330),me===0?rnd(340,560):rnd(40,260));return;}}
   // ---- Verteidigung
   const st=this.st,lead=m.crowns[me]-m.crowns[op],late=m.t>150;
@@ -767,8 +767,8 @@ world.bots.forEach((b,i)=>{if(!b.added&&i<BOT_NAMES.length)b.skill=+(.1+((i*.618
 const BKEYS=['name','av','added','act','skill','aggr','taste','trophies','best','gold','xp','lvl','wins','losses','draws','form','cards','deck','chests'];
 let noSave=false,saveWarned=false;
 function snapshot(){S.bots=world.bots.map(b=>Object.fromEntries(BKEYS.map(k=>[k,b[k]])));return JSON.stringify(S);}
-function save(){if(noSave)return;if(!store.set(SAVE_KEY,snapshot())&&!saveWarned){saveWarned=true;setTimeout(()=>toast('⚠️ Speichern nicht möglich'),300);}}
-function replaceSave(raw){store.set(BACKUP_KEY,snapshot());if(!store.set(SAVE_KEY,raw)){toast('⚠️ Speichern nicht möglich');return;}noSave=true;location.reload();}
+function save(){if(noSave)return;if(!store.set(SAVE_KEY,snapshot())&&!saveWarned){saveWarned=true;setTimeout(()=>toast('⚠️ Cannot save'),300);}}
+function replaceSave(raw){store.set(BACKUP_KEY,snapshot());if(!store.set(SAVE_KEY,raw)){toast('⚠️ Cannot save');return;}noSave=true;location.reload();}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save();});setTimeout(save,0);
 setInterval(save,5000);addEventListener('pagehide',save);
 
@@ -776,7 +776,7 @@ setInterval(save,5000);addEventListener('pagehide',save);
 let AC=null;
 function sfx(f,d=.09,type='sine',v=.05,slide=0){if(S.mute)return;try{AC=AC||new(window.AudioContext||window.webkitAudioContext)();const o=AC.createOscillator(),g=AC.createGain(),t=AC.currentTime;o.type=type;o.frequency.setValueAtTime(f,t);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(30,f+slide),t+d);g.gain.setValueAtTime(v,t);g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(AC.destination);o.start();o.stop(t+d);}catch(e){}}
 
-// ---- Erweitertes Audio: Musik + Truppen-Sounds
+// ---- Erweitertes Audio: Musik + Troops-Sounds
 let MG=null,SG=null,NB=null,lastAtk=0,lastDie=0;
 function audio(){AC=AC||new(window.AudioContext||window.webkitAudioContext)();if(AC.state==='suspended')AC.resume();if(!MG){MG=AC.createGain();MG.gain.value=.5;MG.connect(AC.destination);SG=AC.createGain();SG.gain.value=1;SG.connect(AC.destination);}return AC;}
 function tn(f,d,type,v,sl,t0,bus){const t=t0==null?AC.currentTime:t0,o=AC.createOscillator(),g=AC.createGain();o.type=type||'sine';o.frequency.setValueAtTime(f,t);if(sl)o.frequency.exponentialRampToValueAtTime(Math.max(25,f+sl),t+d);g.gain.setValueAtTime(.0001,t);g.gain.linearRampToValueAtTime(v,t+Math.min(.01,d/4));g.gain.exponentialRampToValueAtTime(.0001,t+d);o.connect(g);g.connect(bus||SG);o.start(t);o.stop(t+d+.02);}
@@ -785,17 +785,17 @@ function nz(d,v,f,q,t0,bus,ft){if(!NB){NB=AC.createBuffer(1,AC.sampleRate,AC.sam
 const rnd2=(a,b)=>a+Math.random()*(b-a);
 // Spawn-/Ruf-Sound je Karte (k = Lautstaerke)
 const ROLE_SND={
- NAH:k=>{nz(.07,.12*k,3500,2);tn(620,.12,'triangle',.05*k,-250);},
- FERN:k=>{tn(950,.14,'triangle',.05*k,-650);nz(.04,.05*k,6000,1);},
- LUFT:k=>{const t=AC.currentTime;for(let i=0;i<5;i++)tn(280+i*35,.05,'sawtooth',.03*k,120,t+i*.045);},
+ MELEE:k=>{nz(.07,.12*k,3500,2);tn(620,.12,'triangle',.05*k,-250);},
+ RANGED:k=>{tn(950,.14,'triangle',.05*k,-650);nz(.04,.05*k,6000,1);},
+ AIR:k=>{const t=AC.currentTime;for(let i=0;i<5;i++)tn(280+i*35,.05,'sawtooth',.03*k,120,t+i*.045);},
  TANK:k=>{tn(90,.4,'sine',.14*k,-55);nz(.3,.09*k,220,1);tn(60,.5,'sawtooth',.04*k,-20);},
- SCHWARM:k=>{const t=AC.currentTime;for(let i=0;i<5;i++)tn(rnd2(500,1100),.05,'square',.025*k,200,t+i*.05);},
- FLÄCHE:k=>{tn(220,.25,'sawtooth',.05*k,220);nz(.18,.06*k,1200,1);},
+ SWARM:k=>{const t=AC.currentTime;for(let i=0;i<5;i++)tn(rnd2(500,1100),.05,'square',.025*k,200,t+i*.05);},
+ SPLASH:k=>{tn(220,.25,'sawtooth',.05*k,220);nz(.18,.06*k,1200,1);},
  SPAWNER:k=>{tn(190,.45,'sawtooth',.045*k,-110);tn(280,.4,'triangle',.04*k,-120,AC.currentTime+.08);},
- GEBÄUDE:k=>{const t=AC.currentTime;for(let i=0;i<3;i++){nz(.06,.12*k,900,2,t+i*.09);tn(140,.08,'square',.04*k,-50,t+i*.09);}},
- TURMJAGD:k=>{tn(220,.3,'sawtooth',.05*k,70);tn(330,.3,'square',.025*k,90,AC.currentTime+.05);nz(.2,.05*k,1500,1);},
- FLINK:k=>{nz(.22,.08*k,2500,1.5);tn(700,.15,'triangle',.04*k,500);},
- HEILT:k=>{const t=AC.currentTime;[784,988,1175].forEach((f,i)=>tn(f,.25,'sine',.05*k,0,t+i*.08));},
+ BUILDING:k=>{const t=AC.currentTime;for(let i=0;i<3;i++){nz(.06,.12*k,900,2,t+i*.09);tn(140,.08,'square',.04*k,-50,t+i*.09);}},
+ SIEGE:k=>{tn(220,.3,'sawtooth',.05*k,70);tn(330,.3,'square',.025*k,90,AC.currentTime+.05);nz(.2,.05*k,1500,1);},
+ FAST:k=>{nz(.22,.08*k,2500,1.5);tn(700,.15,'triangle',.04*k,500);},
+ HEAL:k=>{const t=AC.currentTime;[784,988,1175].forEach((f,i)=>tn(f,.25,'sine',.05*k,0,t+i*.08));},
  ELIXIR:k=>{const t=AC.currentTime;for(let i=0;i<4;i++)tn(300+i*80,.08,'sine',.05*k,150,t+i*.06);}};
 const ID_SND={
  goblins:k=>{const t=AC.currentTime;for(let i=0;i<5;i++)tn(rnd2(900,1300),.05,'square',.03*k,-300,t+i*.06);},
@@ -817,19 +817,19 @@ const ID_SND={
  lumber:k=>{tn(120,.4,'sawtooth',.06*k,-50);nz(.2,.08*k,1800,2);},
  miner:k=>{const t=AC.currentTime;for(let i=0;i<4;i++)nz(.07,.1*k,500+i*100,1,t+i*.07);},
  princess:k=>{tn(1400,.35,'sine',.05*k);tn(1760,.3,'sine',.03*k,0,AC.currentTime+.08);},
- healer:k=>ROLE_SND.HEILT(k),
+ healer:k=>ROLE_SND.HEAL(k),
  minik:k=>{nz(.1,.14*k,1800,2);tn(100,.25,'square',.06*k,-50);},
  sparky:k=>{tn(60,.5,'sawtooth',.06*k,200);nz(.4,.08*k,4000,3);},
  ninja:k=>{nz(.15,.1*k,3500,2);tn(1200,.1,'triangle',.04*k,-700);},
  firesp:k=>{nz(.25,.1*k,1200,1);tn(600,.2,'sawtooth',.04*k,300);},
  icesp:k=>{tn(1800,.3,'sine',.05*k,-400);tn(2400,.25,'sine',.03*k,-600,AC.currentTime+.05);},
- bats:k=>ROLE_SND.LUFT(k),horde:k=>ROLE_SND.LUFT(k),moth:k=>ROLE_SND.LUFT(k)};
+ bats:k=>ROLE_SND.AIR(k),horde:k=>ROLE_SND.AIR(k),moth:k=>ROLE_SND.AIR(k)};
 const SP_SND={
  fireball:k=>{tn(900,.35,'sawtooth',.05*k,-700);},rocket:k=>{nz(.8,.08*k,900,.8);tn(500,.8,'sawtooth',.05*k,-300);},
  volley:k=>{const t=AC.currentTime;for(let i=0;i<5;i++)tn(rnd2(1200,1800),.2,'triangle',.03*k,-900,t+i*.03);},
  zap:k=>{nz(.15,.12*k,6000,3);tn(1500,.1,'square',.04*k,-1000);},bolt:k=>SP_SND.zap(k),
  frost:k=>{[1800,2200,2700].forEach((f,i)=>tn(f,.4,'sine',.04*k,0,AC.currentTime+i*.05));},
- heal:k=>ROLE_SND.HEILT(k),rage:k=>{tn(200,.5,'sawtooth',.05*k,500);},
+ heal:k=>ROLE_SND.HEAL(k),rage:k=>{tn(200,.5,'sawtooth',.05*k,500);},
  poison:k=>{const t=AC.currentTime;for(let i=0;i<5;i++)tn(rnd2(200,400),.1,'sine',.06*k,200,t+i*.08);},
  log:k=>{nz(.5,.1*k,300,1,null,null,'lowpass');},tornado:k=>{nz(1,.09*k,700,.8);tn(300,1,'sine',.03*k,300);},
  graveyard:k=>{tn(150,.8,'sawtooth',.05*k,-70);nz(.6,.07*k,400,1);},barrel:k=>{nz(.3,.08*k,1200,1);tn(500,.3,'triangle',.05*k,-300);},
@@ -838,7 +838,7 @@ const IMP_SND={fireball:k=>{nz(.5,.25*k,300,.8,null,null,'lowpass');tn(90,.4,'si
  zap:k=>{nz(.12,.12*k,5000,3);},bolt:k=>{nz(.2,.18*k,4500,2);tn(120,.2,'sine',.1*k,-60);},volley:k=>{nz(.2,.1*k,3000,1);},barrel:k=>{tn(130,.2,'sine',.1*k,-60);},frost:k=>{nz(.3,.1*k,7000,2);}};
 const PRJ_SND={arrow:k=>tn(1000,.1,'triangle',.025*k,-500),ball:k=>{tn(200,.1,'square',.03*k,-100);nz(.05,.06*k,1500,1);},bomb:k=>tn(150,.12,'sine',.05*k,-60),magic:k=>tn(900,.15,'sine',.03*k,400),fire:k=>nz(.15,.05*k,1500,1),zap:k=>nz(.08,.06*k,5000,3),ice:k=>tn(1700,.12,'sine',.03*k,-400),rock:k=>tn(80,.2,'sine',.07*k,-30),axe:k=>nz(.12,.06*k,2200,1)};
 function unitSnd(e,m){if(S.mute)return;try{audio();const p=e.split(':'),kind=p[0],id=p[1],c=CARDS[id];if(!c)return;const now=AC.currentTime;
- if(kind==='sp'){const mine=m.watch||+p[2]===0,k=mine?1:.55;if(c.type==='spell')(SP_SND[id]||(()=>tn(500,.2,'triangle',.05*k,200)))(k);else(ID_SND[id]||ROLE_SND[c.role]||ROLE_SND.NAH)(k);}
+ if(kind==='sp'){const mine=m.watch||+p[2]===0,k=mine?1:.55;if(c.type==='spell')(SP_SND[id]||(()=>tn(500,.2,'triangle',.05*k,200)))(k);else(ID_SND[id]||ROLE_SND[c.role]||ROLE_SND.MELEE)(k);}
  else if(kind==='atk'){if(now-lastAtk<.07||Math.random()<.45)return;lastAtk=now;if(c.proj){if(c.proj!=='beam')(PRJ_SND[c.proj]||PRJ_SND.arrow)(.8);}else if(c.role==='TANK'||c.splash||c.id==='megaknight')tn(110,.15,'square',.06,-60);else{nz(.05,.07,rnd2(2500,4500),2);tn(rnd2(300,500),.06,'triangle',.03,-100);}}
  else if(kind==='die'){if(now-lastDie<.06)return;lastDie=now;if(c.role==='TANK'||c.rad>=13){tn(80,.4,'sine',.14,-50);nz(.3,.1,300,1);}else if(c.fly)tn(500,.15,'sawtooth',.03,-350);else tn(rnd2(260,340),.12,'triangle',.04,-180);}
  else if(kind==='imp'){(IMP_SND[id]||(()=>nz(.15,.07,1500,1)))(1);}
@@ -1029,7 +1029,7 @@ function drawFig(g,id,tc,t=0){
  }
  g.restore();
 }
-const ROLE_COL={NAH:'#c0392b',FERN:'#1e8449',LUFT:'#2471a3',TANK:'#566573',SCHWARM:'#b9770e',SPAWNER:'#8e5a9e',ELIXIR:'#a21ad9',TURMJAGD:'#873600',FLÄCHE:'#7d3c98','GEBÄUDE':'#6e4b2a',HEILT:'#17a589',FLINK:'#b03a5b',ZAUBER:'#4a3ab0'};
+const ROLE_COL={MELEE:'#c0392b',RANGED:'#1e8449',AIR:'#2471a3',TANK:'#566573',SWARM:'#b9770e',SPAWNER:'#8e5a9e',ELIXIR:'#a21ad9',SIEGE:'#873600',SPLASH:'#7d3c98','BUILDING':'#6e4b2a',HEAL:'#17a589',FAST:'#b03a5b',SPELL:'#4a3ab0'};
 const picCache={};
 function pic(id){if(!picCache[id]){const c=document.createElement('canvas');c.width=c.height=144;const g=c.getContext('2d');g.translate(72,74);g.scale(3,3);drawFig(g,id,'#3b82f6');picCache[id]=c.toDataURL();}return picCache[id];}
 function cardHTML(id,lvl,cls=''){const c=CARDS[id];return`<div class="card r-${c.rar} ${cls}" data-id="${id}"><i class="cost">${c.cost}</i><img class="art" src="${pic(id)}" alt="" draggable="false"><span class="role" style="background:${ROLE_COL[c.role]}">${c.role}</span><div class="nm">${c.name}</div>${lvl?`<div class="lv">Lv ${lvl}</div>`:''}</div>`;}
@@ -1043,7 +1043,7 @@ function renderTop(){
 }
 function chestHTML(ch,i){
  if(!ch)return'<div class="chest empty">leer</div>';const now=Date.now(),C=CHESTS[ch.type];let st;
- if(ch.ready||(ch.at&&now>=ch.at)){ch.ready=true;st='<b>ÖFFNEN!</b>';}else if(ch.at)st=Math.ceil((ch.at-now)/1000)+'s';else st='Start ('+C.t+'s)';
+ if(ch.ready||(ch.at&&now>=ch.at)){ch.ready=true;st='<b>OPEN!</b>';}else if(ch.at)st=Math.ceil((ch.at-now)/1000)+'s';else st='Start ('+C.t+'s)';
  return`<div class="chest ${ch.ready?'ready':''}" data-act="chest" data-i="${i}"><div class="ci">${C.i}</div><div>${C.n}</div><div class="cs">${st}</div></div>`;
 }
 function renderTab(){
@@ -1051,30 +1051,30 @@ function renderTab(){
  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
  if(tab==='battle'){
   const th=arenaFor(S.trophies),nx=ARENAS.find(x=>x.min>S.trophies),on=world.bots.filter(b=>b.online).length;
-  setHTML(c,`<div class="arena" data-act="arenas" style="cursor:pointer;background:linear-gradient(${th.g1},${th.g2})"><div class="sub">${th.i?'Arena '+th.i:'Start'}</div><div class="an">${th.n}</div><div class="tr">🏆 ${S.trophies}</div><div class="sub">${nx?'Nächste Arena ab '+nx.min+' 🏆':'Höchste Arena erreicht'}<br>Antippen: alle Arenen und Karten</div></div>
-  <button class="btn green big" style="width:100%" data-act="battle">⚔️ KAMPF</button>
+  setHTML(c,`<div class="arena" data-act="arenas" style="cursor:pointer;background:linear-gradient(${th.g1},${th.g2})"><div class="sub">${th.i?'Arena '+th.i:'Start'}</div><div class="an">${th.n}</div><div class="tr">🏆 ${S.trophies}</div><div class="sub">${nx?'Next Arena ab '+nx.min+' 🏆':'Höchste Arena erreicht'}<br>Tap: all arenas and cards</div></div>
+  <button class="btn green big" style="width:100%" data-act="battle">⚔️ BATTLE</button>
   <div class="chests">${S.chests.map(chestHTML).join('')}</div>${globalThis.specialChests?specialChests():''}
-  <div class="sect">Dein Deck</div><div class="minideck">${S.deck.map(id=>`<div data-act="card" data-id="${id}">${cardHTML(id,S.cards[id].lvl)}</div>`).join('')}</div>
-  <div class="stat">🟢 ${on} Spieler online · 📺 ${world.matches.length} Live-Kämpfe<br>Siege ${S.wins} · Niederlagen ${S.losses} · Unentschieden ${S.draws}</div>`,'tab');
+  <div class="sect">Your deck</div><div class="minideck">${S.deck.map(id=>`<div data-act="card" data-id="${id}">${cardHTML(id,S.cards[id].lvl)}</div>`).join('')}</div>
+  <div class="stat">🟢 ${on} Players online · 📺 ${world.matches.length} Live-Kämpfe<br>Siege ${S.wins} · Losses ${S.losses} · Draws ${S.draws}</div>`,'tab');
  }else if(tab==='cards'){
   const avg=(S.deck.reduce((s,i)=>s+CARDS[i].cost,0)/8).toFixed(1);
   const ar=arenaFor(S.best).i,state=c=>S.cards[c.id].own?0:c.ar<=ar?1:2;
   const all=PLAY_CARDS.slice().sort((a,b)=>state(a)-state(b)||(state(a)===2?a.ar-b.ar:0)||a.cost-b.cost);
-  setHTML(c,`<div class="sect">Dein Deck <span class="chip">Ø ${avg} 💧</span></div><div class="minideck">${S.deck.map(id=>`<div data-act="card" data-id="${id}">${cardHTML(id,S.cards[id].lvl)}</div>`).join('')}</div>
-  <div class="sect">Sammlung <span class="chip">${PLAY_CARDS.filter(c=>S.cards[c.id].own).length} / ${PLAY_CARDS.length}</span></div><div class="grid">${all.map(k=>{const d=S.cards[k.id],st=state(k);return`<div style="text-align:center" data-act="card" data-id="${k.id}">${cardHTML(k.id,st?0:d.lvl,st?'locked':'')}<div style="font-size:10px;font-weight:800;margin-top:3px">${st===0?(canUp(S,k.id)?'⬆️ Upgrade':d.lvl>=RAR[k.rar].max?'MAX':d.copies+'/'+need(k.id,d.lvl)):st===1?'🎁 in Truhen':'🔒 Arena '+k.ar}</div></div>`;}).join('')}</div>`,'tab');
+  setHTML(c,`<div class="sect">Your deck <span class="chip">Ø ${avg} 💧</span></div><div class="minideck">${S.deck.map(id=>`<div data-act="card" data-id="${id}">${cardHTML(id,S.cards[id].lvl)}</div>`).join('')}</div>
+  <div class="sect">Collection <span class="chip">${PLAY_CARDS.filter(c=>S.cards[c.id].own).length} / ${PLAY_CARDS.length}</span></div><div class="grid">${all.map(k=>{const d=S.cards[k.id],st=state(k);return`<div style="text-align:center" data-act="card" data-id="${k.id}">${cardHTML(k.id,st?0:d.lvl,st?'locked':'')}<div style="font-size:10px;font-weight:800;margin-top:3px">${st===0?(canUp(S,k.id)?'⬆️ Upgrade':d.lvl>=RAR[k.rar].max?'MAX':d.copies+'/'+need(k.id,d.lvl)):st===1?'🎁 in chests':'🔒 Arena '+k.ar}</div></div>`;}).join('')}</div>`,'tab');
  }else if(tab==='rank'){
   const list=world.bots.map(b=>({...b,isBot:true,bot:b}));list.push({name:S.name+' (Du)',av:'👑',trophies:S.trophies,wins:S.wins,losses:S.losses,me:true});
   list.sort((a,b)=>b.trophies-a.trophies||b.wins-a.wins);
   const liveSet=new Set();world.matches.forEach(m=>{liveSet.add(m.A.id);liveSet.add(m.B.id);});
-  setHTML(c,`<div class="sect">Rangliste · ${list.length} Spieler</div><div class="mrow" style="justify-content:center;gap:10px"><button class="btn red mini" data-act="botDel">➖</button><b style="font-size:16px;min-width:92px;text-align:center">🤖 ${world.bots.length} Bots</b><button class="btn green mini" data-act="botAdd">➕</button></div><button class="btn red" style="width:100%;margin-bottom:10px" data-act="resetAsk">🔄 Alles zurücksetzen</button><div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn blue" style="flex:1" data-act="exportSave">💾 Exportieren</button><button class="btn blue" style="flex:1" data-act="importSave">📂 Importieren</button></div>${store.get(BACKUP_KEY)?'<button class="btn" style="width:100%;margin-bottom:10px" data-act="restoreAsk">↩️ Gesicherten Stand wiederherstellen</button>':''}`+list.map((p,i)=>{
-   let st='';if(p.me)st='<span class="rs">Das bist du</span>';else{const act=p.act>.65?'sehr aktiv':p.act>.35?'aktiv':'selten online';
-    const status=liveSet.has(p.id)?'<span class="live">● LIVE</span>':p.inMatch?'<span class="live">● im Kampf</span>':p.online&&p.search!=null?'🔍 sucht Gegner':p.online?'<span class="dot"></span>online':'<span class="dot off"></span>offline';
+  setHTML(c,`<div class="sect">Leaderboard · ${list.length} Spieler</div><div class="mrow" style="justify-content:center;gap:10px"><button class="btn red mini" data-act="botDel">➖</button><b style="font-size:16px;min-width:92px;text-align:center">🤖 ${world.bots.length} Bots</b><button class="btn green mini" data-act="botAdd">➕</button></div><button class="btn red" style="width:100%;margin-bottom:10px" data-act="resetAsk">🔄 Reset everything</button><div style="display:flex;gap:8px;margin-bottom:10px"><button class="btn blue" style="flex:1" data-act="exportSave">💾 Export</button><button class="btn blue" style="flex:1" data-act="importSave">📂 Import</button></div>${store.get(BACKUP_KEY)?'<button class="btn" style="width:100%;margin-bottom:10px" data-act="restoreAsk">↩️ Restore backup</button>':''}`+list.map((p,i)=>{
+   let st='';if(p.me)st='<span class="rs">That’s you</span>';else{const act=p.act>.65?'very active':p.act>.35?'aktiv':'rarely online';
+    const status=liveSet.has(p.id)?'<span class="live">● LIVE</span>':p.inMatch?'<span class="live">● in battle</span>':p.online&&p.search!=null?'🔍 searching for opponent':p.online?'<span class="dot"></span>online':'<span class="dot off"></span>offline';
     st=`<span class="rs">${status} · ${act} · ${p.wins}S/${p.losses}N · Lv ${p.lvl}</span>`;}
    return`<div class="row ${p.me?'me':''} ${i===0?'gold1':i===1?'gold2':i===2?'gold3':''}" ${p.me?'':`data-act="bot" data-id="${p.id}"`}><div class="rk">${i+1}</div><div class="ra">${p.av}</div><div style="flex:1;min-width:0"><div class="rn">${p.name}</div>${st}</div><div class="rt">🏆 ${p.trophies}</div></div>`;}).join(''),'tab');
  }else{
   const ms=world.matches;
-  setHTML(c,`<div class="sect">📺 Laufende Kämpfe (${ms.length})</div>`+(ms.length?ms.map(m=>`<div class="mrow"><div style="font-size:30px">${m.A.av}</div><div class="t">${m.A.name}<br><span class="rs">🏆${m.A.trophies}</span></div><div style="text-align:center"><div class="sc">${m.crowns[0]} : ${m.crowns[1]}</div><div style="font-size:11px">${m.ot?'Verlängerung':fmt(180-m.t)}</div></div><div class="t">${m.B.name}<br><span class="rs">🏆${m.B.trophies}</span></div><div style="font-size:30px">${m.B.av}</div><button class="btn red" style="padding:8px 10px" data-act="watch" data-id="${m.id}">▶</button></div>`).join(''):'<div class="stat">Gerade läuft kein Kampf – gleich geht es weiter …</div>')
-  +`<div class="sect">Letzte Ergebnisse</div>`+(world.recent.length?world.recent.map(r=>`<div class="mrow" style="padding:6px 10px"><div class="t" style="text-align:left">${r.av} ${r.a}</div><div class="sc" style="font-size:17px">${r.ca}:${r.cb}</div><div class="t" style="text-align:right">${r.b} ${r.bv}</div><span class="chip">${r.w<0?'Remis':r.w===0?r.a+' ✓':r.b+' ✓'}</span></div>`).join(''):'<div class="stat">Noch keine Ergebnisse.</div>'),'tab');
+  setHTML(c,`<div class="sect">📺 Ongoing battles (${ms.length})</div>`+(ms.length?ms.map(m=>`<div class="mrow"><div style="font-size:30px">${m.A.av}</div><div class="t">${m.A.name}<br><span class="rs">🏆${m.A.trophies}</span></div><div style="text-align:center"><div class="sc">${m.crowns[0]} : ${m.crowns[1]}</div><div style="font-size:11px">${m.ot?'Verlängerung':fmt(180-m.t)}</div></div><div class="t">${m.B.name}<br><span class="rs">🏆${m.B.trophies}</span></div><div style="font-size:30px">${m.B.av}</div><button class="btn red" style="padding:8px 10px" data-act="watch" data-id="${m.id}">▶</button></div>`).join(''):'<div class="stat">No battle running right now – continuing shortly …</div>')
+  +`<div class="sect">Latest results</div>`+(world.recent.length?world.recent.map(r=>`<div class="mrow" style="padding:6px 10px"><div class="t" style="text-align:left">${r.av} ${r.a}</div><div class="sc" style="font-size:17px">${r.ca}:${r.cb}</div><div class="t" style="text-align:right">${r.b} ${r.bv}</div><span class="chip">${r.w<0?'Remis':r.w===0?r.a+' ✓':r.b+' ✓'}</span></div>`).join(''):'<div class="stat">No results yet.</div>'),'tab');
  }
 }
 
@@ -1082,53 +1082,53 @@ function renderTab(){
 function showModal(h){const m=$('#modal');m.innerHTML=`<div class="mbox" data-stop="1">${h}</div>`;m.classList.remove('hidden');}
 function closeModal(){$('#modal').classList.add('hidden');}
 function openCard(id){
- const c=CARDS[id],d=S.cards[id],un=isUnlocked(id),s=sc(d.lvl),max=RAR[c.rar].max,spd=v=>v>=40?'Sehr schnell':v>=30?'Schnell':v>=20?'Mittel':'Langsam';
- let rows=[['Seltenheit',RAR[c.rar].n],['Freischaltung',c.ar?'Arena '+c.ar+' · '+ARENAS[c.ar].n:'Von Anfang an']];
- if(c.type==='spell'){if(c.dmg)rows.push(['Schaden',Math.round(c.dmg*s)]);rows.push(['Radius',c.r+' Felder']);if(c.dur&&c.kind!=='log')rows.push(['Dauer',c.dur+' s']);}
- else{rows.push(['Leben',Math.round(c.hp*s)]);if(c.shield)rows.push(['Schild',Math.round(c.shield*s)]);if(c.atk)rows.push(['Schaden',Math.round(c.dmg*s)],['Angriff alle',c.atk+' s'],['Reichweite',c.rng>=2?c.rng+' Felder':'Nah'],['Ziele',c.bOnly?'Nur Gebäude':c.hitsAir?'Boden & Luft':'Nur Boden']);rows.push(['Tempo',c.spd?spd(c.spd):'Steht'],['Anzahl',c.count]);if(c.life)rows.push(['Lebensdauer',c.life+' s']);}
+ const c=CARDS[id],d=S.cards[id],un=isUnlocked(id),s=sc(d.lvl),max=RAR[c.rar].max,spd=v=>v>=40?'Very fast':v>=30?'Schnell':v>=20?'Mittel':'Langsam';
+ let rows=[['Seltenheit',RAR[c.rar].n],['Freischaltung',c.ar?'Arena '+c.ar+' · '+ARENAS[c.ar].n:'From the start']];
+ if(c.type==='spell'){if(c.dmg)rows.push(['Schaden',Math.round(c.dmg*s)]);rows.push(['Radius',c.r+' Felder']);if(c.dur&&c.kind!=='log')rows.push(['Duration',c.dur+' s']);}
+ else{rows.push(['Leben',Math.round(c.hp*s)]);if(c.shield)rows.push(['Schild',Math.round(c.shield*s)]);if(c.atk)rows.push(['Schaden',Math.round(c.dmg*s)],['Attack every',c.atk+' s'],['Reichweite',c.rng>=2?c.rng+' Felder':'Nah'],['Ziele',c.bOnly?'Buildings only':c.hitsAir?'Ground & Air':'Ground only']);rows.push(['Tempo',c.spd?spd(c.spd):'Steht'],['Anzahl',c.count]);if(c.life)rows.push(['Lebensdauer',c.life+' s']);}
  const nd=d.lvl<max?need(id,d.lvl):0,gd=d.lvl<max?goldNeed(id,d.lvl):0;
  showModal(`<h2>${c.name}</h2><div style="text-align:center"><span class="tag" style="background:${ROLE_COL[c.role]}">${c.role}</span></div><div style="display:flex;justify-content:center;margin:10px 0">${cardHTML(id,un?d.lvl:0,un?'':'locked')}</div><div style="text-align:center;font-size:13px;margin-bottom:8px">${c.desc}</div>
  <table>${rows.map(r=>`<tr><td>${r[0]}</td><td>${r[1]}</td></tr>`).join('')}</table>
- ${un?`<div class="bar"><i style="width:${nd?Math.min(100,d.copies/nd*100):100}%"></i><span>${nd?d.copies+' / '+nd+' Karten':'Maximales Level'}</span></div>
- <button class="btn green" style="width:100%;margin-top:4px" ${canUp(S,id)?'':'disabled'} data-act="upg" data-id="${id}">${nd?'⬆️ Upgrade · 🪙 '+gd:'Max. Level '+max}</button>
- <button class="btn blue" style="width:100%;margin-top:8px" data-act="swap" data-id="${id}">${S.deck.includes(id)?'✔ Im Deck':'In Deck legen'}</button>`:`<div class="stat">🔒 ${c.ar<=arenaFor(S.best).i?'Findest du in Truhen.':'Erst ab Arena '+c.ar+' ('+ARENAS[c.ar].min+' 🏆) in Truhen.'}</div>`}
- <button class="btn" style="width:100%;margin-top:8px" data-act="close">Schließen</button>`);
+ ${un?`<div class="bar"><i style="width:${nd?Math.min(100,d.copies/nd*100):100}%"></i><span>${nd?d.copies+' / '+nd+' Karten':'Maximum level'}</span></div>
+ <button class="btn green" style="width:100%;margin-top:4px" ${canUp(S,id)?'':'disabled'} data-act="upg" data-id="${id}">${nd?'⬆️ Upgrade · 🪙 '+gd:'Max level '+max}</button>
+ <button class="btn blue" style="width:100%;margin-top:8px" data-act="swap" data-id="${id}">${S.deck.includes(id)?'✔ In deck':'Put in deck'}</button>`:`<div class="stat">🔒 ${c.ar<=arenaFor(S.best).i?'You find it in chests.':'From arena '+c.ar+' ('+ARENAS[c.ar].min+' 🏆) in Truhen.'}</div>`}
+ <button class="btn" style="width:100%;margin-top:8px" data-act="close">Close</button>`);
 }
 const ACT={
- botAdd(){if(world.bots.length>=BOT_MAX)return toast('Maximum erreicht ('+BOT_MAX+')');
+ botAdd(){if(world.bots.length>=BOT_MAX)return toast('Maximum reached ('+BOT_MAX+')');
   const used=new Set(world.bots.map(b=>b.name)),free=BOT_NAMES.filter(n=>!used.has(n)),b=mkBot(world.bots.length,free.length?pick(free):genName(used),true);
   if(Math.random()<.4+b.act*.3){b.online=true;b.sessEnd=rnd(60,400);b.idle=rnd(0,12);}
-  world.bots.push(b);S.botN=world.bots.length;save();lastHTML.tab='';renderTab();toast('🤖 '+b.name+' ist dabei');},
+  world.bots.push(b);S.botN=world.bots.length;save();lastHTML.tab='';renderTab();toast('🤖 '+b.name+' is in');},
  botDel(){if(world.bots.length<=BOT_MIN)return toast('Mindestens '+BOT_MIN+' Bots');
-  let i=world.bots.length-1;while(i>=0&&world.bots[i].inMatch)i--;if(i<0)return toast('Alle Bots kämpfen gerade');
+  let i=world.bots.length-1;while(i>=0&&world.bots[i].inMatch)i--;if(i<0)return toast('All bots are busy fighting');
   const b=world.bots.splice(i,1)[0];world.bots.forEach((x,k)=>x.id=k);S.botN=world.bots.length;save();lastHTML.tab='';renderTab();toast('🤖 '+b.name+' entfernt');},
  tab(el){tab=el.dataset.t;lastHTML.tab='';renderTab();$('#content').scrollTop=0;},
  close(){closeModal();},
- exportSave(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([snapshot()],{type:'application/json'}));a.download='kronenkampf-spielstand.json';document.body.appendChild(a);a.click();a.remove();toast('Spielstand exportiert');},
- importSave(){const i=document.createElement('input');i.type='file';i.accept='.json,application/json';i.onchange=async()=>{const f=i.files[0];if(!f)return;const raw=await f.text();if(parseSave(raw))replaceSave(raw);else toast('Keine gültige Spielstand-Datei');};i.click();},
- restoreAsk(){showModal(`<h2>Stand wiederherstellen?</h2><div style="text-align:center;font-size:14px;margin-bottom:12px">Der gesicherte Stand ersetzt den jetzigen. Der jetzige wird dabei selbst gesichert.</div><button class="btn green" style="width:100%" data-act="restore">Wiederherstellen</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`);},
- restore(){const raw=store.get(BACKUP_KEY);if(parseSave(raw))replaceSave(raw);else toast('Keine Sicherung vorhanden');},
+ exportSave(){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([snapshot()],{type:'application/json'}));a.download='kronenkampf-spielstand.json';document.body.appendChild(a);a.click();a.remove();toast('Save exported');},
+ importSave(){const i=document.createElement('input');i.type='file';i.accept='.json,application/json';i.onchange=async()=>{const f=i.files[0];if(!f)return;const raw=await f.text();if(parseSave(raw))replaceSave(raw);else toast('Not a valid save file');};i.click();},
+ restoreAsk(){showModal(`<h2>Restore save?</h2><div style="text-align:center;font-size:14px;margin-bottom:12px">The backup replaces the current save. The current one is backed up in the process.</div><button class="btn green" style="width:100%" data-act="restore">Restore</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Cancel</button>`);},
+ restore(){const raw=store.get(BACKUP_KEY);if(parseSave(raw))replaceSave(raw);else toast('No backup available');},
  cancelSearch(){stopSearch();$('#vs').classList.add('hidden');},
- resetAsk(){showModal(`<h2>Alles zurücksetzen?</h2><div style="text-align:center;font-size:14px;margin-bottom:12px">Trophäen, Level, Karten, Gold, Truhen und Statistiken von dir und allen Bots werden gelöscht. Der jetzige Stand wird vorher gesichert und lässt sich wiederherstellen.</div><button class="btn red" style="width:100%" data-act="resetAll">Ja, alles löschen</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`);},
- resetAll(){store.set(BACKUP_KEY,snapshot());Object.assign(S,newAccount(),{bots:null});Object.assign(world,new World(mkBots(S.botN)));save();closeModal();lastHTML={};renderTab();toast('Alles zurückgesetzt');},
- arenas(){showModal(`<h2>Arenen</h2>${ARENAS.map(a=>`<div class="sect">${S.best>=a.min?'✅':'🔒'} ${a.i?'Arena '+a.i+' · ':''}${a.n} <span class="chip">${a.min} 🏆</span></div><div class="minideck">${PLAY_CARDS.filter(c=>c.ar===a.i).map(c=>`<div data-act="card" data-id="${c.id}">${cardHTML(c.id,0)}</div>`).join('')}</div>`).join('')}<button class="btn" style="width:100%;margin-top:10px" data-act="close">Schließen</button>`);},
+ resetAsk(){showModal(`<h2>Reset everything?</h2><div style="text-align:center;font-size:14px;margin-bottom:12px">Trophies, levels, cards, gold, chests and stats of you and all bots will be deleted. The current save is backed up first and can be restored.</div><button class="btn red" style="width:100%" data-act="resetAll">Yes, delete everything</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Cancel</button>`);},
+ resetAll(){store.set(BACKUP_KEY,snapshot());Object.assign(S,newAccount(),{bots:null});Object.assign(world,new World(mkBots(S.botN)));save();closeModal();lastHTML={};renderTab();toast('Everything reset');},
+ arenas(){showModal(`<h2>Arenas</h2>${ARENAS.map(a=>`<div class="sect">${S.best>=a.min?'✅':'🔒'} ${a.i?'Arena '+a.i+' · ':''}${a.n} <span class="chip">${a.min} 🏆</span></div><div class="minideck">${PLAY_CARDS.filter(c=>c.ar===a.i).map(c=>`<div data-act="card" data-id="${c.id}">${cardHTML(c.id,0)}</div>`).join('')}</div>`).join('')}<button class="btn" style="width:100%;margin-top:10px" data-act="close">Close</button>`);},
  closeBg(el,e){if(e.target===el)closeModal();},
  mute(){S.mute=!S.mute;renderTop();save();},
  card(el){openCard(el.dataset.id);},
  upg(el){const id=el.dataset.id,k=S.lvl;if(upgrade(S,id)){if(S.lvl>k)toast('🎉 Level '+S.lvl+'!');save();sfx(700,.2,'triangle',.06,400);renderTab();openCard(id);}},
- swap(el){const id=el.dataset.id;if(S.deck.includes(id)){toast('Schon im Deck');return;}
-  showModal(`<h2>Welche Karte ersetzen?</h2><div class="slotrow">${S.deck.map((k,i)=>`<div data-act="slot" data-i="${i}" data-id="${id}">${cardHTML(k,S.cards[k].lvl)}</div>`).join('')}</div><button class="btn" style="width:100%" data-act="close">Abbrechen</button>`);},
- slot(el){S.deck[+el.dataset.i]=el.dataset.id;save();closeModal();lastHTML.tab='';renderTab();toast('Deck aktualisiert');},
+ swap(el){const id=el.dataset.id;if(S.deck.includes(id)){toast('Already in deck');return;}
+  showModal(`<h2>Replace which card?</h2><div class="slotrow">${S.deck.map((k,i)=>`<div data-act="slot" data-i="${i}" data-id="${id}">${cardHTML(k,S.cards[k].lvl)}</div>`).join('')}</div><button class="btn" style="width:100%" data-act="close">Cancel</button>`);},
+ slot(el){S.deck[+el.dataset.i]=el.dataset.id;save();closeModal();lastHTML.tab='';renderTab();toast('Deck updated');},
  chest(el){const i=+el.dataset.i,ch=S.chests[i];if(!ch)return;const now=Date.now(),C=CHESTS[ch.type];
   if(ch.ready||(ch.at&&now>=ch.at)){S.chests[i]=null;const r=openChest(S,ch.type);save();renderTab();
-   showModal(`<h2>${C.i} ${C.n}</h2><div style="text-align:center;font-size:22px;font-weight:900;margin:8px">🪙 +${r.gold}${r.gems?' &nbsp; 💎 +'+r.gems:''}</div><div class="slotrow">${r.cards.map(k=>`<div style="text-align:center">${cardHTML(k.id,0)}<div style="font-weight:900">×${k.n}${k.isNew?'<br><span style="color:#ffd75e">NEU!</span>':''}</div></div>`).join('')}</div><button class="btn green" style="width:100%" data-act="close">Super!</button>`);sfx(660,.2,'triangle',.06,500);}
-  else if(ch.at)toast('Wird noch geöffnet …');
-  else if(S.chests.some(c=>c&&c.at&&!c.ready))toast('Es wird schon eine Truhe geöffnet');
+   showModal(`<h2>${C.i} ${C.n}</h2><div style="text-align:center;font-size:22px;font-weight:900;margin:8px">🪙 +${r.gold}${r.gems?' &nbsp; 💎 +'+r.gems:''}</div><div class="slotrow">${r.cards.map(k=>`<div style="text-align:center">${cardHTML(k.id,0)}<div style="font-weight:900">×${k.n}${k.isNew?'<br><span style="color:#ffd75e">NEW!</span>':''}</div></div>`).join('')}</div><button class="btn green" style="width:100%" data-act="close">Great!</button>`);sfx(660,.2,'triangle',.06,500);}
+  else if(ch.at)toast('Still opening …');
+  else if(S.chests.some(c=>c&&c.at&&!c.ready))toast('A chest is already being opened');
   else{ch.at=now+C.t*1000;save();renderTab();}},
  bot(el){const b=world.bots[+el.dataset.id],live=world.matches.find(m=>m.A===b||m.B===b);
-  showModal(`<h2>${b.av} ${b.name}</h2><table><tr><td>Trophäen</td><td>🏆 ${b.trophies}</td></tr><tr><td>Siege / Niederlagen / Remis</td><td>${b.wins} / ${b.losses} / ${b.draws}</td></tr><tr><td>Königslevel</td><td>${b.lvl}</td></tr><tr><td>Arena</td><td>${arenaFor(b.trophies).n}</td></tr><tr><td>Gold</td><td>🪙 ${b.gold}</td></tr><tr><td>Karten gefunden</td><td>${PLAY_CARDS.filter(c=>b.cards[c.id].own).length}</td></tr><tr><td>Truhen</td><td>${b.chests.filter(c=>c).map(c=>CHESTS[c.type].i).join(' ')||'–'}</td></tr><tr><td>Aktivität</td><td>${b.act>.65?'sehr aktiv':b.act>.35?'aktiv':'selten online'}</td></tr><tr><td>Form</td><td>${(b.form||[]).join(' ')||'–'}</td></tr><tr><td>Status</td><td>${live?'⚔️ im Kampf':b.online?'🟢 online':'⚪ offline'}</td></tr></table>
-  <div class="minideck" style="margin:10px 0">${b.deck.map(k=>cardHTML(k,b.cards[k].lvl)).join('')}</div>${live?`<button class="btn red" style="width:100%" data-act="watch" data-id="${live.id}">▶ Live zuschauen</button>`:''}<button class="btn" style="width:100%;margin-top:8px" data-act="close">Schließen</button>`);},
- watch(el){closeModal();const m=world.matches.find(x=>x.id==+el.dataset.id);if(m)startWatch(m);else toast('Kampf ist schon vorbei');},
+  showModal(`<h2>${b.av} ${b.name}</h2><table><tr><td>Trophies</td><td>🏆 ${b.trophies}</td></tr><tr><td>Wins / Losses / Draws</td><td>${b.wins} / ${b.losses} / ${b.draws}</td></tr><tr><td>King level</td><td>${b.lvl}</td></tr><tr><td>Arena</td><td>${arenaFor(b.trophies).n}</td></tr><tr><td>Gold</td><td>🪙 ${b.gold}</td></tr><tr><td>Cards found</td><td>${PLAY_CARDS.filter(c=>b.cards[c.id].own).length}</td></tr><tr><td>Truhen</td><td>${b.chests.filter(c=>c).map(c=>CHESTS[c.type].i).join(' ')||'–'}</td></tr><tr><td>Activity</td><td>${b.act>.65?'very active':b.act>.35?'aktiv':'rarely online'}</td></tr><tr><td>Form</td><td>${(b.form||[]).join(' ')||'–'}</td></tr><tr><td>Status</td><td>${live?'⚔️ im Kampf':b.online?'🟢 online':'⚪ offline'}</td></tr></table>
+  <div class="minideck" style="margin:10px 0">${b.deck.map(k=>cardHTML(k,b.cards[k].lvl)).join('')}</div>${live?`<button class="btn red" style="width:100%" data-act="watch" data-id="${live.id}">▶ Watch live</button>`:''}<button class="btn" style="width:100%;margin-top:8px" data-act="close">Close</button>`);},
+ watch(el){closeModal();const m=world.matches.find(x=>x.id==+el.dataset.id);if(m)startWatch(m);else toast('Battle is already over');},
  battle(){startBattle();},
  back(){endWatch();},
  speed(el){if(wm)wm.speed=+el.dataset.s;updWatchBtns();},
@@ -1253,16 +1253,16 @@ function hud(m,watch){
  const tm=$('#timer');tm.textContent=m.ot?'⚡ '+fmt(360-m.t):fmt(180-m.t);tm.classList.toggle('dbl',m.t>=120);tm.style.color=m.ot&&m.t>=300?'#ff5a5a':'';
  if(!watch){const el=m.el[0];$('#elixFill').style.width=el/10*100+'%';$('#elixNum').textContent=Math.floor(el);
   const h=m.hand[0].join(',')+'|'+m.hand[0].map(id=>CARDS[id].cost<=el?1:0).join('')+'|'+view.sel+'|'+m.queue[0][0];
-  if(h!==lastHand){lastHand=h;$('#cards').innerHTML=m.hand[0].map((id,i)=>cardHTML(id,S.cards[id].lvl,(CARDS[id].cost>el?'no ':'')+(view.sel===i?'sel':'')).replace('class="card','data-i="'+i+'" class="card')).join('');$('#nextCard').innerHTML='Nächste'+cardHTML(m.queue[0][0],0);}}
- if(!watch){const c=view.sel>=0&&CARDS[m.hand[0][view.sel]];setHTML($('#info'),c?`<span><b>${c.name} · ${c.role}</b><br>${c.desc}</span>`:'<span>Tippe eine Karte an, um zu sehen, was sie tut.</span>','info');}
+  if(h!==lastHand){lastHand=h;$('#cards').innerHTML=m.hand[0].map((id,i)=>cardHTML(id,S.cards[id].lvl,(CARDS[id].cost>el?'no ':'')+(view.sel===i?'sel':'')).replace('class="card','data-i="'+i+'" class="card')).join('');$('#nextCard').innerHTML='Next'+cardHTML(m.queue[0][0],0);}}
+ if(!watch){const c=view.sel>=0&&CARDS[m.hand[0][view.sel]];setHTML($('#info'),c?`<span><b>${c.name} · ${c.role}</b><br>${c.desc}</span>`:'<span>Tap a card to see what it does.</span>','info');}
  $('#lblBtn').classList.toggle('off',S.labels===false);
- const b=$('#banner');if(m.t>=120&&m.t<122&&lastBan!==1){lastBan=1;b.textContent='DOPPELTES ELIXIER!';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');}
- if(m.ot&&m.t>=300&&m.t<302&&lastBan!==3){lastBan=3;b.textContent='DREIFACHES ELIXIER!';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');}
- if(m.ot&&m.t<182&&lastBan!==2){lastBan=2;b.textContent='VERLÄNGERUNG!';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');}
+ const b=$('#banner');if(m.t>=120&&m.t<122&&lastBan!==1){lastBan=1;b.textContent='DOUBLE ELIXIR!';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');}
+ if(m.ot&&m.t>=300&&m.t<302&&lastBan!==3){lastBan=3;b.textContent='TRIPLE ELIXIR!';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');}
+ if(m.ot&&m.t<182&&lastBan!==2){lastBan=2;b.textContent='OVERTIME!';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');}
 }
 function watchPanel(el,m,k){
  const key=el.id;if(!el.firstChild||el.dataset.team!==String(k)+':'+m.id){el.dataset.team=k+':'+m.id;el.innerHTML='<div class="wcards"></div><div class="welix"><i></i><span></span></div>';lastHTML[key]='';}
- setHTML(el.firstChild,m.hand[k].map(id=>cardHTML(id,m.p[k].lvl(id))).join('')+'<div class="wnext">Nächste'+cardHTML(m.queue[k][0],m.p[k].lvl(m.queue[k][0]))+'</div>',key);
+ setHTML(el.firstChild,m.hand[k].map(id=>cardHTML(id,m.p[k].lvl(id))).join('')+'<div class="wnext">Next'+cardHTML(m.queue[k][0],m.p[k].lvl(m.queue[k][0]))+'</div>',key);
  el.querySelector('.welix i').style.width=m.el[k]*10+'%';el.querySelector('.welix span').textContent='💧 '+Math.floor(m.el[k]);
 }
 function evSound(m){for(const e of m.ev){if(e==='tower')SND.tower();else if(e.length>3&&e[3]===':')unitSnd(e,m);}m.ev.length=0;}
@@ -1273,7 +1273,7 @@ function showScreen(s){try{const de=document.documentElement;if(s==='battle'&&!d
 let searching=null;
 function startBattle(){
  if(searching)return;const v=$('#vs'),t0=performance.now(),dur=rnd(5000,10000);v.classList.remove('hidden');
- v.innerHTML=`<div style="font-size:60px">🔍</div><div style="font-size:22px;font-weight:900">Suche Gegner …</div><div class="stat" style="font-size:16px">🏆 ${S.trophies} · <span id="searchT">0</span> s</div><button class="btn red" data-act="cancelSearch">Abbrechen</button>`;
+ v.innerHTML=`<div style="font-size:60px">🔍</div><div style="font-size:22px;font-weight:900">Searching for opponent …</div><div class="stat" style="font-size:16px">🏆 ${S.trophies} · <span id="searchT">0</span> s</div><button class="btn red" data-act="cancelSearch">Cancel</button>`;
  const tick=setInterval(()=>{const e=$('#searchT');if(e)e.textContent=Math.floor((performance.now()-t0)/1000);},250);
  searching={tick,to:setTimeout(found,dur)};
 }
@@ -1281,7 +1281,7 @@ function stopSearch(){if(!searching)return;clearInterval(searching.tick);clearTi
 function found(){
  const opp=world.pickOpponent(S.trophies),v=$('#vs');if(!opp){searching.to=setTimeout(found,1000);return;}
  stopSearch();searching={};popp=opp;opp.search=null;
- v.innerHTML=`<div class="stat" style="font-size:16px">Gegner gefunden!</div><div class="pl"><div class="p">👑<small>${S.name}</small><small>🏆 ${S.trophies} · Lv ${S.lvl}</small></div><div class="vsx">VS</div><div class="p">${opp.av}<small>${opp.name}</small><small>🏆 ${opp.trophies} · Lv ${opp.lvl}</small></div></div>`;
+ v.innerHTML=`<div class="stat" style="font-size:16px">Opponent found!</div><div class="pl"><div class="p">👑<small>${S.name}</small><small>🏆 ${S.trophies} · Lv ${S.lvl}</small></div><div class="vsx">VS</div><div class="p">${opp.av}<small>${opp.name}</small><small>🏆 ${opp.trophies} · Lv ${opp.lvl}</small></div></div>`;
  sfx(300,.4,'sawtooth',.05,300);
  setTimeout(()=>{searching=null;v.classList.add('hidden');beginMatch(opp);},2200);
 }
@@ -1291,18 +1291,18 @@ function beginMatch(opp){
  $('#wTop').classList.add('hidden');$('#wBot').classList.add('hidden');
  showScreen('battle');$('#bar').classList.remove('hidden');$('#watchBar').classList.add('hidden');$('#emoBtn').classList.remove('hidden');fit();
  $('#emoPick').innerHTML=['😀','😎','😂','😭','😡','👍'].map(e=>`<span data-act="emo" data-e="${e}">${e}</span>`).join('');$('#emoPick').classList.add('hidden');
- const b=$('#banner');b.textContent='LOS!';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');
+ const b=$('#banner');b.textContent='GO!';b.classList.remove('on');void b.offsetWidth;b.classList.add('on');
 }
 function showResult(m){
  const w=m.winner,opp=popp,before=arenaFor(S.best).i,r=settle(S,opp,w),cr=m.crowns;
  const rw=matchReward(S,w<0?0:w===0?1:-1,cr[0]),{gold,xp,chest}=rw;matchReward(opp,w<0?0:w===1?1:-1,cr[1]);opp.inMatch=false;opp.idle=rnd(6,16);opp.wait=0;save();
- const na=arenaFor(S.best).i;if(na>before)setTimeout(()=>toast('🎉 Neue Arena: '+ARENAS[na].n),400);else if(rw.up)setTimeout(()=>toast('🎉 Level '+S.lvl+'!'),400);
+ const na=arenaFor(S.best).i;if(na>before)setTimeout(()=>toast('🎉 New arena: '+ARENAS[na].n),400);else if(rw.up)setTimeout(()=>toast('🎉 Level '+S.lvl+'!'),400);
  (w===0?SND.win:SND.lose)();
  $('#result').innerHTML=`<div class="mbox"><h1 class="${w===0?'win':w===1?'lose':'draw'}">${w===0?'SIEG!':w===1?'NIEDERLAGE':'UNENTSCHIEDEN'}</h1>
  <div style="font-size:34px;margin:6px 0" class="crowns"><span style="color:#8cf">${crownsHTML(cr[1]).replace(/class="on"/g,'class="on"')}</span> &nbsp;:&nbsp; <span style="color:#f99">${crownsHTML(cr[0])}</span></div>
  <div style="font-size:13px;opacity:.9">${S.name} ${cr[0]} : ${cr[1]} ${opp.name}</div>
- <table style="margin:12px 0"><tr><td>Trophäen</td><td>${r.da>=0?'+':''}${r.da} 🏆</td></tr><tr><td>Gold</td><td>+${gold} 🪙</td></tr><tr><td>Erfahrung</td><td>+${xp} XP</td></tr>${chest?`<tr><td>Truhe</td><td>${CHESTS[chest.type].i} ${CHESTS[chest.type].n}</td></tr>`:''}</table>
- <button class="btn green big" style="width:100%;font-size:20px" data-act="resClose">Weiter</button></div>`;
+ <table style="margin:12px 0"><tr><td>Trophies</td><td>${r.da>=0?'+':''}${r.da} 🏆</td></tr><tr><td>Gold</td><td>+${gold} 🪙</td></tr><tr><td>Experience</td><td>+${xp} XP</td></tr>${chest?`<tr><td>Truhe</td><td>${CHESTS[chest.type].i} ${CHESTS[chest.type].n}</td></tr>`:''}</table>
+ <button class="btn green big" style="width:100%;font-size:20px" data-act="resClose">Continue</button></div>`;
  $('#result').classList.remove('hidden');
 }
 function leaveBattle(){mode='menu';pm=null;popp=null;showScreen('menu');lastHTML.tab='';renderTab();}
@@ -1321,7 +1321,7 @@ window.addEventListener('pointerup',e=>{
  const[x,y,inn]=cvPos(e);const d=drag;drag=null;
  if(d&&!d.moved){if(d.was){view.sel=-1;lastHand='';}return;}
  if(inn&&view.sel>=0&&!pm.over){
-  if(pm.play(0,view.sel,x,y)){view.sel=-1;lastHand='';}else{const c=CARDS[pm.hand[0][view.sel]];SND.bad();if(c&&pm.el[0]<c.cost)toast('Nicht genug Elixir');else if(c)toast('Hier kannst du nicht platzieren');}
+  if(pm.play(0,view.sel,x,y)){view.sel=-1;lastHand='';}else{const c=CARDS[pm.hand[0][view.sel]];SND.bad();if(c&&pm.el[0]<c.cost)toast('Not enough elixir');else if(c)toast('You can’t place here');}
  }
 });
 document.addEventListener('keydown',e=>{if(mode==='battle'&&pm&&e.key>='1'&&e.key<='4'){view.sel=+e.key-1;lastHand='';}});
@@ -1422,7 +1422,7 @@ Brain.prototype.smart=function(m,me){
  }
  // ---------- 2. Vorsprung kurz vor Schluss: nichts riskieren ----------
  if(t>=165&&!m.ot&&lead>0&&sumP(lanes[0])+sumP(lanes[1])<30&&el<9.3)return true;
- // ---------- 3. Konterangriff: überlebende Truppen unterstützen ----------
+ // ---------- 3. Konterangriff: überlebende Troops unterstützen ----------
  const sv=fr.filter(u=>mine(u)&&u.c.spd>0&&!u.c.heal&&u.hp>u.maxhp*.3),sp=sumP(sv);
  if(sp>=90&&el>=5&&(this.cpT||0)<t){
   const ld=sv.slice().sort((a,b)=>b.hp-a.hp)[0],val=c=>c.count*(c.hp/10+c.dps*1.2)/c.cost;
@@ -1586,7 +1586,7 @@ Brain.prototype.pro=function(m,me){
     if(anyAir&&!c.hitsAir&&!c.fly)v*=.75;
     const ad=v/pwr;if(ad<.45||(ad<.7&&!danger))continue;
     s=(ec-c.cost)+Math.min(ad,1.6)*1.5;                                            // positiver Elixier-Trade zählt
-    if(c.type==='building'&&tanky)s+=1;                                            // Gebäude in die Mitte zieht Tanks
+    if(c.type==='building'&&tanky)s+=1;                                            // Buildings in die Mitte zieht Tanks
     pos=this.place(m,me,c,cx,cy,rush,tanky);}
    s+=rnd(-1,1)*(1-r)*1.5;
    if(s>bs){bs=s;best={o,pos};}}
@@ -1689,7 +1689,7 @@ Brain.prototype.pro2=function(m,me){
     if(sup)return m.play(me,sup.i,clamp(lead.x,20,340),me===0?clamp(lead.y+45,RY+30,520):clamp(lead.y-45,80,RY-30));}
    if(w&&(tri||lead===undefined)){const q=this.off(m,me,w.c,l);return m.play(me,w.i,q.x,q.y);}
   }
-  return tri?false:true; // normale Verlängerung: sparen, auf Fehler warten
+  return tri?false:true; // normale Verlängerung: sparen, auf Error warten
  }
  // ---------- Angriff mit Überzahl/Unterstützung ----------
  // Überlebender Tank an der Brücke: Fernkämpfer/Schadensträger dahinter schicken
@@ -1724,7 +1724,7 @@ Brain.prototype.place=function(m,me,c,cx,cy,rush,tanky){
   // Spawner hinten in der Mitte, Verteidigungsgebäude mittig vor den Türmen: zieht Tanks und Rusher von beiden Türmen weg
   if(c.spawner)return{x:180+(l?-20:20),y:me===0?430:170};
   return{x:180+(l?22:-22),y:me===0?395:205};}
- if(c.minR)return{x:tx,y:me===0?440:160}; // Mörser: weit hinten, aus sicherer Distanz
+ if(c.minR)return{x:tx,y:me===0?440:160}; // Mortar: weit hinten, aus sicherer Distanz
  if(rush){ // Turmjäger/Rammbock: Ziel ist mein Turm -> neben/vor den Turm, Nahkämpfer fangen ihn VOR dem Turm ab, Fernkämpfer stehen hinter dem Turm
   if(ranged||c.fly){x=tx+(cx<tx?-12:12);y=ty+d*32;}
   else{x=tx+(cx<tx?-14:14);y=ty-d*8;}
@@ -1747,15 +1747,15 @@ Brain.prototype.off=function(m,me,c,l,ref){
  const d=D(me),tx=TX(l),brY=me===0?RY+RH+22:RY-RH-22,bkY=KY(me)-d*8;
  if(ref&&ref.x!=null){ // Unterstützung hinter die eigene Truppe: Fernkämpfer weiter zurück, Schaden/Schwarm nah dahinter
   const back=c.range>60?60:c.splash||c.count>=3?38:45;return{x:clamp(ref.x+(c.range>60?(ref.x<180?10:-10):0),20,340),y:lim(me,ref.y+d*back)};}
- if(c.anywhere){const t=m.tw[1-me][l];return{x:t.x,y:t.y+d*34};}                  // Tunnelgräber: direkt am Turm
- if(c.type==='building')return{x:tx,y:me===0?348:252};                                 // Belagerung (Armbrust/Mörser) knapp hinter der Brücke
+ if(c.anywhere){const t=m.tw[1-me][l];return{x:t.x,y:t.y+d*34};}                  // Tunnel Digger: direkt am Turm
+ if(c.type==='building')return{x:tx,y:me===0?348:252};                                 // Belagerung (Armbrust/Mortar) knapp hinter der Brücke
  if(c.type==='spell')return{x:tx,y:m.tw[1-me][l].y};
  if(c.role==='TANK'||c.hp*(c.count||1)>=2200)return{x:tx,y:bkY};                       // Tank ganz hinten: langer Weg = Elixier sammeln, Unterstützung kommt nach
  if(c.bOnly&&c.fly)return{x:tx,y:KY(me)-d*30};                                         // Luft-Turmjäger hinten, fliegt über alles
  if(c.charge||c.jump||c.spd>=40&&c.bOnly)return{x:tx,y:brY};                           // schnelle Turmjäger: direkt an die Brücke
  if(c.range>60)return{x:tx+(l?-10:10),y:me===0?TY(me)+30:TY(me)-30};                   // Fernkämpfer hinter dem eigenen Turm
  if(c.count>=3||c.cost<=3)return{x:tx,y:brY-d*6};                                      // billige Zyklus-Karten an der Brücke: Druck, Gegner muss reagieren
- return{x:tx,y:me===0?RY+RH+60:RY-RH-60};                                              // normale Truppen etwas hinter der Brücke
+ return{x:tx,y:me===0?RY+RH+60:RY-RH-60};                                              // normale Troops etwas hinter der Brücke
 };
 })();
 
@@ -1894,7 +1894,7 @@ document.head.appendChild(st);
 const nm=id=>CARDS[id].name;
 const pct=(a,b)=>b?Math.round(a/b*100)+'%':'–';
 function bars(rows,col,fmt){
- if(!rows.length)return'<div class="stat">Noch keine Daten.</div>';
+ if(!rows.length)return'<div class="stat">No data yet.</div>';
  const mx=Math.max(...rows.map(r=>r[1]),1e-9);
  return rows.map(r=>`<div class="sb"><span class="l">${r[0]}</span><span class="t"><i style="width:${Math.max(3,r[1]/mx*100)}%;background:${col}"></i></span><span class="v">${fmt?fmt(r[1],r):r[1]}</span></div>`).join('');
 }
@@ -1925,22 +1925,22 @@ function statsHTML(){
  const mg=S.wins+S.losses+S.draws;
  const cl=c=>CARDS[c].name;
  let h='';
- h+=box('🌍 Übersicht',grid([['Kämpfe gesamt',G.matches],['Du gegen Bots',G.pMatches],['Bot gegen Bot',G.bMatches],['Live gerade',lv],['Online',on+' / '+N],['Ø Kampfdauer',G.matches?fmtT(G.dur/G.matches):'–'],['Längster Kampf',G.longest?fmtT(G.longest):'–'],['Kürzester Kampf',G.shortest?fmtT(G.shortest):'–'],['Ø Kronen / Kampf',G.matches?(G.crowns/G.matches).toFixed(2):'–'],['Verlängerung',pct(G.ot,G.matches)],['Remis',pct(G.draws,G.matches)],['3-Kronen-Siege',G.three],['Türme zerstört',G.towers],['Königstürme gefallen',G.kings],['Max. Kronen in 1 Kampf',G.maxCrowns],['Spieler gesamt',N+1]]));
- h+=box('🃏 Beliebteste Karten im Deck (Top 15)',bars(top(use,15).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#6cf,#27c)',(v)=>v+' · '+pct(v,N)));
- h+=box('🥀 Unbeliebteste Karten im Deck',bars(PLAY_CARDS.map(c=>[c.name,use[c.id]||0]).sort((a,b)=>a[1]-b[1]).slice(0,10),'linear-gradient(90deg,#f99,#c33)',(v)=>v+' · '+pct(v,N)));
- h+=box('🏅 Höchste Siegquote (min. 10 Kämpfe)',bars(top(wr,10).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#8f8,#2a2)',v=>Math.round(v*100)+'%'));
- h+=box('📉 Niedrigste Siegquote',bars(top(wr,8,true).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#fa8,#c52)',v=>Math.round(v*100)+'%'));
- h+=box('⚔️ Meistgespielte Karten im Kampf',bars(top(G.plays,12).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#fd7,#e90)'));
- h+=box('🙋 Deine meistgespielten Karten',bars(top(G.mine,8).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#fd7,#e90)'));
- h+=box('💖 Lieblingskarten der Bots (nach Testphase)',bars(top(lk,8).filter(e=>e[1]>0).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#f9c,#c39)',v=>'+'+v.toFixed(1)));
- h+=box('👎 Aussortierte Karten',bars(top(lk,8,true).filter(e=>e[1]<0).map(([id,v])=>[cl(id),-v]),'linear-gradient(90deg,#9ab,#567)',v=>'−'+v.toFixed(1)));
- h+=box('🧪 Gerade im Test',Object.keys(trial).length?bars(top(trial,10).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#c9f,#73c)',v=>v+' Bots'):'<div class="stat">Aktuell testet niemand eine neue Karte.</div>');
- h+=box('🧬 Deck-Zusammensetzung',grid([['Ø Elixier',dk?(cs/dk).toFixed(2):'–'],['Truppen',pct(typ.troop,dk)],['Zauber',pct(typ.spell,dk)],['Gebäude',pct(typ.building,dk)],['Gewöhnlich',pct(rar.c,dk)],['Selten',pct(rar.r,dk)],['Episch',pct(rar.e,dk)],['Legendär',pct(rar.l,dk)]])+'<div style="height:8px"></div>'+bars(Object.keys(cost).sort((a,b)=>a-b).map(k=>[k+' 💧',cost[k]]),'linear-gradient(90deg,#e6f,#a2d)',(v)=>pct(v,dk)));
- h+=box('🎭 Spielstile der Bots',bars(top(arch,6).map(([k,v])=>[k,v]),'linear-gradient(90deg,#6df,#38c)',(v)=>v+' Bots'));
- h+=box('🗺️ Spieler pro Arena',bars(ARENAS.map(a=>[a.n,ar[a.n]||0]).filter(r=>r[1]>0),'linear-gradient(90deg,#9e9,#5a5)'));
- h+=box('📦 Kartenbesitz',grid([['Ø Karten pro Bot',(cards/N).toFixed(1)],['Karten auf Max-Level',maxed],['Ø Königslevel',(lvl/N).toFixed(1)],['Gold gesamt',gold.toLocaleString('de-DE')]])+'<div style="height:6px"></div><b style="font-size:12px">Am seltensten besessen</b>'+bars(PLAY_CARDS.map(c=>[c.name,own[c.id]||0]).sort((a,b)=>a[1]-b[1]).slice(0,6),'linear-gradient(90deg,#ccc,#889)',(v)=>pct(v,N))+'<div style="height:6px"></div><b style="font-size:12px">Höchstes Ø-Kartenlevel</b>'+bars(Object.keys(lvSum).map(id=>[nm(id),lvSum[id]/own[id]]).sort((a,b)=>b[1]-a[1]).slice(0,6),'linear-gradient(90deg,#fe9,#ca3)',v=>v.toFixed(1)));
- h+=box('👑 Bestenlisten',`<b style="font-size:12px">Meiste Trophäen</b>`+bars(ranked.slice(0,5).map(b=>[b.av+' '+b.name,b.trophies]),'linear-gradient(90deg,#fd7,#e90)')+'<div style="height:6px"></div><b style="font-size:12px">Meiste Siege</b>'+bars(bots.slice().sort((a,b)=>b.wins-a.wins).slice(0,5).map(b=>[b.av+' '+b.name,b.wins]),'linear-gradient(90deg,#8f8,#2a2)')+'<div style="height:6px"></div><b style="font-size:12px">Beste Siegquote (min. 10 Kämpfe)</b>'+bars(bots.filter(b=>games(b)>=10).sort((a,b)=>b.wins/games(b)-a.wins/games(a)).slice(0,5).map(b=>[b.av+' '+b.name,b.wins/games(b)]),'linear-gradient(90deg,#6df,#38c)',v=>Math.round(v*100)+'%')+'<div style="height:6px"></div><b style="font-size:12px">Fleißigste Spieler</b>'+bars(bots.slice().sort((a,b)=>games(b)-games(a)).slice(0,5).map(b=>[b.av+' '+b.name,games(b)]),'linear-gradient(90deg,#c9f,#73c)',v=>v+' Kämpfe'));
- h+=box('🙋 Deine Statistik',grid([['Rang',myRank+' / '+(N+1)],['Trophäen',S.trophies],['Bestwert',S.best],['Kämpfe',mg],['Siege',S.wins],['Niederlagen',S.losses],['Remis',S.draws],['Siegquote',pct(S.wins,mg)],['Form',(S.form||[]).join(' ')||'–'],['Königslevel',S.lvl],['Gold',S.gold],['Karten',PLAY_CARDS.filter(c=>S.cards[c.id].own).length+' / '+PLAY_CARDS.length]]));
+ h+=box('🌍 Overview',grid([['Total battles',G.matches],['You vs Bots',G.pMatches],['Bot vs Bot',G.bMatches],['Live now',lv],['Online',on+' / '+N],['Ø Battle length',G.matches?fmtT(G.dur/G.matches):'–'],['Longest battle',G.longest?fmtT(G.longest):'–'],['Shortest battle',G.shortest?fmtT(G.shortest):'–'],['Ø Crowns / battle',G.matches?(G.crowns/G.matches).toFixed(2):'–'],['Verlängerung',pct(G.ot,G.matches)],['Remis',pct(G.draws,G.matches)],['3-Kronen-Siege',G.three],['Towers destroyed',G.towers],['King towers fallen',G.kings],['Max crowns in 1 battle',G.maxCrowns],['Total players',N+1]]));
+ h+=box('🃏 Most popular cards in decks (Top 15)',bars(top(use,15).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#6cf,#27c)',(v)=>v+' · '+pct(v,N)));
+ h+=box('🥀 Least popular cards in decks',bars(PLAY_CARDS.map(c=>[c.name,use[c.id]||0]).sort((a,b)=>a[1]-b[1]).slice(0,10),'linear-gradient(90deg,#f99,#c33)',(v)=>v+' · '+pct(v,N)));
+ h+=box('🏅 Highest win rate (min. 10 battles)',bars(top(wr,10).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#8f8,#2a2)',v=>Math.round(v*100)+'%'));
+ h+=box('📉 Lowest win rate',bars(top(wr,8,true).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#fa8,#c52)',v=>Math.round(v*100)+'%'));
+ h+=box('⚔️ Most played cards in battle',bars(top(G.plays,12).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#fd7,#e90)'));
+ h+=box('🙋 Your most played cards',bars(top(G.mine,8).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#fd7,#e90)'));
+ h+=box('💖 Bots’ favorite cards (after test phase)',bars(top(lk,8).filter(e=>e[1]>0).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#f9c,#c39)',v=>'+'+v.toFixed(1)));
+ h+=box('👎 Discarded cards',bars(top(lk,8,true).filter(e=>e[1]<0).map(([id,v])=>[cl(id),-v]),'linear-gradient(90deg,#9ab,#567)',v=>'−'+v.toFixed(1)));
+ h+=box('🧪 Currently in testing',Object.keys(trial).length?bars(top(trial,10).map(([id,v])=>[cl(id),v]),'linear-gradient(90deg,#c9f,#73c)',v=>v+' Bots'):'<div class="stat">Nobody is testing a new card right now.</div>');
+ h+=box('🧬 Deck composition',grid([['Ø Elixir',dk?(cs/dk).toFixed(2):'–'],['Troops',pct(typ.troop,dk)],['Zauber',pct(typ.spell,dk)],['Buildings',pct(typ.building,dk)],['Common',pct(rar.c,dk)],['Rare',pct(rar.r,dk)],['Epic',pct(rar.e,dk)],['Legendary',pct(rar.l,dk)]])+'<div style="height:8px"></div>'+bars(Object.keys(cost).sort((a,b)=>a-b).map(k=>[k+' 💧',cost[k]]),'linear-gradient(90deg,#e6f,#a2d)',(v)=>pct(v,dk)));
+ h+=box('🎭 Bot play styles',bars(top(arch,6).map(([k,v])=>[k,v]),'linear-gradient(90deg,#6df,#38c)',(v)=>v+' Bots'));
+ h+=box('🗺️ Players per arena',bars(ARENAS.map(a=>[a.n,ar[a.n]||0]).filter(r=>r[1]>0),'linear-gradient(90deg,#9e9,#5a5)'));
+ h+=box('📦 Card ownership',grid([['Ø Cards per bot',(cards/N).toFixed(1)],['Cards at max level',maxed],['Ø King level',(lvl/N).toFixed(1)],['Total gold',gold.toLocaleString('en-US')]])+'<div style="height:6px"></div><b style="font-size:12px">Least owned</b>'+bars(PLAY_CARDS.map(c=>[c.name,own[c.id]||0]).sort((a,b)=>a[1]-b[1]).slice(0,6),'linear-gradient(90deg,#ccc,#889)',(v)=>pct(v,N))+'<div style="height:6px"></div><b style="font-size:12px">Highest Ø card level</b>'+bars(Object.keys(lvSum).map(id=>[nm(id),lvSum[id]/own[id]]).sort((a,b)=>b[1]-a[1]).slice(0,6),'linear-gradient(90deg,#fe9,#ca3)',v=>v.toFixed(1)));
+ h+=box('👑 Leaderboards',`<b style="font-size:12px">Most trophies</b>`+bars(ranked.slice(0,5).map(b=>[b.av+' '+b.name,b.trophies]),'linear-gradient(90deg,#fd7,#e90)')+'<div style="height:6px"></div><b style="font-size:12px">Most wins</b>'+bars(bots.slice().sort((a,b)=>b.wins-a.wins).slice(0,5).map(b=>[b.av+' '+b.name,b.wins]),'linear-gradient(90deg,#8f8,#2a2)')+'<div style="height:6px"></div><b style="font-size:12px">Best win rate (min. 10 battles)</b>'+bars(bots.filter(b=>games(b)>=10).sort((a,b)=>b.wins/games(b)-a.wins/games(a)).slice(0,5).map(b=>[b.av+' '+b.name,b.wins/games(b)]),'linear-gradient(90deg,#6df,#38c)',v=>Math.round(v*100)+'%')+'<div style="height:6px"></div><b style="font-size:12px">Most active players</b>'+bars(bots.slice().sort((a,b)=>games(b)-games(a)).slice(0,5).map(b=>[b.av+' '+b.name,games(b)]),'linear-gradient(90deg,#c9f,#73c)',v=>v+' Kämpfe'));
+ h+=box('🙋 Your stats',grid([['Rang',myRank+' / '+(N+1)],['Trophies',S.trophies],['Bestwert',S.best],['Kämpfe',mg],['Siege',S.wins],['Niederlagen',S.losses],['Remis',S.draws],['Siegquote',pct(S.wins,mg)],['Form',(S.form||[]).join(' ')||'–'],['King level',S.lvl],['Gold',S.gold],['Karten',PLAY_CARDS.filter(c=>S.cards[c.id].own).length+' / '+PLAY_CARDS.length]]));
  return h;
 }
 // Tab in renderTab einhängen
@@ -1949,7 +1949,7 @@ renderTab=function(){
  if(tab!=='stats')return rt();
  renderTop();
  document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.t===tab));
- setHTML($('#content'),`<div class="sect">📊 Statistiken</div>`+statsHTML(),'tab');
+ setHTML($('#content'),`<div class="sect">📊 Statistics</div>`+statsHTML(),'tab');
 };
 })();
 
@@ -1957,7 +1957,7 @@ renderTab=function(){
 (function(){
 const MAXM=20,KICK_AFTER=240000;
 S.clans=Array.isArray(S.clans)?S.clans:[];S.cn=S.cn||1;
-const CN=['Drachenwache','Turmtitanen','Kronenjäger','Elixierjunkies','Königsmacher','Pfannkuchen-Pack','Nachtwölfe','Blitzbande','Eisgarde','Goldene Gilde','Feuerfalken','Schlosswächter','Gobbo-Gang','Mauerbrecher'];
+const CN=['Drachenwache','Turmtitanen','Kronenjäger','Elixierjunkies','Königsmacher','Pfannkuchen-Pack','Nachtwölfe','Blitzbande','Eisgarde','Golden Guild','Feuerfalken','Schlosswächter','Gobbo-Gang','Mauerbrecher'];
 const BD=['🛡️','⚔️','🐉','🔥','❄️','⚡','🦅','🐺','👑','💎','🌙','☠️'];
 const bk=b=>'b:'+b.name,botOf=k=>world.bots.find(b=>bk(b)===k);
 const byId=id=>S.clans.find(c=>c.id===id),clanOf=k=>S.clans.find(c=>c.mem.some(m=>m.k===k));
@@ -1966,7 +1966,7 @@ const total=c=>c.mem.reduce((s,m)=>s+((info(m.k)||{}).tr||0),0);
 function mk(k,name,badge,req){const c={id:S.cn++,name,badge,req,lead:k,mem:[{k,t:Date.now()}],ban:[],cr:[]};S.clans.push(c);return c;}
 function drop(c,k){c.mem=c.mem.filter(m=>m.k!==k);c.cr=(c.cr||[]).filter(r=>r.k!==k);if(!c.mem.length){S.clans.splice(S.clans.indexOf(c),1);return;}
  if(c.lead===k)c.lead=c.mem.slice().sort((a,b)=>info(b.k).tr-info(a.k).tr)[0].k;}
-function kick(c,k){drop(c,k);if(!c.ban.includes(k))c.ban.push(k);if(k==='me')toast('🥾 Du wurdest aus „'+c.name+'“ gekickt');}
+function kick(c,k){drop(c,k);if(!c.ban.includes(k))c.ban.push(k);if(k==='me')toast('🥾 You were kicked from „'+c.name+'” kicked');}
 function tick(){
  const now=Date.now(),names=new Set(world.bots.map(bk));
  for(const c of S.clans.slice()){c.mem=c.mem.filter(m=>m.k==='me'||names.has(m.k));
@@ -1987,7 +1987,7 @@ function tick(){
 }
 setInterval(tick,3000);setTimeout(tick,1000);
 const membersHTML=(c,canKick)=>c.mem.map(m=>({m,i:info(m.k)})).sort((a,b)=>b.i.tr-a.i.tr).map(({m,i},n)=>`<div class="row ${i.me?'me':''}" style="cursor:default"><div class="rk">${n+1}</div><div class="ra">${i.av}</div><div style="flex:1;min-width:0"><div class="rn">${m.k===c.lead?'👑 ':''}${i.name}</div><span class="rs">${i.on?'<span class="dot"></span>online':'<span class="dot off"></span>offline'}</span></div><div class="rt">🏆 ${i.tr}</div>${!i.me&&i.on&&clanOf('me')===c?`<button class="btn blue mini" data-act="clanFriend" data-k="${m.k}">⚔️</button>`:''}${canKick&&m.k!==c.lead?`<button class="btn red mini" data-act="clanKick" data-c="${c.id}" data-k="${m.k}">🥾</button>`:''}</div>`).join('');
-const head=c=>`<div class="arena" style="background:linear-gradient(#5a48c8,#2a1f70)"><div style="font-size:46px">${c.badge}</div><div class="an">${c.name}</div><div class="sub">${c.mem.length}/${MAXM} Mitglieder · 🏆 ${total(c)} · Beitritt ab ${c.req} 🏆</div></div>`;
+const head=c=>`<div class="arena" style="background:linear-gradient(#5a48c8,#2a1f70)"><div style="font-size:46px">${c.badge}</div><div class="an">${c.name}</div><div class="sub">${c.mem.length}/${MAXM} Members · 🏆 ${total(c)} · Join from ${c.req} 🏆</div></div>`;
 // --- Karten anfordern & spenden ---
 const RC={c:{cap:30,per:10,g:2,xp:1},r:{cap:9,per:3,g:10,xp:2},e:{cap:2,per:1,g:60,xp:4}},CD=120000,EXP=1200000;
 const acc=k=>k==='me'?S:botOf(k);
@@ -2009,18 +2009,18 @@ function botCards(now){let ch=false;
     if(donate(r,m.k))ch=true;}}}
  if(ch){save();if(tab==='clan'&&$('#modal').classList.contains('hidden'))renderTab();}}
 function cardsHTML(c){const now=Date.now(),mine=(c.cr||[]).some(r=>r.k==='me');
- let h='<div class="sect">🃏 Kartenanfragen</div>';
- if(!mine)h+=now<(S.reqAt||0)?`<div class="stat">Nächste Anfrage in ${Math.ceil((S.reqAt-now)/1000)} s</div>`:'<button class="btn blue" style="width:100%" data-act="clanReqAsk">🃏 Karten anfordern</button>';
+ let h='<div class="sect">🃏 Card requests</div>';
+ if(!mine)h+=now<(S.reqAt||0)?`<div class="stat">Next request in ${Math.ceil((S.reqAt-now)/1000)} s</div>`:'<button class="btn blue" style="width:100%" data-act="clanReqAsk">🃏 Request cards</button>';
  h+=(c.cr||[]).slice().sort((a,b)=>(a.got>=a.cap)-(b.got>=b.cap)||b.t-a.t).map(r=>{const cd=CARDS[r.id],i=info(r.k)||{name:'?',av:'👤'},full=r.got>=r.cap,have=S.cards[r.id]&&S.cards[r.id].own;
   const can=r.k!=='me'&&!full&&!r.don.me&&have;
-  return`<div class="row" style="cursor:default"><div style="flex:none;width:44px;height:44px"><img src="${pic(r.id)}" alt="" style="width:44px;height:44px;object-fit:contain"></div><div style="flex:1;min-width:0"><div class="rn">${cd.name}</div><span class="rs">${i.av} ${r.k==='me'?'Du':i.name} · ${r.got}/${r.cap}</span></div>${can?`<button class="btn green mini" data-act="clanDon" data-k="${r.k}">Spenden</button>`:full?'<span class="rs">✅ voll</span>':r.don.me?'<span class="rs">gespendet</span>':''}</div>`;}).join('')||'<div class="stat">Keine Anfragen – fordere Karten an!</div>';
+  return`<div class="row" style="cursor:default"><div style="flex:none;width:44px;height:44px"><img src="${pic(r.id)}" alt="" style="width:44px;height:44px;object-fit:contain"></div><div style="flex:1;min-width:0"><div class="rn">${cd.name}</div><span class="rs">${i.av} ${r.k==='me'?'Du':i.name} · ${r.got}/${r.cap}</span></div>${can?`<button class="btn green mini" data-act="clanDon" data-k="${r.k}">Donate</button>`:full?'<span class="rs">✅ full</span>':r.don.me?'<span class="rs">gespendet</span>':''}</div>`;}).join('')||'<div class="stat">No requests – request cards!</div>';
  return h;}
 function clanTab(){
  const my=clanOf('me');let h='';
- if(my)h+=head(my)+cardsHTML(my)+`<div class="sect">Mitglieder${my.lead==='me'?' <span class="chip">🥾 = kicken</span>':''}</div>`+membersHTML(my,my.lead==='me')+`<button class="btn red" style="width:100%;margin-top:10px" data-act="clanLeaveAsk">🚪 Clan verlassen</button>`;
- else h+=`<button class="btn green big" style="width:100%" data-act="clanNew">➕ Clan erstellen</button>`;
+ if(my)h+=head(my)+cardsHTML(my)+`<div class="sect">Mitglieder${my.lead==='me'?' <span class="chip">🥾 = kick</span>':''}</div>`+membersHTML(my,my.lead==='me')+`<button class="btn red" style="width:100%;margin-top:10px" data-act="clanLeaveAsk">🚪 Leave clan</button>`;
+ else h+=`<button class="btn green big" style="width:100%" data-act="clanNew">➕ Create clan</button>`;
  const oth=S.clans.filter(c=>c!==my).sort((a,b)=>total(b)-total(a));
- h+=`<div class="sect">${my?'Andere Clans':'Clans beitreten'} (${oth.length})</div>`+(oth.length?oth.map(c=>`<div class="row" data-act="clanView" data-c="${c.id}"><div class="ra">${c.badge}</div><div style="flex:1;min-width:0"><div class="rn">${c.name}</div><span class="rs">${c.mem.length>=MAXM?'voll · ':''}${c.mem.length}/${MAXM} · ab ${c.req} 🏆</span></div><div class="rt">🏆 ${total(c)}</div></div>`).join(''):'<div class="stat">Noch keine Clans – sie entstehen gleich von allein.</div>');
+ h+=`<div class="sect">${my?'Andere Clans':'Clans beitreten'} (${oth.length})</div>`+(oth.length?oth.map(c=>`<div class="row" data-act="clanView" data-c="${c.id}"><div class="ra">${c.badge}</div><div style="flex:1;min-width:0"><div class="rn">${c.name}</div><span class="rs">${c.mem.length>=MAXM?'voll · ':''}${c.mem.length}/${MAXM} · ab ${c.req} 🏆</span></div><div class="rt">🏆 ${total(c)}</div></div>`).join(''):'<div class="stat">No clans yet – they will form on their own shortly.</div>');
  return h;
 }
 const rt2=renderTab;
@@ -2028,32 +2028,32 @@ renderTab=function(){if(tab!=='clan')return rt2();renderTop();document.querySele
 const nav=$('#nav'),btn=document.createElement('button');btn.dataset.act='tab';btn.dataset.t='clan';btn.innerHTML='<span>🛡️</span>Clan';nav.insertBefore(btn,nav.querySelector('[data-t="stats"]'));
 const redraw=()=>{save();lastHTML.tab='';renderTab();};
 Object.assign(ACT,{
- clanNew(){if(clanOf('me'))return;showModal(`<h2>Clan erstellen</h2><div style="display:flex;flex-direction:column;gap:8px"><input id="clName" maxlength="16" placeholder="Clan-Name (3–16 Zeichen)" style="padding:10px;border-radius:10px;border:0;font:800 15px inherit"><input id="clReq" type="number" min="0" max="9999" value="0" placeholder="Mindest-Trophäen" style="padding:10px;border-radius:10px;border:0;font:800 15px inherit"><select id="clBadge" style="padding:10px;border-radius:10px;border:0;font:800 18px inherit">${BD.map(b=>`<option>${b}</option>`).join('')}</select><button class="btn green" data-act="clanCreate">Erstellen</button><button class="btn" data-act="clanClose">Abbrechen</button></div>`);},
+ clanNew(){if(clanOf('me'))return;showModal(`<h2>Create clan</h2><div style="display:flex;flex-direction:column;gap:8px"><input id="clName" maxlength="16" placeholder="Clan-Name (3–16 Zeichen)" style="padding:10px;border-radius:10px;border:0;font:800 15px inherit"><input id="clReq" type="number" min="0" max="9999" value="0" placeholder="Mindest-Trophies" style="padding:10px;border-radius:10px;border:0;font:800 15px inherit"><select id="clBadge" style="padding:10px;border-radius:10px;border:0;font:800 18px inherit">${BD.map(b=>`<option>${b}</option>`).join('')}</select><button class="btn green" data-act="clanCreate">Create</button><button class="btn" data-act="clanClose">Cancel</button></div>`);},
  clanCreate(){const n=$('#clName').value.replace(/[<>&"]/g,'').trim(),req=Math.max(0,Math.min(9999,Math.floor(+$('#clReq').value)||0));
-  if(n.length<3)return toast('Name zu kurz');if(S.clans.some(c=>c.name.toLowerCase()===n.toLowerCase()))return toast('Name schon vergeben');
-  mk('me',n,$('#clBadge').value,req);closeModal();redraw();toast('🛡️ Clan erstellt');},
+  if(n.length<3)return toast('Name too short');if(S.clans.some(c=>c.name.toLowerCase()===n.toLowerCase()))return toast('Name already taken');
+  mk('me',n,$('#clBadge').value,req);closeModal();redraw();toast('🛡️ Clan created');},
  clanClose(){closeModal();},
  clanView(el){const c=byId(+el.dataset.c);if(!c)return;const can=!clanOf('me')&&c.mem.length<MAXM&&c.req<=S.trophies&&!c.ban.includes('me');
-  showModal(`<h2>${c.badge} ${c.name}</h2><div style="text-align:center;font-size:13px;margin-bottom:8px">${c.mem.length}/${MAXM} Mitglieder · 🏆 ${total(c)} · ab ${c.req} 🏆</div><div style="max-height:45vh;overflow:auto">${membersHTML(c,false)}</div>${clanOf('me')?'':can?`<button class="btn green" style="width:100%;margin-top:8px" data-act="clanJoin" data-c="${c.id}">Beitreten</button>`:`<div class="stat">${c.ban.includes('me')?'Du wurdest hier gekickt.':c.mem.length>=MAXM?'Clan ist voll.':'Du brauchst mindestens '+c.req+' 🏆.'}</div>`}<button class="btn" style="width:100%;margin-top:8px" data-act="clanClose">Schließen</button>`);},
- clanJoin(el){const c=byId(+el.dataset.c);if(!c||clanOf('me'))return;if(c.mem.length>=MAXM)return toast('Clan ist voll');if(c.req>S.trophies||c.ban.includes('me'))return toast('Beitritt nicht möglich');
-  c.mem.push({k:'me',t:Date.now()});closeModal();redraw();toast('Willkommen in '+c.name+'!');},
+  showModal(`<h2>${c.badge} ${c.name}</h2><div style="text-align:center;font-size:13px;margin-bottom:8px">${c.mem.length}/${MAXM} Members · 🏆 ${total(c)} · ab ${c.req} 🏆</div><div style="max-height:45vh;overflow:auto">${membersHTML(c,false)}</div>${clanOf('me')?'':can?`<button class="btn green" style="width:100%;margin-top:8px" data-act="clanJoin" data-c="${c.id}">Join</button>`:`<div class="stat">${c.ban.includes('me')?'You were kicked from here.':c.mem.length>=MAXM?'Clan is full.':'You need at least '+c.req+' 🏆.'}</div>`}<button class="btn" style="width:100%;margin-top:8px" data-act="clanClose">Close</button>`);},
+ clanJoin(el){const c=byId(+el.dataset.c);if(!c||clanOf('me'))return;if(c.mem.length>=MAXM)return toast('Clan is full');if(c.req>S.trophies||c.ban.includes('me'))return toast('Cannot join');
+  c.mem.push({k:'me',t:Date.now()});closeModal();redraw();toast('Welcome to '+c.name+'!');},
  clanKick(el){const c=byId(+el.dataset.c),k=el.dataset.k;if(!c||c.lead!=='me'||k==='me')return;const i=info(k);kick(c,k);redraw();toast('🥾 '+(i?i.name:'Spieler')+' gekickt');},
- clanReqAsk(){const c=clanOf('me');if(!c)return;if((c.cr||[]).some(r=>r.k==='me'))return toast('Du hast schon eine Anfrage');if(Date.now()<(S.reqAt||0))return toast('Noch nicht bereit');
+ clanReqAsk(){const c=clanOf('me');if(!c)return;if((c.cr||[]).some(r=>r.k==='me'))return toast('You already have a request');if(Date.now()<(S.reqAt||0))return toast('Not ready yet');
   const ids=PLAY_CARDS.filter(x=>x.rar!=='l'&&S.cards[x.id].own&&S.cards[x.id].lvl<RAR[x.rar].max);
-  if(!ids.length)return toast('Keine Karte anforderbar');
+  if(!ids.length)return toast('No card can be requested');
   ids.sort((x,y)=>((S.deck.includes(y.id)?1:0)-(S.deck.includes(x.id)?1:0)));
-  showModal(`<h2>Karte anfordern</h2><div style="max-height:55vh;overflow:auto"><div class="grid">${ids.map(x=>{const d=S.cards[x.id];return`<div data-act="clanReq" data-id="${x.id}">${cardHTML(x.id,d.lvl)}<div class="rs" style="text-align:center">${d.copies}/${need(x.id,d.lvl)}</div></div>`;}).join('')}</div></div><button class="btn" style="width:100%;margin-top:8px" data-act="clanClose">Abbrechen</button>`);},
+  showModal(`<h2>Request card</h2><div style="max-height:55vh;overflow:auto"><div class="grid">${ids.map(x=>{const d=S.cards[x.id];return`<div data-act="clanReq" data-id="${x.id}">${cardHTML(x.id,d.lvl)}<div class="rs" style="text-align:center">${d.copies}/${need(x.id,d.lvl)}</div></div>`;}).join('')}</div></div><button class="btn" style="width:100%;margin-top:8px" data-act="clanClose">Cancel</button>`);},
  clanReq(el){const c=clanOf('me'),id=el.dataset.id,cd=CARDS[id];if(!c||!cd||cd.rar==='l'||!S.cards[id]||!S.cards[id].own)return;
   c.cr=c.cr||[];if(c.cr.some(r=>r.k==='me')||Date.now()<(S.reqAt||0))return;
-  c.cr.push({k:'me',id,cap:RC[cd.rar].cap,got:0,don:{},t:Date.now()});S.reqAt=Date.now()+CD;closeModal();redraw();toast('🃏 Anfrage gesendet');},
+  c.cr.push({k:'me',id,cap:RC[cd.rar].cap,got:0,don:{},t:Date.now()});S.reqAt=Date.now()+CD;closeModal();redraw();toast('🃏 Request sent');},
  clanDon(el){const c=clanOf('me');if(!c)return;const r=(c.cr||[]).find(x=>x.k===el.dataset.k);if(!r)return;const rc=RC[CARDS[r.id].rar],n=donate(r,'me');
-  if(n){redraw();toast('Gespendet: '+n+'× '+CARDS[r.id].name+' (+'+n*rc.g+' 🪙, +'+n*rc.xp+' XP)');}else toast('Spenden nicht möglich');},
- clanLeaveAsk(){showModal(`<h2>Clan verlassen?</h2><button class="btn red" style="width:100%" data-act="clanLeave">Verlassen</button><button class="btn" style="width:100%;margin-top:8px" data-act="clanClose">Abbrechen</button>`);},
+  if(n){redraw();toast('Donated: '+n+'× '+CARDS[r.id].name+' (+'+n*rc.g+' 🪙, +'+n*rc.xp+' XP)');}else toast('Cannot donate');},
+ clanLeaveAsk(){showModal(`<h2>Leave clan?</h2><button class="btn red" style="width:100%" data-act="clanLeave">Leave</button><button class="btn" style="width:100%;margin-top:8px" data-act="clanClose">Cancel</button>`);},
  clanLeave(){const c=clanOf('me');if(c)drop(c,'me');closeModal();redraw();}});
 const ra2=ACT.resetAll;ACT.resetAll=function(...a){S.clans=[];S.cn=1;ra2.apply(this,a);};
 })();
 
-// === PATCH 14: Bot-Gehirn – Bots erkennen eigene Fehler und Stärken und passen ihr Spiel langfristig an ===
+// === PATCH 14: Bot-Gehirn – Bots erkennen eigene Error und Strengths und passen ihr Spiel langfristig an ===
 // Einfügen direkt VOR der letzten Zeile "renderTab();requestAnimationFrame(frame);".
 (function(){
 BKEYS.push('br'); // Gehirn jedes Bots wird mitgespeichert
@@ -2117,7 +2117,7 @@ World.prototype.profile=function(b){
  return p;
 };
 
-// ---- Nach dem Kampf: Fehler und Stärken erkennen, Spielweise anpassen
+// ---- Nach dem Kampf: Error und Strengths erkennen, Spielweise anpassen
 function note(x,kind,label){
  const a=kind==='fe'?x.fe:x.st,i=a.indexOf(label);if(i>=0)a.splice(i,1);a.unshift(label);if(a.length>3)a.length=3;
  const key=kind+':'+label;x.cnt[key]=(x.cnt[key]||0)+1;
@@ -2137,32 +2137,32 @@ function analyze(b,br,m,me){
  const L=lr(b),keep=x.keep;
  for(const k in keep)if(--keep[k]<=0)delete keep[k];
  const prot=(...ks)=>ks.forEach(k=>{keep[k]=6;});          // Stärke: diese Einstellung wird eine Weile nicht verändert
- const adj=(k,f)=>{if(keep[k])return;t[k]=cl(f(t[k],L),LIM[k][0],LIM[k][1]);}; // Fehler: gezielt korrigieren
+ const adj=(k,f)=>{if(keep[k])return;t[k]=cl(f(t[k],L),LIM[k][0],LIM[k][1]);}; // Error: gezielt korrigieren
  if(x.n>=3){
-  // Stärken erkennen und schützen
-  if(M.tk<.9&&res>=.5){note(x,'st','Starke Verteidigung');prot('def');}
-  if(M.dl>1.4&&res>=.5){note(x,'st','Druckvoller Angriff');prot('bridge','gate');}
-  if(M.ov<.05&&M.lo<.25){note(x,'st','Gute Elixier-Kontrolle');prot('gate');}
-  if(hasSp&&M.sp>=.07&&M.sp<=.3&&res>=.5){note(x,'st','Zauber gut eingesetzt');prot('spell');}
-  if(m.ot&&res===1)note(x,'st','Nervenstark in der Verlängerung');
-  // Fehler erkennen und korrigieren
-  if(M.ov>.1){note(x,'fe','Verschwendet Elixier');adj('gate',(v,l)=>v-.12*l);adj('react',(v,l)=>v*(1-.03*l));}
-  if(M.lo>.3&&res<1){note(x,'fe','Spielt überhastet');adj('gate',(v,l)=>v+.12*l);adj('react',(v,l)=>v*(1+.03*l));}
-  if(M.tk>1.4&&res<1){note(x,'fe','Verteidigt zu spät');adj('def',(v,l)=>v*(1-.05*l));}
-  if(M.dl<.6&&M.tk<1.1&&res<1){note(x,'fe','Greift zu wenig an');adj('bridge',(v,l)=>v+.03*l);adj('gate',(v,l)=>v-.08*l);}
-  if(hasSp&&M.sp<.04&&res<1){note(x,'fe','Zauber bleiben ungenutzt');adj('spell',(v,l)=>v*(1+.06*l));}
-  if(sp>.35&&res<.5){note(x,'fe','Verschwendet Zauber');adj('spell',(v,l)=>v*(1-.05*l));}
-  if(o.fl>=0&&o.fl<50&&res<1){note(x,'fe','Früher Gegentreffer');adj('def',(v,l)=>v*(1-.03*l));}
-  if(m.ot&&res===0){note(x,'fe','Verliert Verlängerungen');adj('react',(v,l)=>v*(1-.02*l));}
+  // Strengths erkennen und schützen
+  if(M.tk<.9&&res>=.5){note(x,'st','Strong defense');prot('def');}
+  if(M.dl>1.4&&res>=.5){note(x,'st','Pressure attack');prot('bridge','gate');}
+  if(M.ov<.05&&M.lo<.25){note(x,'st','Good elixir control');prot('gate');}
+  if(hasSp&&M.sp>=.07&&M.sp<=.3&&res>=.5){note(x,'st','Spells used well');prot('spell');}
+  if(m.ot&&res===1)note(x,'st','Strong nerves in overtime');
+  // Error erkennen und korrigieren
+  if(M.ov>.1){note(x,'fe','Wastes elixir');adj('gate',(v,l)=>v-.12*l);adj('react',(v,l)=>v*(1-.03*l));}
+  if(M.lo>.3&&res<1){note(x,'fe','Plays hastily');adj('gate',(v,l)=>v+.12*l);adj('react',(v,l)=>v*(1+.03*l));}
+  if(M.tk>1.4&&res<1){note(x,'fe','Defends too late');adj('def',(v,l)=>v*(1-.05*l));}
+  if(M.dl<.6&&M.tk<1.1&&res<1){note(x,'fe','Doesn’t attack enough');adj('bridge',(v,l)=>v+.03*l);adj('gate',(v,l)=>v-.08*l);}
+  if(hasSp&&M.sp<.04&&res<1){note(x,'fe','Spells stay unused');adj('spell',(v,l)=>v*(1+.06*l));}
+  if(sp>.35&&res<.5){note(x,'fe','Wastes spells');adj('spell',(v,l)=>v*(1-.05*l));}
+  if(o.fl>=0&&o.fl<50&&res<1){note(x,'fe','Early conceded hit');adj('def',(v,l)=>v*(1-.03*l));}
+  if(m.ot&&res===0){note(x,'fe','Loses overtimes');adj('react',(v,l)=>v*(1-.02*l));}
  }
- // Erfahrung: Können wächst langsam mit der Zeit und folgt der aktuellen Form (kann auch sinken)
+ // Experience: Können wächst langsam mit der Zeit und folgt der aktuellen Form (kann auch sinken)
  const target=cl((x.ema-.5)*.3,-.1,.1)+Math.min(.04,x.n*.0004);
  t.sk=cl(t.sk+(target-t.sk)*.08*L,LIM.sk[0],LIM.sk[1]);
  // Bewährten Stil merken; bei deutlichem Formtief dahin zurückkehren
  if(x.n-x.best.n>=8&&x.ema>x.best.s){x.best={t:Object.assign({},t),s:x.ema,n:x.n};}
  else if(x.n-x.best.n>=10&&x.ema<x.best.s-.12){
   for(const k in t)if(k!=='sk')t[k]=t[k]*.4+x.best.t[k]*.6;
-  note(x,'fe','Rückschlag: kehrt zum bewährten Stil zurück');
+  note(x,'fe','Setback: returns to the proven style');
   x.best.n=x.n;x.best.s=x.best.s*.9+x.ema*.1;
  }
 }
@@ -2185,14 +2185,14 @@ ACT.bot=function(el){
  try{
   const b=world.bots[+el.dataset.id];if(!b)return;
   const x=BR(b),t=x.t,li=[];
-  if(t.def<.93)li.push('verteidigt früher');else if(t.def>1.07)li.push('verteidigt später');
-  if(t.gate<-.12)li.push('greift schneller an');else if(t.gate>.12)li.push('wartet mehr Elixier ab');
-  if(t.spell>1.1)li.push('zaubert öfter');else if(t.spell<.9)li.push('zaubert seltener');
-  if(t.bridge>.06)li.push('drückt öfter über die Brücke');
-  if(t.react<.93)li.push('reagiert schneller');else if(t.react>1.07)li.push('reagiert langsamer');
+  if(t.def<.93)li.push('defends earlier');else if(t.def>1.07)li.push('defends later');
+  if(t.gate<-.12)li.push('attacks faster');else if(t.gate>.12)li.push('waits for more elixir');
+  if(t.spell>1.1)li.push('casts spells more');else if(t.spell<.9)li.push('casts spells less');
+  if(t.bridge>.06)li.push('pushes over the bridge more often');
+  if(t.react<.93)li.push('reacts faster');else if(t.react>1.07)li.push('reacts slower');
   const sk=Math.round(t.sk*100);
   const lst=(a,k,e)=>a.length?a.map(l=>`${e} ${l}${x.cnt[k+':'+l]>1?' ('+x.cnt[k+':'+l]+'×)':''}`).join('<br>'):'–';
-  const html=`<div class="sect" style="margin:10px 0 6px">🧠 Gehirn · ${x.n} Kämpfe gelernt</div><table><tr><td>Stärken</td><td style="text-align:right">${lst(x.st,'st','💪')}</td></tr><tr><td>Fehler</td><td style="text-align:right">${lst(x.fe,'fe','⚠️')}</td></tr><tr><td>Gelernter Stil</td><td style="text-align:right">${li.join(', ')||'noch neutral'}</td></tr><tr><td>Können durch Erfahrung</td><td style="text-align:right">${sk>0?'+':''}${sk}%</td></tr></table>`;
+  const html=`<div class="sect" style="margin:10px 0 6px">🧠 Brain · ${x.n} Battles learned</div><table><tr><td>Strengths</td><td style="text-align:right">${lst(x.st,'st','💪')}</td></tr><tr><td>Error</td><td style="text-align:right">${lst(x.fe,'fe','⚠️')}</td></tr><tr><td>Learned style</td><td style="text-align:right">${li.join(', ')||'noch neutral'}</td></tr><tr><td>Skill through experience</td><td style="text-align:right">${sk>0?'+':''}${sk}%</td></tr></table>`;
   const btn=document.querySelector('#modal .mbox [data-act="close"]');
   if(btn)btn.insertAdjacentHTML('beforebegin',html);
  }catch(e){}
@@ -2277,7 +2277,7 @@ const cnt=(ids,f)=>ids.reduce((q,id)=>q+(f(CARDS[id])?1:0),0);
 const avgOf=ids=>ids.reduce((q,id)=>q+CARDS[id].cost,0)/Math.max(1,ids.length);
 const fastW=c=>isFastWin(c)&&!c.anywhere;
 const supC=c=>c.type==='troop'&&c.cost<=5&&!c.bOnly&&!c.anywhere&&!(c.hp>=1000&&(c.count||1)===1)&&(c.range>40||c.splash||c.heal||c.hitsAir||(c.count||1)>=3);
-// ---- Persönlichkeiten: Deck-Wunsch (avg = Elixier-Spanne, w = Kartenvorliebe) + Spielstil
+// ---- Persönlichkeiten: Deck-Wunsch (avg = Elixier-Spanne, w = Kartenvorliebe) + Play style
 const PERS={
  schwer:{n:'Schwergewicht',avg:[4.7,7],w:c=>c.cost>=6?5:c.cost>=5?3.6:c.cost===4?1.2:c.cost<=2?.15:.5,need:d=>(cnt(d,c=>c.cost>=5&&c.type!=='spell')>=3?0:5)+(cnt(d,supC)>=2?0:4),arch:'beatdown',st:{gate:2.8,def:.9,bridge:0,split:.1,tank:1,spell:.8}},
  billig:{n:'Billig-Zyklus',avg:[1.8,3],w:c=>(fastW(c)&&c.cost<=4?5:0)+(c.cost<=2?5:c.cost===3?2.2:c.cost===4?.3:.015),need:d=>cnt(d,c=>fastW(c)&&c.cost<=4)>=1&&cnt(d,c=>c.type==='troop'&&c.cost<=2)>=2?0:5,arch:'cycle',st:{gate:-.9,def:1.15,bridge:.15,split:.5,tank:0,spell:.9}},
@@ -2311,7 +2311,7 @@ function pen(P,d){
   if(!cs.some(wc))p+=5;
   if(cs.filter(airC).length<2)p+=3;
   if(!cs.some(c=>c.type==='spell'&&c.dmg>0)&&!(P.maxS===0))p+=2;
-  const roles={};cs.forEach(c=>{roles[c.role]=(roles[c.role]||0)+1;});for(const r in roles)if(roles[r]>3&&r!=='ZAUBER')p+=(roles[r]-3)*3;
+  const roles={};cs.forEach(c=>{roles[c.role]=(roles[c.role]||0)+1;});for(const r in roles)if(roles[r]>3&&r!=='SPELL')p+=(roles[r]-3)*3;
   if(cs.filter(c=>c.role==='TANK'||c.bOnly).length>2)p+=4;
   if(!cs.some(c=>c.type==='troop'&&c.cost<=3))p+=3;
  }
@@ -2336,7 +2336,7 @@ function buildDeck(b,key){
 }
 const fits=(b,ids)=>{const P=PERS[persOf(b)];return pen(P,ids)<5;};
 const bd18=botDeck;
-// Decks kommen wie am Anfang aus dem alten Verfahren (Meta/Geschmack + Deck-Tests); der Spielstil wird zum Deck gewählt, nicht umgekehrt
+// Decks kommen wie am Anfang aus dem alten Verfahren (Meta/Geschmack + Deck-Tests); der Play style wird zum Deck gewählt, nicht umgekehrt
 const classify=b=>{const c=KEYS.filter(k=>k!=='chaos'&&pen(PERS[k],b.deck)<5);const pool=c.length?c:['allround'];return pool[(typeof b.id==='number'?b.id:Math.floor(hh('p'+b.taste)*97))%pool.length];};
 function ensure(b){
  const good=Array.isArray(b.deck)&&b.deck.length===8&&new Set(b.deck).size===8&&b.deck.every(id=>b.cards[id]&&b.cards[id].own);
@@ -2431,20 +2431,20 @@ Brain.prototype.think=function(m,me){
   return t18.call(this,m,me);
  }finally{this._thinking=false;}
 };
-// Anzeige beim Zuschauen: Spielstil + "spart auf …"
+// Anzeige beim Zuschauen: Play style + "saving up …"
 const wp18=watchPanel;
 watchPanel=function(el,m,k){
  wp18(el,m,k);
  try{const br=m.brains&&m.brains[k],sp=el.querySelector('.welix span'),ss=m.svs&&m.svs[k],s=ss&&m.t-ss.t<2.2?ss.n:null;
-  if(sp)sp.textContent='💧 '+Math.floor(m.el[k])+(s?' · spart auf '+s:'');
+  if(sp)sp.textContent='💧 '+Math.floor(m.el[k])+(s?' · saving up '+s:'');
   const w=el.querySelector('.wname');if(w&&br&&br.persN){let t=w.querySelector('.ps');if(!t){t=document.createElement('div');t.className='ps';t.style.cssText='font-size:10px;opacity:.85;font-weight:700';w.appendChild(t);}if(t.textContent!==br.persN)t.textContent=br.persN;}}catch(e){}
 };
-// Bot-Profil: Spielstil anzeigen
+// Bot-Profil: Play style anzeigen
 const ab18=ACT.bot;
 ACT.bot=function(el){
  ab18.call(this,el);
  try{const b=world.bots[+el.dataset.id],P=PERS[persOf(b)],t=document.querySelector('#modal table');
-  if(t&&P)t.insertAdjacentHTML('afterbegin',`<tr><td>Spielstil</td><td><b>${P.n}</b> · Ø ${(avgOf(b.deck)).toFixed(1)} 💧</td></tr>`);}catch(e){}
+  if(t&&P)t.insertAdjacentHTML('afterbegin',`<tr><td>Play style</td><td><b>${P.n}</b> · Ø ${(avgOf(b.deck)).toFixed(1)} 💧</td></tr>`);}catch(e){}
 };
 })();
 
@@ -2529,16 +2529,16 @@ const crw=()=>{const c=S.crown||(S.crown={n:0,day:'',got:false});const d=new Dat
 globalThis.fdur=s=>{s=Math.max(0,Math.ceil(s));const h=Math.floor(s/3600),m=Math.floor(s%3600/60),x=s%60;return h?h+'h '+m+'min':m?m+'min '+(x?x+'s':''):x+'s';};
 globalThis.specialChests=function(){
  const now=Date.now(),f=fre(),c=crw();
- const fh=now>=f.at?`<div class="chest ready" data-act="freeChest"><div class="ci">🎀</div><div>Gratis-Truhe</div><div><b>ÖFFNEN!</b></div></div>`
-  :`<div class="chest"><div class="ci">🎀</div><div>Gratis-Truhe</div><div>${fdur((f.at-now)/1000)}</div></div>`;
- const ch=c.got?`<div class="chest"><div class="ci">👑</div><div>Kronentruhe</div><div>morgen wieder</div></div>`
-  :c.n>=10?`<div class="chest ready" data-act="crownChest"><div class="ci">👑</div><div>Kronentruhe</div><div><b>ÖFFNEN!</b></div></div>`
-  :`<div class="chest"><div class="ci">👑</div><div>Kronentruhe</div><div>${c.n}/10 ♛</div></div>`;
+ const fh=now>=f.at?`<div class="chest ready" data-act="freeChest"><div class="ci">🎀</div><div>Free Chest</div><div><b>OPEN!</b></div></div>`
+  :`<div class="chest"><div class="ci">🎀</div><div>Free Chest</div><div>${fdur((f.at-now)/1000)}</div></div>`;
+ const ch=c.got?`<div class="chest"><div class="ci">👑</div><div>Crown Chest</div><div>tomorrow again</div></div>`
+  :c.n>=10?`<div class="chest ready" data-act="crownChest"><div class="ci">👑</div><div>Crown Chest</div><div><b>OPEN!</b></div></div>`
+  :`<div class="chest"><div class="ci">👑</div><div>Crown Chest</div><div>${c.n}/10 ♛</div></div>`;
  return`<div class="chests" style="grid-template-columns:1fr 1fr">${fh}${ch}</div>`;
 };
-function loot(type,r){const C=CHESTS[type];showModal(`<h2>${C.i} ${C.n}</h2><div style="text-align:center;font-size:22px;font-weight:900;margin:8px">🪙 +${r.gold}${r.gems?' &nbsp; 💎 +'+r.gems:''}</div><div class="slotrow">${r.cards.map(k=>`<div style="text-align:center">${cardHTML(k.id,0)}<div style="font-weight:900">×${k.n}${k.isNew?'<br><span style="color:#ffd75e">NEU!</span>':''}</div></div>`).join('')}</div><button class="btn green" style="width:100%" data-act="close">Super!</button>`);sfx(660,.2,'triangle',.06,500);}
+function loot(type,r){const C=CHESTS[type];showModal(`<h2>${C.i} ${C.n}</h2><div style="text-align:center;font-size:22px;font-weight:900;margin:8px">🪙 +${r.gold}${r.gems?' &nbsp; 💎 +'+r.gems:''}</div><div class="slotrow">${r.cards.map(k=>`<div style="text-align:center">${cardHTML(k.id,0)}<div style="font-weight:900">×${k.n}${k.isNew?'<br><span style="color:#ffd75e">NEW!</span>':''}</div></div>`).join('')}</div><button class="btn green" style="width:100%" data-act="close">Great!</button>`);sfx(660,.2,'triangle',.06,500);}
 
-// ---------- 2. Bot-Stimmung (Führung / Rückstand / schwache Türme) je nach Spielstil ----------
+// ---------- 2. Bot-Stimmung (Führung / Rückstand / schwache Türme) je nach Play style ----------
 const AH={turtle:1.5,schwer:1.1,beat:1.1,control:1.3,siege:1.3,punish:1.2,allround:1,air:1,swarm:.9,zange:.8,billig:.8,spam:.5,rush:.55,chaos:1};
 const BH={turtle:.7,schwer:.9,beat:.9,control:.85,siege:.8,punish:1.05,allround:1,air:1,swarm:1.1,zange:1.2,billig:1.15,spam:1.35,rush:1.5,chaos:1};
 const TF={beat:1,schwer:.9,allround:.7,punish:.6,zange:.5,air:.4,swarm:.3,chaos:.3};
@@ -2577,11 +2577,11 @@ Brain.prototype.think=function(m,me){
   const sum=a=>a.reduce((s,t)=>s+frac(t),0),edge=sum(my)-sum(fo),late=m.ot?1:.5+.5*clamp(m.t/180,0,1);
   const s=Object.assign({},this.st0);s.gate=s.gate||0;s.def=s.def||1;s.bridge=s.bridge||0;let tag='';
   const ahead=lead>0||(lead===0&&edge>.6&&m.t>60),behind=lead<0||(lead===0&&edge<-.6&&m.t>60);
-  if(ahead){const k=(lead>0?1:.6)*late*A;s.gate+=1.1*k;s.def*=1+.2*k;s.bridge=Math.max(0,s.bridge*(1-.45*k));tag='führt: defensiv';}
-  else if(behind){const k=(lead<0?1:.6)*late*B;s.gate-=1.3*k;s.def=Math.max(.55,s.def*(1-.16*k));s.bridge=clamp(s.bridge+.2*k,0,.8);tag='liegt zurück: aggressiv';}
+  if(ahead){const k=(lead>0?1:.6)*late*A;s.gate+=1.1*k;s.def*=1+.2*k;s.bridge=Math.max(0,s.bridge*(1-.45*k));tag='leading: defensive';}
+  else if(behind){const k=(lead<0?1:.6)*late*B;s.gate-=1.3*k;s.def=Math.max(.55,s.def*(1-.16*k));s.bridge=clamp(s.bridge+.2*k,0,.8);tag='trailing: aggressive';}
   const fl=fo.filter(t=>!t.dead&&frac(t)<.4),ml=my.filter(t=>!t.dead&&frac(t)<.4);
-  if(fl.length){const k=B*(1-Math.min(...fl.map(frac)));s.gate-=.9*k;s.bridge=clamp(s.bridge+.12*k,0,.8);tag+=(tag?' · ':'')+'Gegnerturm schwach';}
-  if(ml.length){const k=A*(1-Math.min(...ml.map(frac)));s.def*=1+.2*k;s.gate+=.6*k;tag+=(tag?' · ':'')+'eigener Turm schwach';}
+  if(fl.length){const k=B*(1-Math.min(...fl.map(frac)));s.gate-=.9*k;s.bridge=clamp(s.bridge+.12*k,0,.8);tag+=(tag?' · ':'')+'Enemy tower weak';}
+  if(ml.length){const k=A*(1-Math.min(...ml.map(frac)));s.def*=1+.2*k;s.gate+=.6*k;tag+=(tag?' · ':'')+'own tower weak';}
   this.st=s;this.mood=tag;this.persN=(this._pn0||'')+(tag?' · '+tag:'');
  }catch(e){}
  try{if(this.finisher(m,me))return;}catch(e){}
@@ -2701,24 +2701,24 @@ World.prototype.pickOpponent=function(tr){
 
 // ---------- Lernstunde ----------
 const SCN=[
- {n:'Felsgolem-Push',atk:['golem'],hand:['minik','musk','fireball','tesla'],ex:['archer','zap','goblins','bomber']},
- {n:'Luftpiraten',atk:['balloon'],hand:['musk','archer','tesla','fireball'],ex:['squire','goblins','zap','volley']},
- {n:'Knochenheer (Schwarm)',atk:['army'],hand:['bomber','volley','zap','titan'],ex:['archer','squire','musk','fireball']},
- {n:'Eberreiter + Gobbos',atk:['boar','goblins'],hand:['squire','bomber','turret','fireball'],ex:['archer','musk','zap','minik']},
+ {n:'Rock Golem-Push',atk:['golem'],hand:['minik','musk','fireball','tesla'],ex:['archer','zap','goblins','bomber']},
+ {n:'Air Pirates',atk:['balloon'],hand:['musk','archer','tesla','fireball'],ex:['squire','goblins','zap','volley']},
+ {n:'Bone Army (Swarm)',atk:['army'],hand:['bomber','volley','zap','titan'],ex:['archer','squire','musk','fireball']},
+ {n:'Boar Rider + Goblins',atk:['boar','goblins'],hand:['squire','bomber','turret','fireball'],ex:['archer','musk','zap','minik']},
  {n:'Raufbold-Rush',atk:['barbs'],hand:['axe','volley','fireball','squire'],ex:['musk','archer','tesla','zap']},
- {n:'Drache + Flatterschwarm',atk:['wyvern','horde'],hand:['musk','archer','volley','tesla'],ex:['squire','zap','fireball','minik']},
- {n:'Eisenkoloss',atk:['pekka'],hand:['goblins','skelknight','inferno','zap'],ex:['archer','musk','speargob','squire']},
- {n:'Tunnelgräber + Nachtflatterer',atk:['miner','bats'],hand:['squire','archer','volley','zap'],ex:['tesla','musk','minik','fireball']},
- {n:'Wuchtritter + Heilerin',atk:['megaknight','healer'],hand:['minik','pekka','goblins','tesla'],ex:['musk','fireball','zap','archer']},
- {n:'Donnerkarre',atk:['sparky'],hand:['ram','goblins','zap','tesla'],ex:['archer','squire','fireball','musk']},
- {n:'Riesenarmbrust',atk:['xbow'],hand:['fireball','squire','zap','minik'],ex:['archer','musk','tesla','goblins']},
+ {n:'Dragon + Flutter Swarm',atk:['wyvern','horde'],hand:['musk','archer','volley','tesla'],ex:['squire','zap','fireball','minik']},
+ {n:'Iron Colossus',atk:['pekka'],hand:['goblins','skelknight','inferno','zap'],ex:['archer','musk','speargob','squire']},
+ {n:'Tunnel Digger + Night Flutterers',atk:['miner','bats'],hand:['squire','archer','volley','zap'],ex:['tesla','musk','minik','fireball']},
+ {n:'Mighty Knight + Healer',atk:['megaknight','healer'],hand:['minik','pekka','goblins','tesla'],ex:['musk','fireball','zap','archer']},
+ {n:'Thunder Cart',atk:['sparky'],hand:['ram','goblins','zap','tesla'],ex:['archer','squire','fireball','musk']},
+ {n:'Giant Crossbow',atk:['xbow'],hand:['fireball','squire','zap','minik'],ex:['archer','musk','tesla','goblins']},
  {n:'Fernkämpfer-Duo',atk:['princess','dart'],hand:['boar','squire','fireball','zap'],ex:['goblins','archer','minik','musk']}
 ,
- {n:'⚔️ Angriff: Golem + Hexe',mode:'a',atk:['musk','archer'],hand:['golem','mage','zap','fireball'],ex:['squire','goblins','tesla','minik']},
- {n:'⚔️ Angriff: Eberreiter über die Brücke',mode:'a',atk:['tesla','squire'],hand:['boar','goblins','fireball','zap'],ex:['musk','archer','minik','volley']},
- {n:'⚔️ Angriff: Ballon hinter Tank',mode:'a',atk:['musk','volley'],hand:['balloon','minik','zap','fireball'],ex:['archer','squire','goblins','tesla']},
- {n:'⚔️ Turm finishen (Turm fast tot)',mode:'a',low:1,atk:['tesla'],hand:['fireball','zap','boar','minik'],ex:['goblins','archer','squire','musk']},
- {n:'⚔️ Angriff: Gegen Schwarm-Verteidigung',mode:'a',atk:['goblins','bomber'],hand:['fireball','zap','titan','archer'],ex:['squire','musk','tesla','minik']}
+ {n:'⚔️ Attack: Golem + Witch',mode:'a',atk:['musk','archer'],hand:['golem','mage','zap','fireball'],ex:['squire','goblins','tesla','minik']},
+ {n:'⚔️ Attack: Boar Rider over the bridge',mode:'a',atk:['tesla','squire'],hand:['boar','goblins','fireball','zap'],ex:['musk','archer','minik','volley']},
+ {n:'⚔️ Attack: Balloon behind tank',mode:'a',atk:['musk','volley'],hand:['balloon','minik','zap','fireball'],ex:['archer','squire','goblins','tesla']},
+ {n:'⚔️ Finish the tower (tower almost dead)',mode:'a',low:1,atk:['tesla'],hand:['fireball','zap','boar','minik'],ex:['goblins','archer','squire','musk']},
+ {n:'⚔️ Attack: Against swarm defense',mode:'a',atk:['goblins','bomber'],hand:['fireball','zap','titan','archer'],ex:['squire','musk','tesla','minik']}
 ].map(s=>Object.assign(s,{waves:1,deck:s.hand.concat(s.ex)}));
 function teacher(scn){
  const T={w:0,next:3,l:0,end:0,a:0};
@@ -2754,7 +2754,7 @@ showResult=function(m){
  if(m.lesson){
   const learned=(S.stu?S.stu.n:0)-(m.lesson.n0||0);if(S.stu)S.stu.lessons=(S.stu.lessons|0)+1;save();
   leaveBattle();
-  showModal(`<h2>🎓 Lernstunde beendet</h2><div style="text-align:center;font-size:14px;margin:8px 0">${m.lesson.n}<br>Dein Schüler hat sich <b>${learned}</b> deiner Züge gemerkt.</div><button class="btn green" style="width:100%" data-act="close">Weiter</button>`);
+  showModal(`<h2>🎓 Lesson finished</h2><div style="text-align:center;font-size:14px;margin:8px 0">${m.lesson.n}<br>Your student remembered <b>${learned}</b> of your plays.</div><button class="btn green" style="width:100%" data-act="close">Continue</button>`);
   return;
  }
  try{const c=crw();if(!c.got)c.n=Math.min(10,c.n+(m.crowns[0]|0));}catch(e){}
@@ -2771,28 +2771,28 @@ function learnedHTML(st){
  const cm=Object.entries(cb).sort((a,b)=>b[1]-a[1]).slice(0,6);
  const at={},op={};for(const r of st.mem){if(r.y<RY+40)at[r.c]=(at[r.c]||0)+1;if(r.tm!=null&&r.tm<15)op[r.c]=(op[r.c]||0)+1;}
  const top=o=>Object.entries(o).sort((a,b)=>b[1]-a[1]).slice(0,4).map(([k,n])=>CARDS[k].name+' '+n+'×').join(', ')||'–';
- const atk=sy&&sy.n?`<div class="sect">Dein Angriff</div><div class="sbox"><div class="stat">Angriffskarten: ${top(at)}<br>Eröffnung: ${top(op)}<br>Bestrafen (Gegner ≤4 Elixier): ${pc(sy.pun|0,sy.n)}% deiner Züge<br>Ø Gegner-Elixier bei deinem Angriff: ${sy.on?(sy.oe/sy.on).toFixed(1):'–'}</div></div>`:'';
+ const atk=sy&&sy.n?`<div class="sect">Your attack</div><div class="sbox"><div class="stat">Attack cards: ${top(at)}<br>Opening: ${top(op)}<br>Punishing (enemy ≤4 elixir): ${pc(sy.pun|0,sy.n)}% of your plays<br>Ø Enemy elixir during your attack: ${sy.on?(sy.oe/sy.on).toFixed(1):'–'}</div></div>`:'';
  const ecc={};for(const r of st.mem)if(r.ec&&r.ec!==r.c){const k=r.ec+'>'+r.c;ecc[k]=(ecc[k]||0)+1;}
  const ecl=Object.entries(ecc).sort((a,b)=>b[1]-a[1]).slice(0,5);
- const sit=sy&&sy.n?`<div class="sect">Deine Situationen</div><div class="sbox"><div class="stat">Bei Führung: ${pc(sy.ah|0,sy.n)}% · bei Rückstand: ${pc(sy.bh|0,sy.n)}% deiner Züge<br>In Double-Elixier: ${pc(sy.dbl|0,sy.n)}%<br>Bei schwachem eigenem Turm: ${pc(sy.dfp|0,sy.n)}%<br>Gegnerturm fast weg (&lt;40%): ${pc(sy.fin|0,sy.n)}%<br>Gegner-Königsturm angeschlagen: ${pc(sy.kk|0,sy.n)}%</div>${ecl.map(([k,n])=>{const[e,a]=k.split('>');return`<div style="font-size:12px;font-weight:800;margin:3px 0">Gegner spielt ${CARDS[e].name} → du ${CARDS[a].name} <span class="chip">${n}×</span></div>`;}).join('')}</div>`:'';
- const wt=`<div class="sect">Timing</div><div class="sbox"><div class="stat">Wartemomente gelernt: ${(st.idle||[]).length}<br>${[0,1,2].map(i=>{const P=(sy&&sy.ph||{})[i];return P&&P.n?['Normal','Doppelt','Dreifach'][i]+': Ø '+(P.el/P.n).toFixed(1)+' Elixier, '+(P.gn?(P.gap/P.gn).toFixed(1):'–')+'s Tempo':'';}).filter(Boolean).join('<br>')}<br>Er beachtet Elixier beider Seiten, Gegner-Tempo und wann du wartest.</div></div>`;
- const sty=wt+atk+sit+(sy&&sy.n?`<div class="sect">Dein Spielstil (von ihm kopiert)</div><div class="sbox"><div class="stat">Ø Elixier beim Spielen: ${(sy.el/sy.n).toFixed(1)} · Tempo: ${sy.gn?(sy.gap/sy.gn).toFixed(1):'–'}s zwischen Karten<br>Angriff ${pc(sy.off,sy.n)}% / Verteidigung ${pc(sy.def,sy.n)}%<br>Links ${pc(sy.L,sy.n)}% / Rechts ${pc(sy.R,sy.n)}%<br>Truppen ${pc(sy.tr,sy.n)}% · Zauber ${pc(sy.sp,sy.n)}% · Gebäude ${pc(sy.bl,sy.n)}%</div></div>`:'')
- +(cm.length?`<div class="sect">Seine Kombos (mit eigenen Einheiten)</div><div class="sbox">${cm.map(([k,n])=>{const[f,a]=k.split('>');return`<div style="font-size:12px;font-weight:800;margin:3px 0">Mit ${CARDS[f].name} → ${CARDS[a].name} <span class="chip">${n}×</span></div>`;}).join('')}</div>`:'');
- return`${sty}<div class="sect">Seine Lieblingskarten (von dir gelernt)</div><div class="sbox">${t.length?t.map(([id,n])=>`<div class="sb"><span class="l">${CARDS[id].name}</span><span class="t"><i style="width:${Math.max(3,n/mx*100)}%;background:linear-gradient(90deg,#fd7,#e90)"></i></span><span class="v">${n}</span></div>`).join(''):'<div class="stat">Noch nichts gelernt.</div>'}</div>
- <div class="sect">Seine Konter</div><div class="sbox">${c.length?c.map(([k,n])=>{const[e,a]=k.split('>');return`<div style="font-size:12px;font-weight:800;margin:3px 0">Gegen ${CARDS[e].name} → ${CARDS[a].name} <span class="chip">${n}×</span></div>`;}).join(''):'<div class="stat">Noch keine Konter gelernt – mach eine Lernstunde.</div>'}</div>`;
+ const sit=sy&&sy.n?`<div class="sect">Your situations</div><div class="sbox"><div class="stat">When leading: ${pc(sy.ah|0,sy.n)}% · when behind: ${pc(sy.bh|0,sy.n)}% of your plays<br>In double elixir: ${pc(sy.dbl|0,sy.n)}%<br>With a weak own tower: ${pc(sy.dfp|0,sy.n)}%<br>Enemy tower almost gone (&lt;40%): ${pc(sy.fin|0,sy.n)}%<br>Enemy king tower damaged: ${pc(sy.kk|0,sy.n)}%</div>${ecl.map(([k,n])=>{const[e,a]=k.split('>');return`<div style="font-size:12px;font-weight:800;margin:3px 0">Gegner spielt ${CARDS[e].name} → du ${CARDS[a].name} <span class="chip">${n}×</span></div>`;}).join('')}</div>`:'';
+ const wt=`<div class="sect">Timing</div><div class="sbox"><div class="stat">Waiting moments learned: ${(st.idle||[]).length}<br>${[0,1,2].map(i=>{const P=(sy&&sy.ph||{})[i];return P&&P.n?['Normal','Doppelt','Dreifach'][i]+': Ø '+(P.el/P.n).toFixed(1)+' Elixier, '+(P.gn?(P.gap/P.gn).toFixed(1):'–')+'s Tempo':'';}).filter(Boolean).join('<br>')}<br>He considers both sides’ elixir, enemy tempo and when you wait.</div></div>`;
+ const sty=wt+atk+sit+(sy&&sy.n?`<div class="sect">Your play style (copied by him)</div><div class="sbox"><div class="stat">Ø Elixir when playing: ${(sy.el/sy.n).toFixed(1)} · Tempo: ${sy.gn?(sy.gap/sy.gn).toFixed(1):'–'}s between cards<br>Angriff ${pc(sy.off,sy.n)}% / Defense ${pc(sy.def,sy.n)}%<br>Links ${pc(sy.L,sy.n)}% / Right ${pc(sy.R,sy.n)}%<br>Troops ${pc(sy.tr,sy.n)}% · Spells ${pc(sy.sp,sy.n)}% · Buildings ${pc(sy.bl,sy.n)}%</div></div>`:'')
+ +(cm.length?`<div class="sect">His combos (with own units)</div><div class="sbox">${cm.map(([k,n])=>{const[f,a]=k.split('>');return`<div style="font-size:12px;font-weight:800;margin:3px 0">Mit ${CARDS[f].name} → ${CARDS[a].name} <span class="chip">${n}×</span></div>`;}).join('')}</div>`:'');
+ return`${sty}<div class="sect">His favorite cards (learned from you)</div><div class="sbox">${t.length?t.map(([id,n])=>`<div class="sb"><span class="l">${CARDS[id].name}</span><span class="t"><i style="width:${Math.max(3,n/mx*100)}%;background:linear-gradient(90deg,#fd7,#e90)"></i></span><span class="v">${n}</span></div>`).join(''):'<div class="stat">Nothing learned yet.</div>'}</div>
+ <div class="sect">His counters</div><div class="sbox">${c.length?c.map(([k,n])=>{const[e,a]=k.split('>');return`<div style="font-size:12px;font-weight:800;margin:3px 0">Gegen ${CARDS[e].name} → ${CARDS[a].name} <span class="chip">${n}×</span></div>`;}).join(''):'<div class="stat">No counters learned yet – do a lesson.</div>'}</div>`;
 }
 function stuTab(){
  const st=S.stu,b=stuBot();
- if(!st||!b)return`<div class="sect">🎓 Dein Schüler</div><div class="stat" style="font-size:13px;margin-bottom:10px">Erstelle einen eigenen Bot. Er kann selbst kämpfen oder dir zuschauen und exakt von deinen Spielzügen lernen. Er startet mit deinen Karten und deinem Deck.</div><input id="stuName" type="text" maxlength="16" placeholder="Name des Schülers" style="width:100%;padding:10px;border-radius:10px;border:0;font:800 15px inherit;margin-bottom:10px"><button class="btn green big" style="width:100%" data-act="stuCreate">🎓 Schüler erstellen</button>`;
- return`<div class="arena" style="background:linear-gradient(#5a48c8,#2a1f70)"><div style="font-size:46px">🎓</div><div class="an">${b.name}</div><div class="sub">🏆 ${b.trophies} · ${b.wins}S/${b.losses}N · ${st.mem.length} Erinnerungen · ${st.lessons|0} Lernstunden</div></div>
- <div class="sect">Modus</div><div style="display:flex;gap:8px"><button class="btn ${st.mode==='watch'?'green':'blue'}" style="flex:1" data-act="stuMode" data-m="watch">👀 Schaut zu &amp; lernt</button><button class="btn ${st.mode==='play'?'green':'blue'}" style="flex:1" data-act="stuMode" data-m="play">🎮 Spielt selbst</button></div>
- <div class="stat">${st.mode==='watch'?'Er merkt sich jede Karte, die du spielst: Situation, Ort und Elixier. Er kämpft solange nicht.':'Er kämpft in der Rangliste und spielt so, wie du es ihm gezeigt hast.'}</div>
- <button class="btn" style="width:100%;margin-top:10px" data-act="stuLessons">📚 Lernstunde starten</button>
- <button class="btn blue" style="width:100%;margin-top:8px" data-act="stuSync">📋 Mein Deck übernehmen</button>
- <div class="sect">Sein Deck</div><div class="minideck">${b.deck.map(id=>cardHTML(id,b.cards[id].lvl)).join('')}</div>
+ if(!st||!b)return`<div class="sect">🎓 Your student</div><div class="stat" style="font-size:13px;margin-bottom:10px">Create your own bot. He can fight on his own or watch you and learn exactly from your plays. He starts with his own cards and deck.</div><input id="stuName" type="text" maxlength="16" placeholder="Name des Schülers" style="width:100%;padding:10px;border-radius:10px;border:0;font:800 15px inherit;margin-bottom:10px"><button class="btn green big" style="width:100%" data-act="stuCreate">🎓 Create student</button>`;
+ return`<div class="arena" style="background:linear-gradient(#5a48c8,#2a1f70)"><div style="font-size:46px">🎓</div><div class="an">${b.name}</div><div class="sub">🏆 ${b.trophies} · ${b.wins}S/${b.losses}N · ${st.mem.length} Memories · ${st.lessons|0} Lernstunden</div></div>
+ <div class="sect">Mode</div><div style="display:flex;gap:8px"><button class="btn ${st.mode==='watch'?'green':'blue'}" style="flex:1" data-act="stuMode" data-m="watch">👀 Watches &amp; learns</button><button class="btn ${st.mode==='play'?'green':'blue'}" style="flex:1" data-act="stuMode" data-m="play">🎮 Plays himself</button></div>
+ <div class="stat">${st.mode==='watch'?'Er merkt sich jede Karte, die du spielst: Situation, Ort und Elixier. Er kämpft solange nicht.':'Er kämpft in der Leaderboard und spielt so, wie du es ihm gezeigt hast.'}</div>
+ <button class="btn" style="width:100%;margin-top:10px" data-act="stuLessons">📚 Start lesson</button>
+ <button class="btn blue" style="width:100%;margin-top:8px" data-act="stuSync">📋 Copy my deck</button>
+ <div class="sect">His deck</div><div class="minideck">${b.deck.map(id=>cardHTML(id,b.cards[id].lvl)).join('')}</div>
  ${learnedHTML(st)}
- <button class="btn red" style="width:100%;margin-top:10px" data-act="stuForgetAsk">🧽 Gedächtnis löschen</button>
- <button class="btn red" style="width:100%;margin-top:8px" data-act="stuDelAsk">🗑️ Schüler entfernen</button>`;
+ <button class="btn red" style="width:100%;margin-top:10px" data-act="stuForgetAsk">🧽 Delete memory</button>
+ <button class="btn red" style="width:100%;margin-top:8px" data-act="stuDelAsk">🗑️ Remove student</button>`;
 }
 const rt20=renderTab;
 renderTab=function(){
@@ -2804,52 +2804,52 @@ const nav=$('#nav'),nb=document.createElement('button');nb.dataset.act='tab';nb.
 nav.insertBefore(nb,nav.querySelector('[data-t="clan"]')||null);
 
 Object.assign(ACT,{
- freeChest(){const f=fre();if(Date.now()<f.at){const c=Math.max(1,Math.ceil((f.at-Date.now())/9e5));if((S.gems|0)<c)return toast('Noch nicht bereit · Sofort: '+c+' 💎 nötig');S.gems-=c;}f.at=Date.now()+D4;const r=openChest(S,'free');save();renderTab();loot('free',r);},
+ freeChest(){const f=fre();if(Date.now()<f.at){const c=Math.max(1,Math.ceil((f.at-Date.now())/9e5));if((S.gems|0)<c)return toast('Not ready yet · Instant: '+c+' 💎 needed');S.gems-=c;}f.at=Date.now()+D4;const r=openChest(S,'free');save();renderTab();loot('free',r);},
  crownChest(){const c=crw();if(c.got||c.n<10)return;c.got=true;const r=openChest(S,'crown');save();renderTab();loot('crown',r);},
  stuCreate(){
-  if(S.stu&&stuBot())return toast('Du hast schon einen Schüler');S.stu=null;
+  if(S.stu&&stuBot())return toast('You already have a student');S.stu=null;
   const inp=$('#stuName'),n=inp?inp.value.replace(/[<>&"]/g,'').trim().slice(0,16):'';
-  if(n.length<2)return toast('Name zu kurz');
-  if(world.bots.some(b=>b.name.toLowerCase()===n.toLowerCase())||n.toLowerCase()===String(S.name).toLowerCase())return toast('Name schon vergeben');
+  if(n.length<2)return toast('Name too short');
+  if(world.bots.some(b=>b.name.toLowerCase()===n.toLowerCase())||n.toLowerCase()===String(S.name).toLowerCase())return toast('Name already taken');
   world.bots.forEach(x=>{if(x.stu)delete x.stu;});
   if(world.bots.length>=BOT_MAX){let w=null;for(const x of world.bots)if(!x.inMatch&&!x.online&&(!w||x.trophies<w.trophies))w=x;if(w)world.bots.splice(world.bots.indexOf(w),1);}
   const b=mkBot(world.bots.length,n,true);b.stu=1;b.av='🎓';
   b.skill=.7;b.aggr=.5;b.act=.85;b.pers='allround';b.dv=4;b.cx={n:{},w:{},lk:{},m:0,tr:[],out:[],trN:0,tw:0,base:.5,cd:1e9};b.online=false;b.search=null;
-  world.bots.push(b);world.bots.forEach((x,k)=>x.id=k);S.botN=world.bots.length;S.stu={name:n,mode:'watch',mem:[],lessons:0,n:0};redraw();toast('🎓 '+n+' ist dein Schüler');
+  world.bots.push(b);world.bots.forEach((x,k)=>x.id=k);S.botN=world.bots.length;S.stu={name:n,mode:'watch',mem:[],lessons:0,n:0};redraw();toast('🎓 '+n+' is your student');
  },
  stuMode(el){if(!S.stu)return;S.stu.mode=el.dataset.m;const b=stuBot();if(b&&S.stu.mode==='watch'&&!b.inMatch){b.online=false;b.search=null;}redraw();},
  stuLessons(){
-  if(!S.stu)return toast('Erstelle zuerst deinen Schüler');
-  showModal(`<h2>📚 Lernstunde</h2><div class="stat" style="font-size:12px;margin:0 0 8px">Kurze Stunde: ein Push zum Verteidigen (🎯) oder eine Verteidigung zum Angreifen (⚔️). Du bekommst eine feste Starthand, Lernstunden zählen für den Schüler stärker als normale Kämpfe.</div>${SCN.map((s,i)=>`<div class="row" data-act="stuLesson" data-i="${i}"><div class="ra">${s.mode==='a'?'⚔️':'🎯'}</div><div style="flex:1;min-width:0"><div class="rn">${s.n}</div><span class="rs">${s.mode==='a'?'Verteidigt mit':'Gegner'}: ${s.atk.map(id=>CARDS[id].name).join(' + ')}<br>Hand: ${s.hand.map(id=>CARDS[id].name).join(', ')}</span></div></div>`).join('')}<button class="btn" style="width:100%;margin-top:8px" data-act="close">Schließen</button>`);
+  if(!S.stu)return toast('Create your student first');
+  showModal(`<h2>📚 Lesson</h2><div class="stat" style="font-size:12px;margin:0 0 8px">Short lesson: one push to defend against (🎯) or one defense to attack into (⚔️). You get a fixed starting hand, and lessons count more for the student than normal battles.</div>${SCN.map((s,i)=>`<div class="row" data-act="stuLesson" data-i="${i}"><div class="ra">${s.mode==='a'?'⚔️':'🎯'}</div><div style="flex:1;min-width:0"><div class="rn">${s.n}</div><span class="rs">${s.mode==='a'?'Defends with':'Gegner'}: ${s.atk.map(id=>CARDS[id].name).join(' + ')}<br>Hand: ${s.hand.map(id=>CARDS[id].name).join(', ')}</span></div></div>`).join('')}<button class="btn" style="width:100%;margin-top:8px" data-act="close">Close</button>`);
  },
  stuLesson(el){const s=SCN[+el.dataset.i];if(s&&S.stu)startLesson(s);},
  stuSync(){
   const b=stuBot();if(!b)return;const mine=S.deck.filter(id=>b.cards[id].own),rest=b.deck.filter(id=>!mine.includes(id));
   const d=mine.concat(rest).slice(0,8);for(const c of PLAY_CARDS)if(d.length<8&&b.cards[c.id].own&&!d.includes(c.id))d.push(c.id);
-  b.deck=d;redraw();toast('Deck übernommen (nur Karten, die er besitzt)');
+  b.deck=d;redraw();toast('Deck copied (only cards he owns)');
  },
- stuForgetAsk(){showModal(`<h2>Gedächtnis löschen?</h2><div style="text-align:center;font-size:14px;margin-bottom:12px">Alles, was dein Schüler von dir gelernt hat, wird gelöscht.</div><button class="btn red" style="width:100%" data-act="stuForget">Ja, vergessen</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`);},
+ stuForgetAsk(){showModal(`<h2>Delete memory?</h2><div style="text-align:center;font-size:14px;margin-bottom:12px">Everything your student learned from you will be deleted.</div><button class="btn red" style="width:100%" data-act="stuForget">Yes, forget</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Cancel</button>`);},
  stuForget(){if(S.stu){S.stu.mem=[];S.stu.n=0;S.stu.lessons=0;S.stu.sty=null;S.stu.idle=[];}closeModal();redraw();},
- stuDelAsk(){showModal(`<h2>Schüler entfernen?</h2><div style="text-align:center;font-size:14px;margin-bottom:12px">Der Bot und sein ganzes Gedächtnis werden gelöscht.</div><button class="btn red" style="width:100%" data-act="stuDel">Ja, entfernen</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Abbrechen</button>`);},
- stuDel(){const b=stuBot();if(b&&b.inMatch){closeModal();return toast('Er kämpft gerade');}
+ stuDelAsk(){showModal(`<h2>Remove student?</h2><div style="text-align:center;font-size:14px;margin-bottom:12px">The bot and all of his memory will be deleted.</div><button class="btn red" style="width:100%" data-act="stuDel">Yes, remove</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Cancel</button>`);},
+ stuDel(){const b=stuBot();if(b&&b.inMatch){closeModal();return toast('He is fighting right now');}
   if(b){world.bots.splice(world.bots.indexOf(b),1);world.bots.forEach((x,k)=>x.id=k);S.botN=world.bots.length;}
   S.stu=null;closeModal();redraw();},
  botDel(){
   if(world.bots.length<=BOT_MIN)return toast('Mindestens '+BOT_MIN+' Bots');
-  let i=world.bots.length-1;while(i>=0&&(world.bots[i].inMatch||world.bots[i].stu))i--;if(i<0)return toast('Keine Bots zum Entfernen');
+  let i=world.bots.length-1;while(i>=0&&(world.bots[i].inMatch||world.bots[i].stu))i--;if(i<0)return toast('No bots to remove');
   const b=world.bots.splice(i,1)[0];world.bots.forEach((x,k)=>x.id=k);S.botN=world.bots.length;redraw();toast('🤖 '+b.name+' entfernt');
  }
 });
 })();
 
-// === PATCH 21: Truhen wie Clash Royale 2017 (Zyklus, Zeiten, Seltenheit, Design, Gratis-/Kronentruhe) ===
+// === PATCH 21: Truhen wie Clash Royale 2017 (Zyklus, Zeiten, Seltenheit, Design, Gratis-/Crown Chest) ===
 (function(){
 BKEYS.push('cp');
 const COL={wood:'#c98a4b',silver:'#c3cddb',gold:'#ffd75e',giant:'#ff9a3c',magic:'#b48cff',super:'#ff5fb0',free:'#5fe08a',crown:'#ffd75e'};
 const TIME={wood:300,silver:10800,gold:28800,giant:43200,magic:43200,super:86400}; // 5 Min, 3h, 8h, 12h, 12h, 24h
-const FREQ={wood:'Sehr häufig',silver:'Häufig',gold:'Selten',giant:'Selten',magic:'Sehr selten',super:'Extrem selten',free:'Alle 4 Std.',crown:'1× täglich'};
-const RN={c:'Gewöhnlich',r:'Selten',e:'Episch',l:'Legendär'};
-// Truhen-Zyklus (wie 2017: feste Reihenfolge, Super-Zaubertruhe nur als seltener Zufallstreffer)
+const FREQ={wood:'Very common',silver:'Häufig',gold:'Rare',giant:'Rare',magic:'Very rare',super:'Extremely rare',free:'Every 4 hrs',crown:'1× daily'};
+const RN={c:'Common',r:'Rare',e:'Epic',l:'Legendary'};
+// Truhen-Zyklus (wie 2017: feste Reihenfolge, Super Magic Chest nur als seltener Zufallstreffer)
 const CYCLE=['silver','wood','wood','silver','wood','silver','gold','wood','wood','silver','wood','wood','silver','wood','gold','wood','silver','wood','wood','silver','wood','gold','wood','silver','wood','wood','silver','wood','giant','wood','silver','wood','gold','wood','silver','wood','wood','silver','wood','magic'];
 const PLAN={
  free:[['c',4,9,1],['c',3,6,1],['r',1,2,.3]],
@@ -2882,20 +2882,20 @@ const tile=(t,name,sub,cls,attr,bar)=>`<div class="chest ${cls}" style="--cc:${C
 chestHTML=function(ch,i){
  if(!ch)return'<div class="chest empty">leer</div>';
  const now=Date.now(),C=CHESTS[ch.type];let st,cls='',bar=null;
- if(ch.ready||(ch.at&&now>=ch.at)){ch.ready=true;st='<b>ÖFFNEN!</b>';cls='ready';}
+ if(ch.ready||(ch.at&&now>=ch.at)){ch.ready=true;st='<b>OPEN!</b>';cls='ready';}
  else if(ch.at){st=fdur((ch.at-now)/1000);bar=Math.round(100*(1-(ch.at-now)/(C.t*1000)));}
  else st='Start · '+fdur(C.t);
  return tile(ch.type,C.n,st,cls,`data-act="chest" data-i="${i}"`,bar);
 };
 globalThis.specialChests=function(){
  const now=Date.now(),f=fre(),c=crw();
- const fh=now>=f.at?tile('free','Gratis-Truhe','<b>ÖFFNEN!</b>','ready','data-act="freeChest"')
-  :tile('free','Gratis-Truhe',fdur((f.at-now)/1000),'','data-act="freeChest"',Math.round(100*(1-(f.at-now)/D4)));
- const ch=c.got?tile('crown','Kronentruhe','morgen wieder','','')
-  :c.n>=10?tile('crown','Kronentruhe','<b>ÖFFNEN!</b>','ready','data-act="crownChest"')
-  :tile('crown','Kronentruhe',c.n+'/10 ♛','','',c.n*10);
+ const fh=now>=f.at?tile('free','Free Chest','<b>OPEN!</b>','ready','data-act="freeChest"')
+  :tile('free','Free Chest',fdur((f.at-now)/1000),'','data-act="freeChest"',Math.round(100*(1-(f.at-now)/D4)));
+ const ch=c.got?tile('crown','Crown Chest','tomorrow again','','')
+  :c.n>=10?tile('crown','Crown Chest','<b>OPEN!</b>','ready','data-act="crownChest"')
+  :tile('crown','Crown Chest',c.n+'/10 ♛','','',c.n*10);
  const nx=[0,1,2,3,4,5,6,7].map(k=>chestSVG(CYCLE[((S.cp|0)+k)%CYCLE.length],22)).join('');
- return`<div class="chests" style="grid-template-columns:1fr 1fr">${fh}${ch}</div><div class="cyc">Nächste Truhen: ${nx}</div>`;
+ return`<div class="chests" style="grid-template-columns:1fr 1fr">${fh}${ch}</div><div class="cyc">Next chests: ${nx}</div>`;
 };
 matchReward=function(a,res,crowns){
  const gold=res>0?25+10*crowns:res<0?5+3*crowns:10,xp=res>0?4+crowns:1;let chest=null;
@@ -2917,7 +2917,7 @@ openChest=function(a,type){
  return{gold,cards};
 };
 function loot(type,r){const C=CHESTS[type];
- showModal(`<h2 style="color:${COL[type]}">${C.n}</h2><div style="text-align:center">${chestSVG(type,86)}</div><div style="text-align:center;font-size:22px;font-weight:900;margin:8px">🪙 +${r.gold}${r.gems?' &nbsp; 💎 +'+r.gems:''}</div><div class="slotrow">${r.cards.map(k=>`<div style="text-align:center">${cardHTML(k.id,0)}<div style="font-weight:900">×${k.n}${k.isNew?'<br><span style="color:#ffd75e">NEU!</span>':''}</div></div>`).join('')}</div><button class="btn green" style="width:100%" data-act="close">Super!</button>`);sfx(660,.2,'triangle',.06,500);}
+ showModal(`<h2 style="color:${COL[type]}">${C.n}</h2><div style="text-align:center">${chestSVG(type,86)}</div><div style="text-align:center;font-size:22px;font-weight:900;margin:8px">🪙 +${r.gold}${r.gems?' &nbsp; 💎 +'+r.gems:''}</div><div class="slotrow">${r.cards.map(k=>`<div style="text-align:center">${cardHTML(k.id,0)}<div style="font-weight:900">×${k.n}${k.isNew?'<br><span style="color:#ffd75e">NEW!</span>':''}</div></div>`).join('')}</div><button class="btn green" style="width:100%" data-act="close">Great!</button>`);sfx(660,.2,'triangle',.06,500);}
 function skipCost(ch){const C=CHESTS[ch.type],rem=ch.at?Math.max(0,(ch.at-Date.now())/1000):C.t;return Math.max(1,Math.ceil(rem/900));}
 function openSlot(i){const ch=S.chests[i];if(!ch)return;S.chests[i]=null;const r=openChest(S,ch.type);save();closeModal();renderTab();loot(ch.type,r);}
 function infoModal(i){
@@ -2925,14 +2925,14 @@ function infoModal(i){
  const rows=PLAN[ch.type],gu={},chn=[];let avg=0;
  for(const[r,lo,hi,p]of rows){avg+=p*(lo+hi)/2;if(p>=1)gu[r]=(gu[r]||0)+1;else chn.push(`${RN[r]}: ${Math.round(p*100)} %`);}
  const g=Object.keys(gu).map(r=>`${RN[r]} ×${gu[r]}`).join(', ');
- const btn=run?'':busy?'<div class="stat" style="margin:8px 0">Es wird schon eine Truhe freigeschaltet.</div>':`<button class="btn blue" style="width:100%;margin-top:8px" data-act="chestStart" data-i="${i}">Freischalten · ${fdur(C.t)}</button>`;
- showModal(`<h2 style="color:${COL[ch.type]}">${C.n}</h2><div style="text-align:center">${chestSVG(ch.type,80)}</div><table class="cinfo" style="width:100%"><tr><td>Häufigkeit</td><td>${FREQ[ch.type]}</td></tr><tr><td>Dauer</td><td>${fdur(C.t)}</td></tr><tr><td>Gold</td><td>🪙 ${C.g[0]}–${C.g[1]}</td></tr><tr><td>Karten (Ø)</td><td>~${Math.round(avg)}</td></tr><tr><td>Garantiert</td><td>${g}</td></tr>${chn.length?`<tr><td>Chance</td><td>${chn.join('<br>')}</td></tr>`:''}</table>${run?`<div class="stat" style="margin:8px 0">Noch ${fdur((ch.at-Date.now())/1000)}</div>`:''}${btn}<button class="btn red" style="width:100%;margin-top:8px" data-act="chestSkip" data-i="${i}">⚡ Sofort öffnen · ${skipCost(ch)} 💎</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Schließen</button>`);
+ const btn=run?'':busy?'<div class="stat" style="margin:8px 0">A chest is already being unlocked.</div>':`<button class="btn blue" style="width:100%;margin-top:8px" data-act="chestStart" data-i="${i}">Unlock · ${fdur(C.t)}</button>`;
+ showModal(`<h2 style="color:${COL[ch.type]}">${C.n}</h2><div style="text-align:center">${chestSVG(ch.type,80)}</div><table class="cinfo" style="width:100%"><tr><td>Frequency</td><td>${FREQ[ch.type]}</td></tr><tr><td>Duration</td><td>${fdur(C.t)}</td></tr><tr><td>Gold</td><td>🪙 ${C.g[0]}–${C.g[1]}</td></tr><tr><td>Cards (Ø)</td><td>~${Math.round(avg)}</td></tr><tr><td>Guaranteed</td><td>${g}</td></tr>${chn.length?`<tr><td>Chance</td><td>${chn.join('<br>')}</td></tr>`:''}</table>${run?`<div class="stat" style="margin:8px 0">Noch ${fdur((ch.at-Date.now())/1000)}</div>`:''}${btn}<button class="btn red" style="width:100%;margin-top:8px" data-act="chestSkip" data-i="${i}">⚡ Open now · ${skipCost(ch)} 💎</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Close</button>`);
 }
 Object.assign(ACT,{
  chest(el){const i=+el.dataset.i,ch=S.chests[i];if(!ch)return;if(ch.ready||(ch.at&&Date.now()>=ch.at))return openSlot(i);infoModal(i);},
- chestStart(el){const i=+el.dataset.i,ch=S.chests[i];if(!ch||ch.at)return;if(S.chests.some(c=>c&&c.at&&Date.now()<c.at))return toast('Es wird schon eine Truhe geöffnet');ch.at=Date.now()+CHESTS[ch.type].t*1000;save();closeModal();renderTab();},
- chestSkip(el){const i=+el.dataset.i,ch=S.chests[i];if(!ch)return;const c=skipCost(ch);if((S.gems|0)<c)return toast('Nicht genug Juwelen 💎');S.gems-=c;openSlot(i);},
- freeChest(){const f=fre();if(Date.now()<f.at){const c=Math.max(1,Math.ceil((f.at-Date.now())/9e5));if((S.gems|0)<c)return toast('Noch nicht bereit · Sofort: '+c+' 💎 nötig');S.gems-=c;}f.at=Date.now()+D4;const r=openChest(S,'free');save();renderTab();loot('free',r);},
+ chestStart(el){const i=+el.dataset.i,ch=S.chests[i];if(!ch||ch.at)return;if(S.chests.some(c=>c&&c.at&&Date.now()<c.at))return toast('A chest is already being opened');ch.at=Date.now()+CHESTS[ch.type].t*1000;save();closeModal();renderTab();},
+ chestSkip(el){const i=+el.dataset.i,ch=S.chests[i];if(!ch)return;const c=skipCost(ch);if((S.gems|0)<c)return toast('Not enough gems 💎');S.gems-=c;openSlot(i);},
+ freeChest(){const f=fre();if(Date.now()<f.at){const c=Math.max(1,Math.ceil((f.at-Date.now())/9e5));if((S.gems|0)<c)return toast('Not ready yet · Instant: '+c+' 💎 needed');S.gems-=c;}f.at=Date.now()+D4;const r=openChest(S,'free');save();renderTab();loot('free',r);},
  crownChest(){const c=crw();if(c.got||c.n<10)return;c.got=true;const r=openChest(S,'crown');save();renderTab();loot('crown',r);}
 });
 })();
@@ -2959,15 +2959,15 @@ showResult=function(m){
  if(!MK)return sr0(m);
  const w=m.winner,opp=MK.opp,cr=m.crowns;MK.done=true;let extra='';
  if(MK.t==='ch'&&S.ch){if(w===0)S.ch.w++;else if(w===1)S.ch.l++;
-  extra=`<tr><td>Challenge</td><td>${S.ch.w} Siege · ${S.ch.l}/3 Niederlagen</td></tr>`;
-  if(S.ch.w>=12||S.ch.l>=3){const c=claimCh();PL=c.res?{type:c.type,res:c.res}:null;extra+=`<tr><td>Beendet</td><td>${c.w} Siege${c.gold?' · +'+c.gold+' 🪙':''}${c.type?' · '+CHESTS[c.type].n:''}</td></tr>`;}}
- if(MK.t==='fr'){if(w===0)S.fw=(S.fw||0)+1;extra=`<tr><td>Freundschaftssiege</td><td>${S.fw||0}</td></tr>`;}
+  extra=`<tr><td>Challenge</td><td>${S.ch.w} Wins · ${S.ch.l}/3 losses</td></tr>`;
+  if(S.ch.w>=12||S.ch.l>=3){const c=claimCh();PL=c.res?{type:c.type,res:c.res}:null;extra+=`<tr><td>Ended</td><td>${c.w} Siege${c.gold?' · +'+c.gold+' 🪙':''}${c.type?' · '+CHESTS[c.type].n:''}</td></tr>`;}}
+ if(MK.t==='fr'){if(w===0)S.fw=(S.fw||0)+1;extra=`<tr><td>Friendly wins</td><td>${S.fw||0}</td></tr>`;}
  opp.inMatch=false;opp.idle=rnd(6,16);opp.wait=0;save();(w===0?SND.win:SND.lose)();
  $('#result').innerHTML=`<div class="mbox"><h1 class="${w===0?'win':w===1?'lose':'draw'}">${w===0?'SIEG!':w===1?'NIEDERLAGE':'UNENTSCHIEDEN'}</h1>
  <div style="font-size:34px;margin:6px 0" class="crowns"><span style="color:#8cf">${crownsHTML(cr[1])}</span> &nbsp;:&nbsp; <span style="color:#f99">${crownsHTML(cr[0])}</span></div>
  <div style="font-size:13px;opacity:.9">${S.name} ${cr[0]} : ${cr[1]} ${opp.name}</div>
- <table style="margin:12px 0"><tr><td>${MK.t==='fr'?'Freundschaftskampf':'Challenge'}</td><td>keine Trophäen</td></tr>${extra}</table>
- <button class="btn green big" style="width:100%;font-size:20px" data-act="resClose">Weiter</button></div>`;
+ <table style="margin:12px 0"><tr><td>${MK.t==='fr'?'Freundschaftskampf':'Challenge'}</td><td>no trophies</td></tr>${extra}</table>
+ <button class="btn green big" style="width:100%;font-size:20px" data-act="resClose">Continue</button></div>`;
  $('#result').classList.remove('hidden');
 };
 const lb0=leaveBattle;
@@ -2983,21 +2983,21 @@ function offers(){const ar=arenaFor(S.best||0).i;if(!S.shop||S.shop.d!==dayKey()
  const R=seed(dayKey()+'|'+ar),pool=PLAY_CARDS.filter(c=>c.ar<=ar),by=r=>pool.filter(c=>c.rar===r),pk=a=>a[Math.floor(R()*a.length)];
  const o=[],used=new Set();const add=(r,n)=>{let a=by(r).filter(c=>!used.has(c.id));if(!a.length)a=by('r').filter(c=>!used.has(c.id));if(!a.length)return;const c=pk(a);used.add(c.id);const q=c.rar==='c'?20+Math.floor(R()*21):c.rar==='r'?3+Math.floor(R()*4):1+Math.floor(R()*2);o.push({t:'card',id:c.id,n:q,p:q*PRC[c.rar]});};
  add('c');add('c');add('r');add('e');o.push({t:'chest',type:'wood',p:100},{t:'chest',type:'silver',p:350});return o;}
-function shopHTML(){const o=offers();return'<div class="sect">🛒 Täglicher Shop <span class="chip">neu um Mitternacht</span></div>'+o.map((x,i)=>{const done=S.shop.b.includes(i);
+function shopHTML(){const o=offers();return'<div class="sect">🛒 Daily shop <span class="chip">resets at midnight</span></div>'+o.map((x,i)=>{const done=S.shop.b.includes(i);
  const l=x.t==='card'?`<div style="flex:none">${cardHTML(x.id,0)}</div><div style="flex:1;min-width:0"><div class="rn">${CARDS[x.id].name} ×${x.n}</div><span class="rs">${RAR[CARDS[x.id].rar].n}</span></div><button class="btn mini" data-act="card" data-id="${x.id}">ℹ️</button>`
- :`<div style="flex:none;width:64px;display:flex;justify-content:center">${CHESTS[x.type].i}</div><div style="flex:1"><div class="rn">${CHESTS[x.type].n}</div><span class="rs">sofort öffnen</span></div>`;
- return`<div class="row" style="cursor:default">${l}${done?'<span class="rs">✅ gekauft</span>':`<button class="btn green mini" data-act="shopBuy" data-i="${i}">🪙 ${x.p}</button>`}</div>`;}).join('');}
+ :`<div style="flex:none;width:64px;display:flex;justify-content:center">${CHESTS[x.type].i}</div><div style="flex:1"><div class="rn">${CHESTS[x.type].n}</div><span class="rs">open now</span></div>`;
+ return`<div class="row" style="cursor:default">${l}${done?'<span class="rs">✅ bought</span>':`<button class="btn green mini" data-act="shopBuy" data-i="${i}">🪙 ${x.p}</button>`}</div>`;}).join('');}
 // ---------- Challenges ----------
-const KN={draft:'🎯 Draft-Challenge',classic:'🏅 Klassik-Challenge'},COST={draft:100,classic:50};
+const KN={draft:'🎯 Draft Challenge',classic:'🏅 Classic Challenge'},COST={draft:100,classic:50};
 function chHTML(){const ch=S.ch;let h='<div class="sect">🎯 Challenges</div>';
- if(!ch){h+=`<div class="stat">Alle Karten auf gleichem Turnier-Level. 12 Siege = Höchstbelohnung, nach 3 Niederlagen ist Schluss. Keine Trophäen.</div>
- <button class="btn blue big" style="width:100%;margin-bottom:8px" data-act="chStart" data-k="draft">🎯 Draft-Challenge · 🪙 ${COST.draft}<br><small>Wähle 8 Karten aus Vorschlägen</small></button>
- <button class="btn blue big" style="width:100%" data-act="chStart" data-k="classic">🏅 Klassik-Challenge · 🪙 ${COST.classic}<br><small>Dein Deck, gleiche Level für alle</small></button>
- <div class="stat">Belohnungen: 0–1 Siege 20 🪙 · 2 Holz · 4 Silber · 6 Gold · 8 Zauber · 10 Riesen · 12 Super-Zauber +300 🪙</div>`;}
- else{h+=`<div class="arena" style="background:linear-gradient(#5a48c8,#2a1f70)"><div class="an">${KN[ch.k]}</div><div class="sub">🏆 ${ch.w}/12 Siege · ${'❤️'.repeat(3-ch.l)}${'🖤'.repeat(ch.l)}</div></div>
+ if(!ch){h+=`<div class="stat">All cards at the same tournament level. 12 wins = top reward, after 3 losses it’s over. No trophies.</div>
+ <button class="btn blue big" style="width:100%;margin-bottom:8px" data-act="chStart" data-k="draft">🎯 Draft Challenge · 🪙 ${COST.draft}<br><small>Pick 8 cards from suggestions</small></button>
+ <button class="btn blue big" style="width:100%" data-act="chStart" data-k="classic">🏅 Classic Challenge · 🪙 ${COST.classic}<br><small>Your deck, same levels for everyone</small></button>
+ <div class="stat">Rewards: 0–1 wins 20 🪙 · 2 Wood · 4 Silver · 6 Gold · 8 Magic · 10 Giant · 12 Super Magic +300 🪙</div>`;}
+ else{h+=`<div class="arena" style="background:linear-gradient(#5a48c8,#2a1f70)"><div class="an">${KN[ch.k]}</div><div class="sub">🏆 ${ch.w}/12 wins · ${'❤️'.repeat(3-ch.l)}${'🖤'.repeat(ch.l)}</div></div>
  <div class="minideck">${ch.deck.map(id=>`<div data-act="card" data-id="${id}">${cardHTML(id,TL(id))}</div>`).join('')}</div>
- <button class="btn green big" style="width:100%;margin-top:8px" data-act="chFight">⚔️ Kampf</button>
- <button class="btn red" style="width:100%;margin-top:8px" data-act="chQuit">🏳️ Beenden & Belohnung holen</button>`;}
+ <button class="btn green big" style="width:100%;margin-top:8px" data-act="chFight">⚔️ Battle</button>
+ <button class="btn red" style="width:100%;margin-top:8px" data-act="chQuit">🏳️ Finish & claim reward</button>`;}
  return h;}
 function draftRound(){const D=PL_D;if(D.picks.length>=8){S.gold-=COST.draft;S.ch={k:'draft',deck:D.picks,w:0,l:0};PL_D=null;save();closeModal();lastHTML.tab='';renderTab();return;}
  const opts=D.pool.splice(0,4);D.opts=opts;
@@ -3011,21 +3011,21 @@ renderTab=function(){if(tab!=='shop'&&tab!=='ch')return rtS();renderTop();docume
  setHTML($('#content'),tab==='shop'?shopHTML():chHTML(),'tab');};
 const rd=()=>{save();lastHTML.tab='';renderTab();};
 Object.assign(ACT,{
- shopBuy(el){const o=offers(),i=+el.dataset.i,x=o[i];if(!x||S.shop.b.includes(i))return;if(S.gold<x.p)return toast('Nicht genug Gold');S.gold-=x.p;S.shop.b.push(i);
+ shopBuy(el){const o=offers(),i=+el.dataset.i,x=o[i];if(!x||S.shop.b.includes(i))return;if(S.gold<x.p)return toast('Not enough gold');S.gold-=x.p;S.shop.b.push(i);
   if(x.t==='card'){const d=S.cards[x.id],nw=!d.own;d.own=true;d.copies+=nw?x.n-1:x.n;rd();toast('✅ '+x.n+'× '+CARDS[x.id].name);}
   else{const r=openChest(S,x.type);rd();loot(x.type,r);}},
- clanFriend(el){if(searching||mode!=='menu')return;const b=world.bots.find(x=>'b:'+x.name===el.dataset.k);if(!b||!b.online||b.inMatch)return toast('Gerade nicht verfügbar');
+ clanFriend(el){if(searching||mode!=='menu')return;const b=world.bots.find(x=>'b:'+x.name===el.dataset.k);if(!b||!b.online||b.inMatch)return toast('Currently unavailable');
   closeModal();b.inMatch=true;b.search=null;popp=b;MK={t:'fr',opp:b};beginMatch(b);},
- chStart(el){const k=el.dataset.k;if(S.ch)return;if(S.gold<COST[k])return toast('Nicht genug Gold');
+ chStart(el){const k=el.dataset.k;if(S.ch)return;if(S.gold<COST[k])return toast('Not enough gold');
   if(k==='classic'){S.gold-=COST[k];S.ch={k,deck:S.deck.slice(),w:0,l:0};rd();}
   else{PL_D={picks:[],pool:shuf(allowed())};draftRound();}},
  chPick(el){const D=PL_D;if(!D||!D.opts.includes(el.dataset.id))return;D.picks.push(el.dataset.id);draftRound();},
  chFight(){const ch=S.ch;if(!ch||searching||mode!=='menu')return;
-  const opp=world.pickOpponent(S.trophies)||world.bots.find(b=>!b.inMatch&&b.online)||world.bots.find(b=>!b.inMatch);if(!opp)return toast('Kein Gegner frei – gleich nochmal');
+  const opp=world.pickOpponent(S.trophies)||world.bots.find(b=>!b.inMatch&&b.online)||world.bots.find(b=>!b.inMatch);if(!opp)return toast('No opponent free – try again shortly');
   const pool=ch.k==='draft'?shuf(allowed()).slice(0,24):allowed();
   OV={deck:ch.deck,opp,cl:mkClone(opp,pool)};opp.inMatch=true;opp.search=null;popp=opp;MK={t:'ch',opp};
   try{beginMatch(opp);}finally{OV=null;}},
- chQuit(){if(!S.ch)return;const c=claimCh();rd();if(c&&c.res)loot(c.type,c.res);else toast('Challenge beendet: '+c.w+' Siege'+(c.gold?' · +'+c.gold+' 🪙':''));}
+ chQuit(){if(!S.ch)return;const c=claimCh();rd();if(c&&c.res)loot(c.type,c.res);else toast('Challenge finished: '+c.w+' Siege'+(c.gold?' · +'+c.gold+' 🪙':''));}
 });
 const ra3=ACT.resetAll;ACT.resetAll=function(...a){S.ch=null;S.shop=null;S.fw=0;ra3.apply(this,a);};
 })();
@@ -3053,5 +3053,49 @@ const oc=openChest;
 openChest=function(a,type){const r=oc(a,type);if(a===S){const g=GEMS[type]||[0,0],n=g[0]+Math.floor(Math.random()*(g[1]-g[0]+1));S.gems=(S.gems|0)+n;r.gems=n;}return r;};
 const mr=matchReward;
 matchReward=function(a,res,crowns){const r=mr(a,res,crowns);if(a===S&&res>0){const n=crowns>=3?3:crowns>=2?2:1;S.gems=(S.gems|0)+n;r.gems=n;setTimeout(()=>toast('💎 +'+n+' Juwelen'),900);}return r;};
+})();
+
+// === PATCH: Bot-Persönlichkeiten (Stärke & Play style pro Bot) ===
+(function(){
+const rr=(b,k)=>{const x=Math.sin(((b.id|0)+1)*127.1+k*311.7+(b.name?b.name.length*7.3:0))*43758.5453;return x-Math.floor(x);};
+function persona(br,b){
+ const raw=clamp(b.skill==null?.5:b.skill,.1,1),s0=(raw-.1)/.9;
+ // Stärke: sehr breite Spanne, schwächste ~0.02, stärkste 1.0
+ const e=clamp(.02+Math.pow(s0,1.35)*.98+(rr(b,1)-.5)*.06,.02,1);
+ br.pf=Object.assign({},br.pf,{skill:e});br._eff=e;
+ br._mult=.5+Math.pow(1-e,1.15)*3.6;           // Reaktionszeit: stark ~0.5x, schwach ~4x langsamer
+ br._err=Math.pow(1-e,1.4)*.8;                  // Platzierungsfehler
+ br._junk=Math.pow(1-e,2)*.06;                  // planloses Spielen
+ br._hoard=0;
+ // Play style: jede Zahl im Stil pro Bot individuell skalieren
+ const st=Object.assign({},br.st);let k=2;for(const key in st)if(typeof st[key]==='number')st[key]*=.55+.95*rr(b,k++);st.bridge=Math.max(0,st.bridge+(rr(b,60)-.3)*.25);st.split=clamp(st.split+(rr(b,61)-.5)*.3,0,.8);br.st=st;
+ const base={cycle:2+rr(b,40)*1.5,beatdown:5+rr(b,41)*3,siege:4+rr(b,42)*2.5,bridge:3+rr(b,43)*2.5,control:3.5+rr(b,44)*3,balanced:3+rr(b,45)*3}[br.arch]||3;
+ br._hoard=base*(.35+.65*e);
+ br.lane=rr(b,50)<.5?0:1;
+ br._pers=1;
+ const t0=br.tick;
+ br.tick=function(m,me,dt){const pre=this.cd-dt;t0.call(this,m,me,dt);if(pre<=0&&this.cd>0)this.cd*=this._mult;};
+ const th=br.think;
+ br.think=function(m,me){
+  const el=m.el[me];
+  if(el<this._hoard&&el<9&&Math.random()<.7)return;
+  const lead=m.crowns[me]-m.crowns[1-me];
+  if(Math.random()<this._junk&&el>=3){const a=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})).filter(o=>o.c.cost<=el&&o.c.type!=='spell');
+   if(a.length){const o=pick(a);m.play(me,o.i,rnd(30,330),me===0?rnd(360,560):rnd(40,240));return;}}
+  const err=this._err*(1+.3*Math.max(0,-lead)*(1-this._eff));
+  if(err<.01)return th.call(this,m,me);
+  const orig=m.play;
+  m.play=function(t,hi,x,y){if(t===me&&Math.random()<err){x=clamp(x+rnd(-1,1)*110*err,10,350);y=y+rnd(-1,1)*90*err;
+    if(Math.random()<err*.35){const af=this.hand[me].map((id,i)=>i).filter(i=>CARDS[this.hand[me][i]].cost<=this.el[me]);if(af.length)hi=pick(af);}}
+   return orig.call(this,t,hi,x,y);};
+  try{return th.call(this,m,me);}finally{delete m.play;}
+ };
+}
+const pfp=World.prototype.profile;
+World.prototype.profile=function(b){
+ const p=pfp.call(this,b);
+ try{if(b&&!b.stu&&p&&p.brain&&!p.brain._pers)persona(p.brain,b);}catch(e){}
+ return p;
+};
 })();
 </script></body></html>
