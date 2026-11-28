@@ -2602,7 +2602,7 @@ setInterval(arrive,5000);setTimeout(arrive,800);
 
 // ---------- 5. Student-Bot ----------
 const stuBot=()=>world.bots.find(b=>b.stu);
-const WT=[1.4,1.6,1.6,.9,.9,.4,.25,.7,.4,1.2,1.3,.5,.5,.6,.6,1,1.1,4,1,.8,1.1,.8],WS=WT.reduce((a,b)=>a+b,0);
+const WT=[1.4,1.6,1.6,.9,.9,.4,.25,.7,.4,1.2,1.3,.5,.5,.6,.6,1,1.1,4,1,.8,1.1,.8,.8,.8],WS=WT.reduce((a,b)=>a+b,0);
 const dist2=(a,b)=>{let s=0,w=0;for(let i=0;i<WT.length;i++){if(a[i]===undefined||b[i]===undefined)continue;const d=a[i]-b[i];s+=WT[i]*d*d;w+=WT[i];}return Math.sqrt(s/(w||WS));};
 const mirV=v=>{const w=v.slice();w[1]=v[2];w[2]=v[1];w[3]=v[4];w[4]=v[3];w[11]=v[12];w[12]=v[11];w[13]=v[14];w[14]=v[13];return w;};
 function sitInfo(m,me){
@@ -2612,7 +2612,7 @@ function sitInfo(m,me){
  for(const u of en){if(!near(u))continue;const p=pw(u);nn++;if(u.x<180)tL+=p;else tR+=p;if(u.fly)air+=p;if(p>bp){bp=p;big=u;}cx+=u.x*p;cy+=u.y*p;cp+=p;}
  for(const u of fr){if(me===0?u.y<RY+110:u.y>RY-110){const p=pw(u);if(u.x<180)pL+=p;else pR+=p;}}
  const q=v=>Math.min(1,v/300);const ids=(a,f)=>a.filter(f).sort((x,y)=>pw(y)-pw(x)).slice(0,3).map(u=>u.c.id);const tfs=r=>{const a=m.tw[op].filter(t=>t.type!=='k'&&(r?t.x>=180:t.x<180));return a.length?Math.min(...a.map(frac)):0;};const tfm=r=>{const a=m.tw[me].filter(t=>t.type!=='k'&&(r?t.x>=180:t.x<180));return a.length?Math.min(...a.map(frac)):0;};const kg=t=>{const k=m.tw[t].find(x=>x.type==='k');return k?frac(k):0;},tsum=t=>m.tw[t].reduce((a,x)=>a+frac(x),0)/3;let dfn=0;try{for(const u of m.units)if(u.team===op&&u.hp>0&&!near(u))dfn+=pw(u)||0;}catch(e){}
- return{v:[el/10,q(tL),q(tR),q(pL),q(pR),(m.crowns[me]-m.crowns[op])/3,Math.min(1,m.t/180),q(air),Math.min(1,nn/6),q(dfn),(m.lesson?.5:(m.el[op]||0)/10),tfs(0),tfs(1),tfm(0),tfm(1),m.lesson?.5:Math.min(1,(m.t-(m._elt??-99))/10),m.lesson?.5:Math.max(0,Math.min(1,.5+(el-(m.el[op]||0))/10)),m.lesson?0:(m.ot&&m.t>=300?1:m.t>=120?.5:0),kg(op),kg(me),.5+(tsum(me)-tsum(op))/2,m.ot?1:m.t>=150?.5:0],e:big?big.c.id:'',eu:ids(en,near),fu:ids(fr,u=>me===0?u.y>=RY+RH:u.y<=RY-RH),el,c:cp>0?{x:cx/cp,y:pY(cy/cp)}:null};
+ return{v:[el/10,q(tL),q(tR),q(pL),q(pR),(m.crowns[me]-m.crowns[op])/3,Math.min(1,m.t/180),q(air),Math.min(1,nn/6),q(dfn),(m.lesson?.5:(m.el[op]||0)/10),tfs(0),tfs(1),tfm(0),tfm(1),m.lesson?.5:Math.min(1,(m.t-(m._elt??-99))/10),m.lesson?.5:Math.max(0,Math.min(1,.5+(el-(m.el[op]||0))/10)),m.lesson?0:(m.ot&&m.t>=300?1:m.t>=120?.5:0),kg(op),kg(me),.5+(tsum(me)-tsum(op))/2,m.ot?1:m.t>=150?.5:0,q(fr.reduce((a,u)=>a+(pw(u)||0),0)),q(en.reduce((a,u)=>a+(pw(u)||0),0))],e:big?big.c.id:'',eu:ids(en,near),fu:ids(fr,u=>me===0?u.y>=RY+RH:u.y<=RY-RH),el,c:cp>0?{x:cx/cp,y:pY(cy/cp)}:null};
 }
 // ---------- Gedächtnis: viel größer, pro Karte ("Thema") eigenes Fach ----------
 const MEM_CAP=6000,MEM_PER=450,IDLE_CAP=3000;
@@ -2640,19 +2640,19 @@ const ms20=Match.prototype.step;
 Match.prototype.step=function(dt){
  ms20.call(this,dt);
  try{if(this.snd&&!this.A&&!this.over&&S.stu&&this.t>4){this._ia=(this._ia||0)+dt;
-  if(this._ia>=4){this._ia=0;const mc=Math.min(...this.hand[0].map(id=>CARDS[id].cost));
+  if(this._ia>=2){this._ia=0;const mc=Math.min(...this.hand[0].map(id=>CARDS[id].cost));
    if(this.el[0]>=mc&&this.t-(this._lp??-99)>3){const pre=sitInfo(this,0),I=S.stu.idle=S.stu.idle||[];
-    I.push({v:pre.v.map(n=>+n.toFixed(2)),l:this.lesson?1:0});if(I.length>IDLE_CAP)I.splice(0,I.length-IDLE_CAP);}}}}catch(e){}
+    I.push({v:pre.v.map(n=>+n.toFixed(2)),l:this.lesson?1:0,h:this.hand[0].slice()});if(I.length>IDLE_CAP)I.splice(0,I.length-IDLE_CAP);}}}}catch(e){}
 };
 const mp20=Match.prototype.play;
 Match.prototype.play=function(team,hi,x,y){
  let pre=null,id=null;
  if(team===1){try{this._elc=this.hand[1][hi];this._elt=this.t;}catch(e){}}
- try{if(team===0&&this.snd&&!this.A&&!this.over&&S.stu){id=this.hand[0][hi];pre=sitInfo(this,0);}}catch(e){pre=null;}
+ try{if(team===0&&this.snd&&!this.A&&!this.over&&S.stu){id=this.hand[0][hi];pre=sitInfo(this,0);pre.h=this.hand[0].slice();}}catch(e){pre=null;}
  const ok=mp20.call(this,team,hi,x,y);
  if(ok&&pre&&id){try{
   let rel=null;if(pre.c&&Math.hypot(x-pre.c.x,y-pre.c.y)<170)rel=[Math.round(x-pre.c.x),Math.round(y-pre.c.y)];
-  const mem=S.stu.mem;mem.push({c:id,v:pre.v.map(n=>+n.toFixed(2)),e:pre.e,x:Math.round(x),y:Math.round(y),el:+pre.el.toFixed(1),r:rel,l:this.lesson?1:0,eu:pre.eu,fu:pre.fu,tm:Math.round(this.t),pc:(this._lc&&this.t-this._lt<8)?this._lc:null,ec:(this._elc&&this.t-this._elt<8)?this._elc:null});this._lc=id;this._lt=this.t;this._ia=0;
+  const mem=S.stu.mem;mem.push({c:id,h:pre.h,v:pre.v.map(n=>+n.toFixed(2)),e:pre.e,x:Math.round(x),y:Math.round(y),el:+pre.el.toFixed(1),r:rel,l:this.lesson?1:0,eu:pre.eu,fu:pre.fu,tm:Math.round(this.t),pc:(this._lc&&this.t-this._lt<8)?this._lc:null,ec:(this._elc&&this.t-this._elt<8)?this._elc:null});this._lc=id;this._lt=this.t;this._ia=0;
   S.stu.n=(S.stu.n|0)+1;
   const sy=S.stu.sty=S.stu.sty||{n:0,el:0,gap:0,gn:0,L:0,R:0,off:0,def:0,sp:0,tr:0,bl:0};
   sy.n++;sy.el+=pre.el;const pi=Math.round((pre.v[17]||0)*2),P=(sy.ph=sy.ph||{})[pi]=sy.ph[pi]||{n:0,el:0,gap:0,gn:0};P.n++;P.el+=pre.el;
@@ -2668,53 +2668,62 @@ Match.prototype.play=function(team,hi,x,y){
 // Spielen: ähnlichste Erinnerung suchen und nachmachen
 const jc=(a,b)=>{if(!a||!b||(!a.length&&!b.length))return .5;const i=a.filter(x=>b.includes(x)).length;return i/((a.length+b.length-i)||1);};
 function stuAct(br,m,me){
- const st=S.stu;if(!st||!st.mem.length||m.t<3||(br._sT||0)>m.t)return false;
+ const st=S.stu;if(!st||!st.mem.length||m.t<3||((br._sT||0)>m.t&&m.el[me]<9))return false;
  const el=m.el[me],hand=m.hand[me].map((id,i)=>({id,i,c:CARDS[id]})).filter(o=>o.c.cost<=el+1e-6);
  if(!hand.length)return false;
  br._cc=br._cc||{};const cur=sitInfo(m,me);
  const r=stuPick(br,m,me,st,hand,el,cur,false);   // 1. exakt nachmachen, wenn er's kennt
  if(r!=='none')return r===true;
+ // Elixier fast voll und beim Gegner nichts los -> gelernten Angriff erzeugen
+ if(el>=9&&(cur.v[1]+cur.v[2])<.1&&stuPick(br,m,me,st,hand,el,cur,true,true)===true)return true;
  return stuPick(br,m,me,st,hand,el,cur,true)===true; // 2. keine Ahnung -> nächstliegendes spielen
 }
 // loose=false: nur gelernte Karte + strenge Schwellen. loose=true: auch Ersatzkarte, keine Mindestähnlichkeit.
-function stuPick(br,m,me,st,hand,el,cur,loose){
- const curPc=(br._lc&&m.t-br._lt<8)?br._lc:null,curEc=(m._elc&&m.t-m._elt<8)?m._elc:null;const sc={},pb={},sig=.2;
+function stuPick(br,m,me,st,hand,el,cur,loose,atk){
+ const curPc=(br._lc&&m.t-br._lt<8)?br._lc:null,curEc=(m._elc&&m.t-m._elt<8)?m._elc:null;const sc={},pb={},sig=.2,se={},sw={},curH=m.hand[me].slice();
  const NM=st.mem.length;let ri=0;const cph=Math.round((cur.v[17]||0)*2),sub={};
  const pickCard=id=>{ // welche Handkarte vertritt die gelernte Karte?
   if(sub[id]!==undefined)return sub[id];
   let o=hand.find(h=>h.id===id&&(br._cc[h.id]||0)<=m.t),sim=1;
   if(!o&&loose){let bs=0;for(const h of hand){if((br._cc[h.id]||0)>m.t)continue;const q=cardSim(id,h.id);if(q>bs){bs=q;o=h;}}sim=bs;if(sim<.3)o=null;}
   return sub[id]=o?{o,sim}:null;};
- for(const r of st.mem){const rw=.8+.4*(ri++/NM);const pk=pickCard(r.c);if(!pk)continue;const o=pk.o;
+ for(const r of st.mem){const rw=.8+.4*(ri++/NM);const pk=pickCard(r.c);if(!pk)continue;const o=pk.o;if(atk&&!(r.y<RY+40))continue; // atk: nur gelernte Angriffe
   let d=dist2(cur.v,r.v),mir=false;if(r.v[17]!==undefined&&r.v[17]!==cur.v[17])d+=.06;const dm=dist2(mirV(cur.v),r.v);if(dm<d){d=dm;mir=true;}
   if(r.e&&cur.e){d+=r.e===cur.e?-.1:.18;}else if(r.e!==cur.e)d+=.12;
   if(r.pc&&r.pc===curPc)d-=.06;
   if(r.ec&&r.ec===curEc)d-=.1;
   d-=.12*(jc(cur.eu,r.eu)-.5)+.08*(jc(cur.fu,r.fu)-.5);
+  if(r.h)d-=.1*(jc(curH,r.h)-.5); // gleiche Handkarten wie damals
   if(r.l)d*=.72;
   d+=(1-pk.sim)*.25; // Ersatzkarte = etwas weniger sicher
-  sc[o.id]=(sc[o.id]||0)+Math.exp(-(d/sig)*(d/sig))*(r.l?1.5:1)*rw*pk.sim*pk.sim+(loose?1e-6/(1+d):0);
+  const ww=Math.exp(-(d/sig)*(d/sig));
+  sc[o.id]=(sc[o.id]||0)+ww*(r.l?1.5:1)*rw*pk.sim*pk.sim+(loose?1e-6/(1+d):0);
+  if(r.el!=null){se[o.id]=(se[o.id]||0)+ww*pk.sim*r.el;sw[o.id]=(sw[o.id]||0)+ww*pk.sim;}
   if(!pb[o.id]||d<pb[o.id].d)pb[o.id]={d,r,o,mir};}
  let bid=null;for(const k in sc)if(!bid||sc[k]>sc[bid])bid=k;
  const best=bid?pb[bid]:null;
  if(!best)return 'none';
  if(!loose&&(best.d>(best.r.l?.36:.3)||sc[bid]<.5))return 'none';
- {let iw=0;for(const r of (st.idle||[])){let d=dist2(cur.v,r.v);const dm=dist2(mirV(cur.v),r.v);if(dm<d)d=dm;iw+=Math.exp(-(d/sig)*(d/sig))*(r.l?1.5:1);}
-  if(iw*.8>sc[bid]&&!(loose&&el>=9))return 'wait';}
- {const sy=st.sty,P=sy&&sy.ph&&sy.ph[cph];const ae=P&&P.n>=5?P.el/P.n:(sy&&sy.n>=8?sy.el/sy.n:null);if(ae!==null&&el<ae-1.5&&(loose?el<9:best.d>.12))return 'wait';}
- const rl=best.r;let X=rl.x,Y=rl.y;if(best.mir)X=360-X;
- if(rl.r&&cur.c){X=cur.c.x+(best.mir?-rl.r[0]:rl.r[0]);Y=cur.c.y+rl.r[1];}
- let x=clamp(X+rnd(-3,3),8,W-8),y=clamp((me===0?Y:H-Y)+rnd(-3,3),8,H-8);const c=best.o.c;
- if(!m.validAt(me,c,x,y)){y=me===0?Math.max(y,RY+RH+10):Math.min(y,RY-RH-10);if(!m.validAt(me,c,x,y))return loose?'wait':'none';}
- if(m.play(me,best.o.i,x,y)){{const sy=st.sty,P=sy&&sy.ph&&sy.ph[cph];br._sT=m.t+(P&&P.gn>=4?clamp(P.gap/P.gn*.8,.4,5):sy&&sy.gn>=6?clamp(sy.gap/sy.gn*.8/[1,1.6,2.2][cph],.4,5):.9/[1,1.6,2.2][cph]);}br._cc[best.o.id]=m.t+3;br._lc=best.o.id;br._lt=m.t;return true;}
- return 'wait';
+ {let iw=0;for(const r of (st.idle||[])){let d=dist2(cur.v,r.v);const dm=dist2(mirV(cur.v),r.v);if(dm<d)d=dm;if(r.h)d-=.1*(jc(curH,r.h)-.5);iw+=Math.exp(-(d/sig)*(d/sig))*(r.l?1.5:1);}
+  if(iw>0){ // Warten nur, wenn es in dieser Lage häufiger war als Spielen (egal welche Karte)
+   let tot=0;for(const r of st.mem){let d=dist2(cur.v,r.v);const dm=dist2(mirV(cur.v),r.v);if(dm<d)d=dm;tot+=Math.exp(-(d/sig)*(d/sig))*(r.l?1.5:1);}
+   if(iw*.8>tot&&el<9)return 'wait';}} // Elixier fast voll -> nie warten
+ {const sy=st.sty,P=sy&&sy.ph&&sy.ph[cph];const ae=P&&P.n>=5?P.el/P.n:(sy&&sy.n>=8?sy.el/sy.n:null);if(ae!==null&&el<ae-1.5&&el<9&&(loose||best.d>.12))return 'wait';}
+ {const w0=sw[bid]||0;if(w0>=.3&&el<9&&el<se[bid]/w0-1.2)return 'wait';} // Sparen: erst spielen, wenn er so viel Elixier hat wie du in so einer Lage
+ const order=Object.keys(sc).sort((a,b)=>sc[b]-sc[a]).slice(0,4);
+ for(const k of order){const bt=pb[k],rl=bt.r;let X=rl.x,Y=rl.y;if(bt.mir)X=360-X;
+  if(rl.r&&cur.c){X=cur.c.x+(bt.mir?-rl.r[0]:rl.r[0]);Y=cur.c.y+rl.r[1];}
+  let x=clamp(X+rnd(-3,3),8,W-8),y=clamp((me===0?Y:H-Y)+rnd(-3,3),8,H-8);const c=bt.o.c;
+  if(!m.validAt(me,c,x,y)){y=me===0?Math.max(y,RY+RH+10):Math.min(y,RY-RH-10);if(!m.validAt(me,c,x,y))continue;}
+  if(m.play(me,bt.o.i,x,y)){{const sy=st.sty,P=sy&&sy.ph&&sy.ph[cph];br._sT=m.t+(P&&P.gn>=4?clamp(P.gap/P.gn*.8,.4,5):sy&&sy.gn>=6?clamp(sy.gap/sy.gn*.8/[1,1.6,2.2][cph],.4,5):.9/[1,1.6,2.2][cph]);}br._cc[bt.o.id]=m.t+3;br._lc=bt.o.id;br._lt=m.t;return true;}}
+ return loose?'wait':'none';
 }
 const emerg=(m,me)=>{try{const c=sitInfo(m,me),th=c.v[1]+c.v[2],lo=c.v[13]<.35||c.v[14]<.35;return c.v[0]*10>=5&&(th>.9||(lo&&th>.4));}catch(e){return false;}};
 const pf20=World.prototype.profile;
 World.prototype.profile=function(b){
  const p=pf20.call(this,b);
  if(b&&b.stu&&p&&p.brain){const br=p.brain;br.stu=true;
-  br.think=function(m,me){try{stuAct(this,m,me);}catch(e){}};}
+  const base=br.think;br.think=function(m,me){try{if(!S.stu||!S.stu.mem.length)return base.call(this,m,me);stuAct(this,m,me);}catch(e){}};}
  return p;
 };
 const wu20=World.prototype.update;
