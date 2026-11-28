@@ -1121,7 +1121,7 @@ const ACT={
  slot(el){S.deck[+el.dataset.i]=el.dataset.id;save();closeModal();lastHTML.tab='';renderTab();toast('Deck aktualisiert');},
  chest(el){const i=+el.dataset.i,ch=S.chests[i];if(!ch)return;const now=Date.now(),C=CHESTS[ch.type];
   if(ch.ready||(ch.at&&now>=ch.at)){S.chests[i]=null;const r=openChest(S,ch.type);save();renderTab();
-   showModal(`<h2>${C.i} ${C.n}</h2><div style="text-align:center;font-size:22px;font-weight:900;margin:8px">🪙 +${r.gold}</div><div class="slotrow">${r.cards.map(k=>`<div style="text-align:center">${cardHTML(k.id,0)}<div style="font-weight:900">×${k.n}${k.isNew?'<br><span style="color:#ffd75e">NEU!</span>':''}</div></div>`).join('')}</div><button class="btn green" style="width:100%" data-act="close">Super!</button>`);sfx(660,.2,'triangle',.06,500);}
+   showModal(`<h2>${C.i} ${C.n}</h2><div style="text-align:center;font-size:22px;font-weight:900;margin:8px">🪙 +${r.gold}${r.gems?' &nbsp; 💎 +'+r.gems:''}</div><div class="slotrow">${r.cards.map(k=>`<div style="text-align:center">${cardHTML(k.id,0)}<div style="font-weight:900">×${k.n}${k.isNew?'<br><span style="color:#ffd75e">NEU!</span>':''}</div></div>`).join('')}</div><button class="btn green" style="width:100%" data-act="close">Super!</button>`);sfx(660,.2,'triangle',.06,500);}
   else if(ch.at)toast('Wird noch geöffnet …');
   else if(S.chests.some(c=>c&&c.at&&!c.ready))toast('Es wird schon eine Truhe geöffnet');
   else{ch.at=now+C.t*1000;save();renderTab();}},
@@ -2536,7 +2536,7 @@ globalThis.specialChests=function(){
   :`<div class="chest"><div class="ci">👑</div><div>Kronentruhe</div><div>${c.n}/10 ♛</div></div>`;
  return`<div class="chests" style="grid-template-columns:1fr 1fr">${fh}${ch}</div>`;
 };
-function loot(type,r){const C=CHESTS[type];showModal(`<h2>${C.i} ${C.n}</h2><div style="text-align:center;font-size:22px;font-weight:900;margin:8px">🪙 +${r.gold}</div><div class="slotrow">${r.cards.map(k=>`<div style="text-align:center">${cardHTML(k.id,0)}<div style="font-weight:900">×${k.n}${k.isNew?'<br><span style="color:#ffd75e">NEU!</span>':''}</div></div>`).join('')}</div><button class="btn green" style="width:100%" data-act="close">Super!</button>`);sfx(660,.2,'triangle',.06,500);}
+function loot(type,r){const C=CHESTS[type];showModal(`<h2>${C.i} ${C.n}</h2><div style="text-align:center;font-size:22px;font-weight:900;margin:8px">🪙 +${r.gold}${r.gems?' &nbsp; 💎 +'+r.gems:''}</div><div class="slotrow">${r.cards.map(k=>`<div style="text-align:center">${cardHTML(k.id,0)}<div style="font-weight:900">×${k.n}${k.isNew?'<br><span style="color:#ffd75e">NEU!</span>':''}</div></div>`).join('')}</div><button class="btn green" style="width:100%" data-act="close">Super!</button>`);sfx(660,.2,'triangle',.06,500);}
 
 // ---------- 2. Bot-Stimmung (Führung / Rückstand / schwache Türme) je nach Spielstil ----------
 const AH={turtle:1.5,schwer:1.1,beat:1.1,control:1.3,siege:1.3,punish:1.2,allround:1,air:1,swarm:.9,zange:.8,billig:.8,spam:.5,rush:.55,chaos:1};
@@ -2786,7 +2786,7 @@ const nav=$('#nav'),nb=document.createElement('button');nb.dataset.act='tab';nb.
 nav.insertBefore(nb,nav.querySelector('[data-t="clan"]')||null);
 
 Object.assign(ACT,{
- freeChest(){const f=fre();if(Date.now()<f.at)return toast('Noch nicht bereit');f.at=Date.now()+D4;const r=openChest(S,'free');save();renderTab();loot('free',r);},
+ freeChest(){const f=fre();if(Date.now()<f.at){const c=Math.max(1,Math.ceil((f.at-Date.now())/9e5));if((S.gems|0)<c)return toast('Noch nicht bereit · Sofort: '+c+' 💎 nötig');S.gems-=c;}f.at=Date.now()+D4;const r=openChest(S,'free');save();renderTab();loot('free',r);},
  crownChest(){const c=crw();if(c.got||c.n<10)return;c.got=true;const r=openChest(S,'crown');save();renderTab();loot('crown',r);},
  stuCreate(){
   if(S.stu&&stuBot())return toast('Du hast schon einen Schüler');S.stu=null;
@@ -2899,8 +2899,8 @@ openChest=function(a,type){
  return{gold,cards};
 };
 function loot(type,r){const C=CHESTS[type];
- showModal(`<h2 style="color:${COL[type]}">${C.n}</h2><div style="text-align:center">${chestSVG(type,86)}</div><div style="text-align:center;font-size:22px;font-weight:900;margin:8px">🪙 +${r.gold}</div><div class="slotrow">${r.cards.map(k=>`<div style="text-align:center">${cardHTML(k.id,0)}<div style="font-weight:900">×${k.n}${k.isNew?'<br><span style="color:#ffd75e">NEU!</span>':''}</div></div>`).join('')}</div><button class="btn green" style="width:100%" data-act="close">Super!</button>`);sfx(660,.2,'triangle',.06,500);}
-function skipCost(ch){const C=CHESTS[ch.type],rem=ch.at?Math.max(0,(ch.at-Date.now())/1000):C.t;return Math.max(1,Math.ceil(rem/120));}
+ showModal(`<h2 style="color:${COL[type]}">${C.n}</h2><div style="text-align:center">${chestSVG(type,86)}</div><div style="text-align:center;font-size:22px;font-weight:900;margin:8px">🪙 +${r.gold}${r.gems?' &nbsp; 💎 +'+r.gems:''}</div><div class="slotrow">${r.cards.map(k=>`<div style="text-align:center">${cardHTML(k.id,0)}<div style="font-weight:900">×${k.n}${k.isNew?'<br><span style="color:#ffd75e">NEU!</span>':''}</div></div>`).join('')}</div><button class="btn green" style="width:100%" data-act="close">Super!</button>`);sfx(660,.2,'triangle',.06,500);}
+function skipCost(ch){const C=CHESTS[ch.type],rem=ch.at?Math.max(0,(ch.at-Date.now())/1000):C.t;return Math.max(1,Math.ceil(rem/900));}
 function openSlot(i){const ch=S.chests[i];if(!ch)return;S.chests[i]=null;const r=openChest(S,ch.type);save();closeModal();renderTab();loot(ch.type,r);}
 function infoModal(i){
  const ch=S.chests[i],C=CHESTS[ch.type],run=ch.at&&Date.now()<ch.at,busy=S.chests.some(c=>c&&c.at&&Date.now()<c.at);
@@ -2908,13 +2908,13 @@ function infoModal(i){
  for(const[r,lo,hi,p]of rows){avg+=p*(lo+hi)/2;if(p>=1)gu[r]=(gu[r]||0)+1;else chn.push(`${RN[r]}: ${Math.round(p*100)} %`);}
  const g=Object.keys(gu).map(r=>`${RN[r]} ×${gu[r]}`).join(', ');
  const btn=run?'':busy?'<div class="stat" style="margin:8px 0">Es wird schon eine Truhe freigeschaltet.</div>':`<button class="btn blue" style="width:100%;margin-top:8px" data-act="chestStart" data-i="${i}">Freischalten · ${fdur(C.t)}</button>`;
- showModal(`<h2 style="color:${COL[ch.type]}">${C.n}</h2><div style="text-align:center">${chestSVG(ch.type,80)}</div><table class="cinfo" style="width:100%"><tr><td>Häufigkeit</td><td>${FREQ[ch.type]}</td></tr><tr><td>Dauer</td><td>${fdur(C.t)}</td></tr><tr><td>Gold</td><td>🪙 ${C.g[0]}–${C.g[1]}</td></tr><tr><td>Karten (Ø)</td><td>~${Math.round(avg)}</td></tr><tr><td>Garantiert</td><td>${g}</td></tr>${chn.length?`<tr><td>Chance</td><td>${chn.join('<br>')}</td></tr>`:''}</table>${run?`<div class="stat" style="margin:8px 0">Noch ${fdur((ch.at-Date.now())/1000)}</div>`:''}${btn}<button class="btn red" style="width:100%;margin-top:8px" data-act="chestSkip" data-i="${i}">⚡ Sofort öffnen · ${skipCost(ch)} 🪙</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Schließen</button>`);
+ showModal(`<h2 style="color:${COL[ch.type]}">${C.n}</h2><div style="text-align:center">${chestSVG(ch.type,80)}</div><table class="cinfo" style="width:100%"><tr><td>Häufigkeit</td><td>${FREQ[ch.type]}</td></tr><tr><td>Dauer</td><td>${fdur(C.t)}</td></tr><tr><td>Gold</td><td>🪙 ${C.g[0]}–${C.g[1]}</td></tr><tr><td>Karten (Ø)</td><td>~${Math.round(avg)}</td></tr><tr><td>Garantiert</td><td>${g}</td></tr>${chn.length?`<tr><td>Chance</td><td>${chn.join('<br>')}</td></tr>`:''}</table>${run?`<div class="stat" style="margin:8px 0">Noch ${fdur((ch.at-Date.now())/1000)}</div>`:''}${btn}<button class="btn red" style="width:100%;margin-top:8px" data-act="chestSkip" data-i="${i}">⚡ Sofort öffnen · ${skipCost(ch)} 💎</button><button class="btn" style="width:100%;margin-top:8px" data-act="close">Schließen</button>`);
 }
 Object.assign(ACT,{
  chest(el){const i=+el.dataset.i,ch=S.chests[i];if(!ch)return;if(ch.ready||(ch.at&&Date.now()>=ch.at))return openSlot(i);infoModal(i);},
  chestStart(el){const i=+el.dataset.i,ch=S.chests[i];if(!ch||ch.at)return;if(S.chests.some(c=>c&&c.at&&Date.now()<c.at))return toast('Es wird schon eine Truhe geöffnet');ch.at=Date.now()+CHESTS[ch.type].t*1000;save();closeModal();renderTab();},
- chestSkip(el){const i=+el.dataset.i,ch=S.chests[i];if(!ch)return;const c=skipCost(ch);if(S.gold<c)return toast('Nicht genug Gold');S.gold-=c;openSlot(i);},
- freeChest(){const f=fre();if(Date.now()<f.at)return toast('Noch nicht bereit');f.at=Date.now()+D4;const r=openChest(S,'free');save();renderTab();loot('free',r);},
+ chestSkip(el){const i=+el.dataset.i,ch=S.chests[i];if(!ch)return;const c=skipCost(ch);if((S.gems|0)<c)return toast('Nicht genug Juwelen 💎');S.gems-=c;openSlot(i);},
+ freeChest(){const f=fre();if(Date.now()<f.at){const c=Math.max(1,Math.ceil((f.at-Date.now())/9e5));if((S.gems|0)<c)return toast('Noch nicht bereit · Sofort: '+c+' 💎 nötig');S.gems-=c;}f.at=Date.now()+D4;const r=openChest(S,'free');save();renderTab();loot('free',r);},
  crownChest(){const c=crw();if(c.got||c.n<10)return;c.got=true;const r=openChest(S,'crown');save();renderTab();loot('crown',r);}
 });
 })();
@@ -3013,4 +3013,27 @@ const ra3=ACT.resetAll;ACT.resetAll=function(...a){S.ch=null;S.shop=null;S.fw=0;
 })();
 
 renderTab();requestAnimationFrame(frame);
+
+// === PATCH: Juwelen & Gold-Design ===
+(function(){
+const GEMS={wood:[0,1],silver:[1,2],gold:[3,6],giant:[6,10],magic:[12,20],super:[30,50],free:[0,2],crown:[2,4]};
+const coin=z=>`<svg class="ic" style="width:${z}px;height:${z}px" viewBox="0 0 24 24"><defs><radialGradient id="gcA" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#fff6b0"/><stop offset=".45" stop-color="#ffd23a"/><stop offset="1" stop-color="#b87400"/></radialGradient></defs><circle cx="12" cy="12" r="10.5" fill="url(#gcA)" stroke="#8a5600" stroke-width="1.5"/><circle cx="12" cy="12" r="7.3" fill="none" stroke="#fff3a0" stroke-opacity=".85" stroke-width="1.2"/><path d="M9.6 9.4Q12 7 14.4 9.4M9.6 14.6Q12 17 14.4 14.6M12 7.4v9.2" fill="none" stroke="#9a6200" stroke-width="1.6" stroke-linecap="round"/></svg>`;
+const gem=z=>`<svg class="ic" style="width:${z}px;height:${z}px" viewBox="0 0 24 24"><defs><linearGradient id="gmA" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#b9fbff"/><stop offset=".5" stop-color="#3fb4ff"/><stop offset="1" stop-color="#2a3fd0"/></linearGradient></defs><path d="M6 3h12l4.5 6L12 22 1.5 9z" fill="url(#gmA)" stroke="#173a8a" stroke-width="1.4" stroke-linejoin="round"/><path d="M1.5 9h21M8.5 9L12 22l3.5-13M6 3l2.5 6L12 3l3.5 6L18 3" fill="none" stroke="#e6fbff" stroke-opacity=".75" stroke-width=".9"/></svg>`;
+const st=document.createElement('style');
+st.textContent=`.pill.pg,.pill.pj{display:inline-flex;align-items:center;gap:5px;position:relative;overflow:hidden;font-weight:900;letter-spacing:.3px}
+.pill.pg{background:linear-gradient(#6b4600,#2b1b00);border:1.5px solid #ffd75e;color:#ffe48a;text-shadow:0 1px 0 #000b;box-shadow:inset 0 1px 0 #fff7,inset 0 -3px 6px #0006,0 0 10px #ffc83a55}
+.pill.pj{background:linear-gradient(#2c3a9a,#101a52);border:1.5px solid #8fd8ff;color:#bff1ff;text-shadow:0 1px 0 #000b;box-shadow:inset 0 1px 0 #fff7,inset 0 -3px 6px #0006,0 0 10px #4fb4ff55}
+.pill.pg::after,.pill.pj::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;background:linear-gradient(100deg,transparent,#fff5,transparent);transform:skewX(-20deg);animation:shn 4.5s infinite}
+.pill.pj::after{animation-delay:2s}
+@keyframes shn{0%,70%{left:-60%}100%{left:130%}}
+.ic{display:inline-block;vertical-align:middle;filter:drop-shadow(0 1px 1px #0008)}`;
+document.head.appendChild(st);
+renderTop=function(){
+ setHTML($('#top'),`<div class="av">👑<span class="lvb">${S.lvl}</span></div><div class="nm"><b>${S.name}</b><div class="xp"><i style="width:${S.lvl>=13?100:Math.min(100,S.xp/XPT[S.lvl-1]*100)}%"></i></div></div><div class="pill">🏆 ${S.trophies}</div><div class="pill pg">${coin(18)}${S.gold}</div><div class="pill pj">${gem(18)}${S.gems|0}</div><div class="pill" data-act="mute" style="cursor:pointer">${S.mute?'🔇':'🔊'}</div>`,'top');
+};
+const oc=openChest;
+openChest=function(a,type){const r=oc(a,type);if(a===S){const g=GEMS[type]||[0,0],n=g[0]+Math.floor(Math.random()*(g[1]-g[0]+1));S.gems=(S.gems|0)+n;r.gems=n;}return r;};
+const mr=matchReward;
+matchReward=function(a,res,crowns){const r=mr(a,res,crowns);if(a===S&&res>0){const n=crowns>=3?3:crowns>=2?2:1;S.gems=(S.gems|0)+n;r.gems=n;setTimeout(()=>toast('💎 +'+n+' Juwelen'),900);}return r;};
+})();
 </script></body></html>
